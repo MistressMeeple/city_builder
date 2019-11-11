@@ -144,7 +144,6 @@ public class CameraControlHandler {
 				Float s = yaw.getWrapped();
 				if (s != null) {
 					arm.yaw += s;
-					System.out.println(arm.yaw + " " + s);
 					process(yaw, 1.5f);
 				}
 			}

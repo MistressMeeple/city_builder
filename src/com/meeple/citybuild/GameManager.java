@@ -20,7 +20,11 @@ import org.joml.Vector3f;
 import com.meeple.citybuild.LevelData.Chunk;
 import com.meeple.citybuild.LevelData.Chunk.Tile;
 import com.meeple.shared.Delta;
+import com.meeple.shared.Tickable;
 import com.meeple.shared.frame.FrameUtils;
+import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
+import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
+import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 import com.meeple.shared.frame.wrapper.Wrapper;
 import com.meeple.shared.frame.wrapper.WrapperImpl;
 
@@ -142,7 +146,7 @@ public abstract class GameManager {
 
 	}
 
-	public synchronized void pauseGame() {
+	public  void pauseGame() {
 		if (level == null) {
 			logger.error("No game loaded. cannot pause game");
 			return;
@@ -152,7 +156,7 @@ public abstract class GameManager {
 		}
 	}
 
-	public synchronized void resumeGame() {
+	public  void resumeGame() {
 		if (level == null) {
 			logger.error("No game loaded. cannot resume game");
 			return;
@@ -165,7 +169,7 @@ public abstract class GameManager {
 		}
 	}
 
-	public synchronized void quitGame() {
+	public  void quitGame() {
 		if (level == null) {
 			logger.error("No game loaded. cannot quit game");
 			return;
@@ -242,7 +246,6 @@ public abstract class GameManager {
 		return result;
 	}
 
-	public abstract void renderGame();
 
 	public abstract void levelTick(Delta delta);
 

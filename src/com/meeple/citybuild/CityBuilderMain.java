@@ -19,7 +19,6 @@ import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.joml.Math;
-import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 import org.lwjgl.glfw.GLFW;
@@ -40,12 +39,7 @@ import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.GLFWManager;
 import com.meeple.shared.frame.OGL.KeyInputSystem;
 import com.meeple.shared.frame.OGL.ShaderProgram;
-import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
-import com.meeple.shared.frame.OGL.ShaderProgram.BufferType;
-import com.meeple.shared.frame.OGL.ShaderProgram.BufferUsage;
-import com.meeple.shared.frame.OGL.ShaderProgram.GLDataType;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
-import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
 import com.meeple.shared.frame.OGL.UniformManager;
 import com.meeple.shared.frame.camera.VPMatrixSystem;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
@@ -68,6 +62,13 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 	static String LevelFolder = "saves/";
 	static String LevelExt = ".sv";
 	//	private static String normalLayout = "[%d{HH:mm:ss:SSS}][%r]][%t][%p][%c] %m%n";
+
+	private static Supplier<Set<Tickable>> syncSetSupplier = new Supplier<Set<Tickable>>() {
+		@Override
+		public Set<Tickable> get() {
+			return Collections.synchronizedSet(new HashSet<>());
+		}
+	};
 
 	public static void main(String[] args) throws Exception {
 
@@ -119,14 +120,9 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		NkContextSingleton nkContext = new NkContextSingleton();
 		ClientOptionSystem optionsSystem = new ClientOptionSystem();
 
-		ShaderProgram mainProgram = new ShaderProgram();
-		ShaderProgram program = new ShaderProgram();
-		ShaderProgram uiProgram = new ShaderProgram();
-
 		setupWindow(window, keyInput, nkContext, optionsSystem);
 		Map<WindowState, Set<Tickable>> stateRendering = new HashMap<>();
 
-		LevelRenderer levelRenderer = new LevelRenderer();
 		VPMatrix vpMatrix = new VPMatrix();
 		CameraSpringArm arm = vpMatrix.view.getWrapped().springArm;
 		ProjectionMatrix ortho = new ProjectionMatrix();
@@ -142,118 +138,10 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 			}
 		};
 
-		Supplier<Set<Tickable>> syncSetSupplier = new Supplier<Set<Tickable>>() {
-			@Override
-			public Set<Tickable> get() {
-				return Collections.synchronizedSet(new HashSet<>());
-			}
-		};
-
 		FrameUtils.addToSetMap(stateRendering, WindowState.Menu, this::renderMenu, syncSetSupplier);
 		FrameUtils.addToSetMap(stateRendering, WindowState.Loading, this::renderLoading, syncSetSupplier);
-		float size = 0.95f;
-		float cube_strip[] = {
-			-size, size, size, // Front-top-left
-			size, size, size, // Front-top-right
-			-size, -size, size, // Front-bottom-left
-			size, -size, size, // Front-bottom-right
-			size, -size, -size, // Back-bottom-right
-			size, size, size, // Front-top-right
-			size, size, -size, // Back-top-right
-			-size, size, size, // Front-top-left
-			-size, size, -size, // Back-top-left
-			-size, -size, size, // Front-bottom-left
-			-size, -size, -size, // Back-bottom-left
-			size, -size, -size, // Back-bottom-right
-			-size, size, -size, // Back-top-left
-			size, size, -size // Back-top-right
-		};
-		Mesh cube = new Mesh();
-
-		Attribute vertexAttrib = new Attribute();
-		vertexAttrib.name = "position";
-		vertexAttrib.bufferType = BufferType.ArrayBuffer;
-		vertexAttrib.dataType = GLDataType.Float;
-		vertexAttrib.bufferUsage = BufferUsage.StreamDraw;
-		vertexAttrib.dataSize = 3;
-		vertexAttrib.normalised = false;
-		cube.VBOs.add(vertexAttrib);
-
-		Attribute colourAttrib = new Attribute();
-		colourAttrib.name = "colour";
-		colourAttrib.bufferType = BufferType.ArrayBuffer;
-		colourAttrib.dataType = GLDataType.Float;
-		colourAttrib.bufferUsage = BufferUsage.StreamDraw;
-		colourAttrib.dataSize = 4;
-		colourAttrib.normalised = false;
-		colourAttrib.instanced = true;
-		colourAttrib.instanceStride = 1;
-		cube.VBOs.add(colourAttrib);
-
-		Attribute translationAttrib = new Attribute();
-		translationAttrib.name = "modelMatrix";
-		translationAttrib.bufferType = BufferType.ArrayBuffer;
-		translationAttrib.dataType = GLDataType.Float;
-		translationAttrib.bufferUsage = BufferUsage.StreamDraw;
-		translationAttrib.dataSize = 16;
-		translationAttrib.normalised = false;
-		translationAttrib.instanced = true;
-		translationAttrib.instanceStride = 1;
-		cube.VBOs.add(translationAttrib);
-
-		cube.vertexCount = cube_strip.length;
-		cube.modelRenderType = GLDrawMode.TriangleStrip;
-		for (float f : cube_strip) {
-			vertexAttrib.data.add(f);
-		}
-		for (int i = 0; i < 4; i++) {
-			Matrix4f matrix = new Matrix4f();
-			matrix.translate(i, 0, 0f);
-			Vector4f colour = new Vector4f(0, 0, 1, 1);
-
-			FrameUtils.appendToList(colourAttrib.data, colour);
-			FrameUtils.appendToList(translationAttrib.data, matrix);
-			cube.renderCount += 1;
-
-		}
-		VPMatrixSystem vpSystem = new VPMatrixSystem();
-		Wrapper<UniformManager<String[], Integer[]>.Uniform<VPMatrix>> puW = new WrapperImpl<>();
-		Wrapper<UniformManager<String, Integer>.Uniform<ProjectionMatrix>> uipuW = new WrapperImpl<>();
-		Wrapper<UniformManager<String[], Integer[]>.Uniform<VPMatrix>> mpuW = new WrapperImpl<>();
-		window.events.postCreation.add(() -> {
-
-			vpMatrix.proj.getWrapped().window = window;
-			vpMatrix.proj.getWrapped().FOV = 90;
-			vpMatrix.proj.getWrapped().nearPlane = 0.001f;
-			vpMatrix.proj.getWrapped().farPlane = 10000f;
-			vpMatrix.proj.getWrapped().orthoAspect = 10f;
-			vpMatrix.proj.getWrapped().perspectiveOrOrtho = true;
-			vpMatrix.proj.getWrapped().scale = 1f;
-
-			ortho.window = window;
-			ortho.FOV = 90;
-			ortho.nearPlane = 0.001f;
-			ortho.farPlane = 10000f;
-			ortho.orthoAspect = 10f;
-			ortho.perspectiveOrOrtho = false;
-			ortho.scale = 1f;
-
-			puW.setWrapped(levelRenderer.setupWorldProgram(program, vpSystem, vpMatrix));
-			uipuW.setWrapped(levelRenderer.setupUIProgram(uiProgram, vpSystem.projSystem, ortho));
-			mpuW.setWrapped(levelRenderer.setupMainProgram(mainProgram, vpSystem, vpMatrix));
-			RenderingMain.system.loadVAO(mainProgram, cube);
-
-		});
 		window.events.preCleanup.add(() -> {
-
-			executorService.shutdown();
-			try {
-				executorService.awaitTermination(10l, TimeUnit.SECONDS);
-			} catch (InterruptedException err) {
-				logger.trace("interupted while waiting termination of executor service. normally fine");
-			}
-			executorService.shutdownNow();
-
+			shutdownService(executorService);
 		});
 
 		Consumer<String> levelSelect = (fileName) -> {
@@ -277,7 +165,6 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 				}
 				executorService.execute(() -> {
 					startGame();
-
 				});
 				setWindowState(window, WindowState.Game_Running);
 
@@ -288,72 +175,9 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 		try (GLFWManager glManager = new GLFWManager(); WindowManager windowManager = new WindowManager()) {
 			RayHelper rh = new RayHelper();
-			Tickable tick = CameraControlHandler.handlePitchingTick(window, ortho, arm);
-			FrameUtils
-				.addToSetMap(
-					stateRendering,
-					WindowState.Game_Running,
-					(time) -> {
-						vpSystem.preMult(vpMatrix);
-						RenderingMain.system.queueUniformUpload(program, RenderingMain.multiUpload, puW.getWrapped(), vpMatrix);
-						RenderingMain.system.queueUniformUpload(mainProgram, RenderingMain.multiUpload, mpuW.getWrapped(), vpMatrix);
-						//TODO change line thickness
-						GL46.glLineWidth(3f);
-						GL46.glPointSize(3f);
-						keyInput.tick(window.mousePressTicks, window.mousePressMap, time.nanos);
-						keyInput.tick(window.keyPressTicks, window.keyPressMap, time.nanos);
-						if (level != null) {
 
-							CameraControlHandler.handlePanningTick(window, ortho, vpMatrix.view.getWrapped(), cameraAnchorEntity);
-							tick.apply(time);
-							{
-								long mouseLeftClick = window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
-								if (mouseLeftClick > 0) {
-									Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, window, vpMatrix.proj.getWrapped(), vpMatrix.view.getWrapped());
-									rh
-										.update(
-											new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z),
-											new Vector3f(vpMatrix.view.getWrapped().position),
-											this);
-									Tile tile = rh.getCurrentTile();
-									if (tile != null) {
-										tile.type = TileTypes.Other;
-									}
-									Vector3f c = rh.getCurrentTerrainPoint();
-									if (c != null) {
-
-										Vector4f colour = new Vector4f(1, 0, 0, 1);
-										MeshExt m = new MeshExt();
-										WorldRenderer.setupDiscardMesh3D(m, 1);
-
-										m.positionAttrib.data.add(c.x);
-										m.positionAttrib.data.add(c.y);
-										m.positionAttrib.data.add(c.z + 1f);
-
-										m.colourAttrib.data.add(colour.x);
-										m.colourAttrib.data.add(colour.y);
-										m.colourAttrib.data.add(colour.z);
-										m.colourAttrib.data.add(colour.w);
-										m.mesh.name = "model";
-										m.mesh.modelRenderType = GLDrawMode.Points;
-										m.mesh.singleFrameDiscard = false;
-										RenderingMain.system.loadVAO(program, m.mesh);
-									}
-								}
-							}
-
-							//TODO level clear colour
-							window.clearColour.set(0f, 0f, 0f, 1f);
-							levelRenderer.preRender(level, vpMatrix, program);
-							CameraControlHandler.preRenderMouseUI(window, ortho, uiProgram).apply(time);
-						}
-						RenderingMain.system.render(program);
-						RenderingMain.system.render(uiProgram);
-						//this is the cube test rendering program
-						//						RenderingMain.system.render(mainProgram);
-						return false;
-					},
-					syncSetSupplier);
+			Tickable t = renderGame(window, vpMatrix, cameraAnchorEntity, ortho, rh, keyInput);
+			FrameUtils.addToSetMap(stateRendering, WindowState.Game_Running, t, syncSetSupplier);
 
 			clientQuitCounter.incrementAndGet();
 			NuklearMenuSystem menuSystem = new NuklearMenuSystem();
@@ -426,18 +250,35 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 			start(windowManager, window, nkContext, clientQuitCounter, executorService);
 
 		}
+		shutdownService(executorService);
 		logger.info("closing client now!");
 
+	}
+
+	private void shutdownService(ExecutorService executorService) {
+
+		if (!executorService.isShutdown()) {
+			executorService.shutdown();
+			//try to shut peacefully
+			while (!executorService.isShutdown()) {
+				try {
+					executorService.awaitTermination(1l, TimeUnit.SECONDS);
+				} catch (InterruptedException err) {
+				}
+				//forcefully shutdown
+				executorService.shutdownNow();
+			}
+		}
 	}
 
 	@Override
 	public WindowState onWindowStateChange(WindowState oldState, WindowState newState) {
 		logger.trace(oldState + " " + newState);
 		if (newState == WindowState.Game_Pause) {
-			//			pauseGame();
+			pauseGame();
 		}
 		if (newState == WindowState.Game_Running) {
-			//			resumeGame();
+			resumeGame();
 		}
 		if (newState == WindowState.Menu || newState == WindowState.Close) {
 			quitGame();
@@ -446,10 +287,105 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 	}
 
-	@Override
-	public void renderGame() {
-		// TODO Auto-generated method stub
+	public Tickable renderGame(ClientWindow window, VPMatrix vpMatrix, Entity cameraAnchorEntity, ProjectionMatrix ortho, RayHelper rh, KeyInputSystem keyInput) {
 
+		//		ShaderProgram mainProgram = new ShaderProgram();
+		ShaderProgram program = new ShaderProgram();
+		ShaderProgram uiProgram = new ShaderProgram();
+
+		VPMatrixSystem vpSystem = new VPMatrixSystem();
+		LevelRenderer levelRenderer = new LevelRenderer();
+
+		Wrapper<UniformManager<String[], Integer[]>.Uniform<VPMatrix>> puW = new WrapperImpl<>();
+		Wrapper<UniformManager<String, Integer>.Uniform<ProjectionMatrix>> uipuW = new WrapperImpl<>();
+		Wrapper<UniformManager<String[], Integer[]>.Uniform<VPMatrix>> mpuW = new WrapperImpl<>();
+
+		vpMatrix.proj.getWrapped().window = window;
+		vpMatrix.proj.getWrapped().FOV = 90;
+		vpMatrix.proj.getWrapped().nearPlane = 0.001f;
+		vpMatrix.proj.getWrapped().farPlane = 10000f;
+		vpMatrix.proj.getWrapped().orthoAspect = 10f;
+		vpMatrix.proj.getWrapped().perspectiveOrOrtho = true;
+		vpMatrix.proj.getWrapped().scale = 1f;
+
+		ortho.window = window;
+		ortho.FOV = 90;
+		ortho.nearPlane = 0.001f;
+		ortho.farPlane = 10000f;
+		ortho.orthoAspect = 10f;
+		ortho.perspectiveOrOrtho = false;
+		ortho.scale = 1f;
+		CameraSpringArm arm = vpMatrix.view.getWrapped().springArm;
+		window.events.postCreation.add(() -> {
+
+
+			puW.setWrapped(levelRenderer.setupWorldProgram(program, vpSystem, vpMatrix));
+			uipuW.setWrapped(levelRenderer.setupUIProgram(uiProgram, vpSystem.projSystem, ortho));
+			/*mpuW.setWrapped(levelRenderer.setupMainProgram(mainProgram, vpSystem, vpMatrix));
+			RenderingMain.system.loadVAO(mainProgram, cube);*/
+
+		});
+		Tickable tick = CameraControlHandler.handlePitchingTick(window, ortho, arm);
+		return (time) -> {
+			vpSystem.preMult(vpMatrix);
+			RenderingMain.system.queueUniformUpload(program, RenderingMain.multiUpload, puW.getWrapped(), vpMatrix);
+			//			RenderingMain.system.queueUniformUpload(mainProgram, RenderingMain.multiUpload, mpuW.getWrapped(), vpMatrix);
+			//TODO change line thickness
+			GL46.glLineWidth(3f);
+			GL46.glPointSize(3f);
+			keyInput.tick(window.mousePressTicks, window.mousePressMap, time.nanos);
+			keyInput.tick(window.keyPressTicks, window.keyPressMap, time.nanos);
+			if (level != null) {
+
+				CameraControlHandler.handlePanningTick(window, ortho, vpMatrix.view.getWrapped(), cameraAnchorEntity);
+				tick.apply(time);
+				{
+					long mouseLeftClick = window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
+					if (mouseLeftClick > 0) {
+						Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, window, vpMatrix.proj.getWrapped(), vpMatrix.view.getWrapped());
+						rh
+							.update(
+								new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z),
+								new Vector3f(vpMatrix.view.getWrapped().position),
+								this);
+						Tile tile = rh.getCurrentTile();
+						if (tile != null) {
+							tile.type = TileTypes.Other;
+						}
+						Vector3f c = rh.getCurrentTerrainPoint();
+						if (c != null) {
+
+							Vector4f colour = new Vector4f(1, 0, 0, 1);
+							MeshExt m = new MeshExt();
+							WorldRenderer.setupDiscardMesh3D(m, 1);
+
+							m.positionAttrib.data.add(c.x);
+							m.positionAttrib.data.add(c.y);
+							m.positionAttrib.data.add(c.z + 1f);
+
+							m.colourAttrib.data.add(colour.x);
+							m.colourAttrib.data.add(colour.y);
+							m.colourAttrib.data.add(colour.z);
+							m.colourAttrib.data.add(colour.w);
+							m.mesh.name = "model";
+							m.mesh.modelRenderType = GLDrawMode.Points;
+							m.mesh.singleFrameDiscard = false;
+							RenderingMain.system.loadVAO(program, m.mesh);
+						}
+					}
+				}
+
+				//TODO level clear colour
+				window.clearColour.set(0f, 0f, 0f, 1f);
+				levelRenderer.preRender(level, vpMatrix, program);
+				CameraControlHandler.preRenderMouseUI(window, ortho, uiProgram).apply(time);
+			}
+			RenderingMain.system.render(program);
+			RenderingMain.system.render(uiProgram);
+			//this is the cube test rendering program
+			//						RenderingMain.system.render(mainProgram);
+			return false;
+		};
 	}
 
 	@Override
