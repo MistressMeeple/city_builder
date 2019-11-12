@@ -123,58 +123,5 @@ public class CursorHelper {
 		return ret;
 	}
 
-	public static Vector2f mouseViewport(Window window, VPMatrix vp) {
-
-		double[] xposArrD = new double[1], yposArrD = new double[1];
-		GLFW.glfwGetCursorPos(window.windowID, xposArrD, yposArrD);
-		Vector2f mouseV = new Vector2f((float) xposArrD[0], (float) yposArrD[0]);
-		//		Vector2f mouseND = new Vector2f((2f * mouseV.x) / window.frameBufferSizeX - 1f, (2f * mouseV.y) / window.frameBufferSizeY- 1f);
-		return mouseV;
-
-	}
-
-	public Vector2f mouseNormalisedDevice(Window window, Vector2f cursorPos) {
-		return new Vector2f((2f * cursorPos.x) / window.frameBufferSizeX - 1f, (2f * cursorPos.y) / window.frameBufferSizeY - 1f);
-	}
-
-	public Vector4f mouseHomogenousClip(Vector2f normalisedDevice) {
-		return new Vector4f(normalisedDevice.x, -normalisedDevice.y, -1f, 1f);
-	}
-
-	public Vector4f mouseEye(VPMatrix vp, Vector4f mouseHomogenousClip) {
-		Matrix4f invertedProj = vp.proj.getWrapped().cache.invert(new Matrix4f());
-		Vector4f eye = invertedProj.transform(mouseHomogenousClip);
-		eye.z = -1f;
-		eye.w = 0f;
-		return eye;
-	}
-
-	public Vector3f mouseWorld(VPMatrix vp, Vector4f mouseEye) {
-		Matrix4f invertedView = vp.view.getWrapped().cache.invert(new Matrix4f());
-		Vector4f ray = invertedView.transform(mouseEye);
-		Vector3f world = new Vector3f(ray.x, ray.y, ray.z);
-		return world;
-	}
-
-	public Vector3f mouseWorld(Window window, VPMatrix vp) {
-
-		double[] xposArrD = new double[1], yposArrD = new double[1];
-		GLFW.glfwGetCursorPos(window.windowID, xposArrD, yposArrD);
-		int[] xposArrI = new int[1], yposArrI = new int[1];
-		GLFW.glfwGetFramebufferSize(window.windowID, xposArrI, yposArrI);
-
-		Vector2f mouseV = new Vector2f((float) xposArrD[0], (float) yposArrD[0]);
-		Vector2f mouseND = new Vector2f((2f * mouseV.x) / xposArrI[0] - 1f, (2f * mouseV.y) / yposArrI[0] - 1f);
-		Vector4f mouseHC = new Vector4f(mouseND.x, -mouseND.y, -1f, 1f);
-		Matrix4f invertedProj = vp.proj.getWrapped().cache.invert(new Matrix4f());
-		Vector4f eye = invertedProj.transform(mouseHC);
-		eye.z = -1f;
-		eye.w = 0f;
-
-		Matrix4f invertedView = vp.view.getWrapped().cache.invert(new Matrix4f());
-		Vector4f ray = invertedView.transform(eye);
-		Vector3f world = new Vector3f(ray.x, ray.y, ray.z);
-		return world;
-	}
 
 }

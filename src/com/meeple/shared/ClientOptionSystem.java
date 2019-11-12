@@ -20,17 +20,6 @@ public class ClientOptionSystem {
 	private static final File file = new File("options.txt");
 	private static final String[] strSplits = { ":", "=" };
 
-	public static void main(String[] args) {
-		System.out.println(file.getAbsolutePath());
-		ClientOptionSystem system = new ClientOptionSystem();
-		ClientOptions options = new ClientOptions();
-		system.readSettingsFile(options);
-		options.put(ClientOptions.intOptions.masterVolumeName, 45);
-		options.put(ClientOptions.intOptions.musicVolumeName, 85);
-		options.put(ClientOptions.intOptions.gameVolumeName, 5);
-		system.writeSettingsFile(options);
-
-	}
 
 	public enum Delimeter {
 		Int("i", Integer.class, "I\\s*" + strSplits[0] + "\\s*\\w*\\s*" + strSplits[1] + "\\s*\\d*", "%d"),
