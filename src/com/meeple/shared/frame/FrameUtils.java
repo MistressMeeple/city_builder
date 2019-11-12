@@ -26,7 +26,6 @@ import org.lwjgl.system.MemoryUtil;
 
 import com.meeple.shared.Delta;
 import com.meeple.shared.Tickable;
-import com.meeple.shared.frame.OGL.ShaderProgramSystem;
 
 public class FrameUtils {
 
