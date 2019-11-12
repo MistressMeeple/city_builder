@@ -17,13 +17,6 @@ public class WorldRenderer extends RendererBase {
 		public Mesh mesh = new Mesh();
 	}
 
-	public static class MeshTextured {
-
-		public Attribute positionAttrib = new Attribute();
-		public Attribute textureAttrib = new Attribute();
-		public Attribute zIndexAttrib = new Attribute();
-		public Mesh mesh = new Mesh();
-	}
 
 	public static void setupQuadModel(MeshExt meshExt, boolean canRotate) {
 

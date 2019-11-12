@@ -43,16 +43,6 @@ public class VPMatrixSystem implements IShaderUniformUploadSystem<VPMatrix, Inte
 
 	public static class ViewMatrixSystem implements IShaderUniformUploadSystem<ViewMatrix, Integer> {
 
-		public static class Anchor<T> {
-			public T anchorObject;
-			public BiConsumer<T, Matrix4f> anchorTranslation;
-
-			public void apply(Matrix4f camera) {
-				anchorTranslation.accept(anchorObject, camera);
-			}
-
-		}
-
 		public static enum CameraMode {
 			Normal,
 			LookAt;
