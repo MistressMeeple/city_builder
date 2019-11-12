@@ -97,7 +97,7 @@ public class ShaderProgramSystem {
 		String programLog = glGetProgramInfoLog(program);
 		if (programLog.trim().length() > 0) {
 
-			System.out.println(programLog);
+			logger.trace("program log: \r\n" + programLog);
 		}
 		if (linkStatus == 0) {
 			throw new AssertionError();
@@ -307,7 +307,11 @@ public class ShaderProgramSystem {
 	 * @param vbo to write data to OGL 
 	 */
 	public void writeDataToBuffer(VBO vbo) {
+
 		int arraySize = vbo.data.size();
+
+		//TODO check actual buffer size vs expected
+		//		logger.trace("todo: check acutal size vs expected size");
 		switch (vbo.dataType) {
 			case Byte:
 			case UnsignedByte: {
@@ -610,6 +614,8 @@ public class ShaderProgramSystem {
 				iterator2.remove();
 			}
 			model.VAOID = ShaderProgram.NULL;
+		} else {
+			logger.warn("Could not delete model, parameter was null", new NullPointerException());
 		}
 	}
 
