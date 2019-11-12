@@ -1,6 +1,5 @@
 package com.meeple.shared.frame.camera;
 
-import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 import org.joml.Matrix4f;
