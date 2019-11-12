@@ -312,6 +312,9 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		center = center.mul(1f / (float) vertCount);
 		logger.trace(center);
 
+		mesh.positionAttrib.data.add(center.x);
+		mesh.positionAttrib.data.add(center.y);
+		mesh.positionAttrib.data.add(1);
 		WorldRenderer.setupDiscardMesh3D(mesh, vertCount + 1);
 		mesh.mesh.modelRenderType = GLDrawMode.Points;
 		mesh.colourAttrib.instanced = false;
@@ -406,12 +409,12 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 				//TODO level clear colour
 				window.clearColour.set(0f, 0f, 0f, 1f);
-				//				levelRenderer.preRender(level, vpMatrix, program);
+				levelRenderer.preRender(level, vpMatrix, program);
 				CameraControlHandler.preRenderMouseUI(window, ortho, uiProgram).apply(time);
 
-				MeshExt mesh = new MeshExt();
-				bakeChunk(level.chunks.get(new Vector2i()), mesh);
-				RenderingMain.system.loadVAO(program, mesh.mesh);
+				//				MeshExt mesh = new MeshExt();
+				//				bakeChunk(level.chunks.get(new Vector2i()), mesh);
+				//				RenderingMain.system.loadVAO(program, mesh.mesh);
 
 			}
 			RenderingMain.system.render(program);
