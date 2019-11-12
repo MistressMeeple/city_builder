@@ -4,8 +4,11 @@ import java.io.File;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -19,11 +22,14 @@ import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.joml.Math;
+import org.joml.Vector2f;
+import org.joml.Vector2i;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL46;
 
+import com.meeple.citybuild.LevelData.Chunk;
 import com.meeple.citybuild.LevelData.Chunk.Tile;
 import com.meeple.citybuild.WorldGenerator.TileTypes;
 import com.meeple.citybuild.render.LevelRenderer;
@@ -88,30 +94,6 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 	//TODO remove this 
 	final ClientWindow window = new ClientWindow();
 
-	private boolean renderMenu(Delta time) {
-
-		double menuSeconds = FrameUtils.nanosToSeconds(time.totalNanos);
-
-		float r = (float) (Math.sin(menuSeconds * 0.03f + 0.1f)) * 0.5f;
-		float g = (float) (Math.sin(menuSeconds * 0.02f + 0.2f)) * 0.5f;
-		float b = (float) (Math.sin(menuSeconds * 0.01f + 0.3f)) * 0.5f;
-
-		window.clearColour.set(r, g, b, 0);
-		return false;
-
-	}
-
-	private boolean renderLoading(Delta time) {
-		double menuSeconds = FrameUtils.nanosToSeconds(time.totalNanos);
-
-		float r = (float) (Math.sin(menuSeconds * 0.03f + 0.1f)) * 0.5f;
-		float g = (float) (Math.sin(menuSeconds * 0.02f + 0.2f)) * 0.5f;
-		float b = (float) (Math.sin(menuSeconds * 0.01f + 0.3f)) * 0.5f;
-		window.clearColour.set(r, g, b, 0);
-
-		return false;
-	}
-
 	@Override
 	public void accept(ExecutorService executorService) {
 
@@ -158,14 +140,14 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 					newGame(0l);
 				}
 
+				executorService.execute(() -> {
+					startGame();
+				});
 				//just sleep a second to make it a nicer transition
 				try {
 					Thread.sleep(1000);
 				} catch (InterruptedException err) {
 				}
-				executorService.execute(() -> {
-					startGame();
-				});
 				setWindowState(window, WindowState.Game_Running);
 
 			});
@@ -273,7 +255,6 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 	@Override
 	public WindowState onWindowStateChange(WindowState oldState, WindowState newState) {
-		logger.trace(oldState + " " + newState);
 		if (newState == WindowState.Game_Pause) {
 			pauseGame();
 		}
@@ -287,6 +268,56 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 	}
 
+	private void bakeChunk(Chunk chunk, MeshExt mesh) {
+		Map<Vector2f, Integer> count = new HashMap<>();
+		for (int x = 0; x < chunk.tiles.length; x++) {
+			for (int y = 0; y < chunk.tiles[x].length; y++) {
+				Tile curr = FrameUtils.getOrNull(chunk.tiles, x, y);
+				if (curr != null && curr.type != TileTypes.Hole) {
+					for (float dx = -LevelData.tileSize / 2; dx <= LevelData.tileSize / 2; dx += LevelData.tileSize / 2) {
+						for (float dy = -LevelData.tileSize / 2; dy <= LevelData.tileSize / 2; dy += LevelData.tileSize / 2) {
+
+							if (dx != 0 && dy != 0) {
+								Vector2f pos = new Vector2f((x * LevelData.tileSize) + dx, (y * LevelData.tileSize) + dy);
+								Integer i = count.getOrDefault(pos, 0);
+								i += 1;
+								count.put(pos, i);
+							}
+						}
+					}
+				}
+
+			}
+		}
+
+		Set<Entry<Vector2f, Integer>> set = count.entrySet();
+		int vertCount = 0;
+		Vector2f center = new Vector2f();
+		synchronized (count) {
+			for (Iterator<Entry<Vector2f, Integer>> iterator = set.iterator(); iterator.hasNext();) {
+				Entry<Vector2f, Integer> entry = iterator.next();
+				Vector2f pos = entry.getKey();
+				Integer integer = entry.getValue();
+				//				logger.trace(pos + " " + integer);
+				if (integer == 1 || integer == 3) {
+					FrameUtils.appendToList(mesh.colourAttrib.data, new Vector4f(1, 0, 0, 1));
+					mesh.positionAttrib.data.add(pos.x);
+					mesh.positionAttrib.data.add(pos.y);
+					mesh.positionAttrib.data.add(0);
+					vertCount++;
+					center.add(pos.x, pos.y);
+				}
+			}
+		}
+		center = center.mul(1f / (float) vertCount);
+		logger.trace(center);
+
+		WorldRenderer.setupDiscardMesh3D(mesh, vertCount + 1);
+		mesh.mesh.modelRenderType = GLDrawMode.Points;
+		mesh.colourAttrib.instanced = false;
+		logger.trace("ned");
+	}
+
 	public Tickable renderGame(ClientWindow window, VPMatrix vpMatrix, Entity cameraAnchorEntity, ProjectionMatrix ortho, RayHelper rh, KeyInputSystem keyInput) {
 
 		//		ShaderProgram mainProgram = new ShaderProgram();
@@ -298,7 +329,6 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 		Wrapper<UniformManager<String[], Integer[]>.Uniform<VPMatrix>> puW = new WrapperImpl<>();
 		Wrapper<UniformManager<String, Integer>.Uniform<ProjectionMatrix>> uipuW = new WrapperImpl<>();
-		Wrapper<UniformManager<String[], Integer[]>.Uniform<VPMatrix>> mpuW = new WrapperImpl<>();
 
 		vpMatrix.proj.getWrapped().window = window;
 		vpMatrix.proj.getWrapped().FOV = 90;
@@ -318,36 +348,35 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		CameraSpringArm arm = vpMatrix.view.getWrapped().springArm;
 		window.events.postCreation.add(() -> {
 
-
 			puW.setWrapped(levelRenderer.setupWorldProgram(program, vpSystem, vpMatrix));
 			uipuW.setWrapped(levelRenderer.setupUIProgram(uiProgram, vpSystem.projSystem, ortho));
 			/*mpuW.setWrapped(levelRenderer.setupMainProgram(mainProgram, vpSystem, vpMatrix));
 			RenderingMain.system.loadVAO(mainProgram, cube);*/
 
 		});
+
+		vpSystem.preMult(vpMatrix);
 		Tickable tick = CameraControlHandler.handlePitchingTick(window, ortho, arm);
+
+		WeakHashMap<Chunk, MeshExt> chunks = new WeakHashMap<>();
 		return (time) -> {
+
 			vpSystem.preMult(vpMatrix);
 			RenderingMain.system.queueUniformUpload(program, RenderingMain.multiUpload, puW.getWrapped(), vpMatrix);
-			//			RenderingMain.system.queueUniformUpload(mainProgram, RenderingMain.multiUpload, mpuW.getWrapped(), vpMatrix);
 			//TODO change line thickness
 			GL46.glLineWidth(3f);
 			GL46.glPointSize(3f);
 			keyInput.tick(window.mousePressTicks, window.mousePressMap, time.nanos);
 			keyInput.tick(window.keyPressTicks, window.keyPressMap, time.nanos);
 			if (level != null) {
-
+				bakeChunk(level.chunks.get(new Vector2i()), new MeshExt());
 				CameraControlHandler.handlePanningTick(window, ortho, vpMatrix.view.getWrapped(), cameraAnchorEntity);
 				tick.apply(time);
 				{
 					long mouseLeftClick = window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
 					if (mouseLeftClick > 0) {
 						Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, window, vpMatrix.proj.getWrapped(), vpMatrix.view.getWrapped());
-						rh
-							.update(
-								new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z),
-								new Vector3f(vpMatrix.view.getWrapped().position),
-								this);
+						rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z), new Vector3f(vpMatrix.view.getWrapped().position), this);
 						Tile tile = rh.getCurrentTile();
 						if (tile != null) {
 							tile.type = TileTypes.Other;
@@ -377,8 +406,13 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 				//TODO level clear colour
 				window.clearColour.set(0f, 0f, 0f, 1f);
-				levelRenderer.preRender(level, vpMatrix, program);
+				//				levelRenderer.preRender(level, vpMatrix, program);
 				CameraControlHandler.preRenderMouseUI(window, ortho, uiProgram).apply(time);
+
+				MeshExt mesh = new MeshExt();
+				bakeChunk(level.chunks.get(new Vector2i()), mesh);
+				RenderingMain.system.loadVAO(program, mesh.mesh);
+
 			}
 			RenderingMain.system.render(program);
 			RenderingMain.system.render(uiProgram);
@@ -386,6 +420,30 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 			//						RenderingMain.system.render(mainProgram);
 			return false;
 		};
+	}
+
+	private boolean renderMenu(Delta time) {
+
+		double menuSeconds = FrameUtils.nanosToSeconds(time.totalNanos);
+
+		float r = (float) (Math.sin(menuSeconds * 0.03f + 0.1f)) * 0.5f;
+		float g = (float) (Math.sin(menuSeconds * 0.02f + 0.2f)) * 0.5f;
+		float b = (float) (Math.sin(menuSeconds * 0.01f + 0.3f)) * 0.5f;
+
+		window.clearColour.set(r, g, b, 0);
+		return false;
+
+	}
+
+	private boolean renderLoading(Delta time) {
+		double menuSeconds = FrameUtils.nanosToSeconds(time.totalNanos);
+
+		float r = (float) (Math.sin(menuSeconds * 0.03f + 0.1f)) * 0.5f;
+		float g = (float) (Math.sin(menuSeconds * 0.02f + 0.2f)) * 0.5f;
+		float b = (float) (Math.sin(menuSeconds * 0.01f + 0.3f)) * 0.5f;
+		window.clearColour.set(r, g, b, 0);
+
+		return false;
 	}
 
 	@Override
