@@ -462,57 +462,56 @@ public interface ClientWindowSystem {
 		optionsMenuWrapper.getWrapped().title = "Options";
 		menuSystem.setupMenu(window, optionsMenuWrapper.getWrapped(), optionsMenuDetails);
 		//TODO setup pause menu
-		{
-			NuklearUIComponent pauseMenu = new NuklearUIComponent();
-			pauseMenuWrapper.setWrapped(pauseMenu);
 
-			pauseMenu.container = window;
-			Bounds2DComponent pauseMenuContainerBounds = pauseMenu.container.getBounds2DComponent();
-			pauseMenu.UUID = menuSystem.generateUUID();
-			pauseMenu.title = "Pause";
-			pauseMenu.bounds.set((pauseMenuContainerBounds.width / 3), 0, pauseMenuContainerBounds.width / 3, pauseMenuContainerBounds.height);
+		NuklearUIComponent pauseMenu = new NuklearUIComponent();
+		pauseMenuWrapper.setWrapped(pauseMenu);
 
-			pauseMenu.visible = false;
-			pauseMenu.properties.add(NkWindowProperties.BACKGROUND);
-			pauseMenu.properties.add(NkWindowProperties.NO_SCROLLBAR);
-			pauseMenu.render = new BiConsumer<NkContext, MemoryStack>() {
+		pauseMenu.container = window;
+		Bounds2DComponent pauseMenuContainerBounds = pauseMenu.container.getBounds2DComponent();
+		pauseMenu.UUID = menuSystem.generateUUID();
+		pauseMenu.title = "Pause";
+		pauseMenu.bounds.set((pauseMenuContainerBounds.width / 3), 0, pauseMenuContainerBounds.width / 3, pauseMenuContainerBounds.height);
 
-				@Override
-				public void accept(NkContext context, MemoryStack stack) {
+		pauseMenu.visible = false;
+		pauseMenu.properties.add(NkWindowProperties.BACKGROUND);
+		pauseMenu.properties.add(NkWindowProperties.NO_SCROLLBAR);
+		pauseMenu.render = new BiConsumer<NkContext, MemoryStack>() {
 
-					NkColor trueAlpha = NuklearMenuSystem.createColour(stack, 0, 0, 0, 0);
-					NkColor alpha = NuklearMenuSystem.createColour(stack, 0, 0, 0, 155);
-					context.style().window().fixed_background().data().color(trueAlpha);
-					int perc = 30;
-					nk_layout_row_dynamic(context, (int) ((pauseMenuContainerBounds.height / 100) * perc), 1);
+			@Override
+			public void accept(NkContext context, MemoryStack stack) {
 
-					if (nk_group_begin(context, "", 0)) {
-						nk_group_end(context);
-					}
+				NkColor trueAlpha = NuklearMenuSystem.createColour(stack, 0, 0, 0, 0);
+				NkColor alpha = NuklearMenuSystem.createColour(stack, 0, 0, 0, 155);
+				context.style().window().fixed_background().data().color(trueAlpha);
+				int perc = 30;
+				nk_layout_row_dynamic(context, (int) ((pauseMenuContainerBounds.height / 100) * perc), 1);
 
-					nk_layout_row_dynamic(context, (int) ((pauseMenuContainerBounds.height / 100) * (100 - perc)), 1);
-					if (nk_group_begin(context, "Menu", 0)) {
-						nk_layout_row_dynamic(context, (int) ((pauseMenuContainerBounds.height / 100) * (100 - perc)) / 5, 1);
-
-						if (nk_button_label(context, "Resume")) {
-							menuSystem.setActiveNuklear(window.menuQueue, null, null);
-							setWindowState(window, WindowState.Game_Running);
-						}
-						if (nk_button_label(context, "Options")) {
-							menuSystem.navigateNuklear(window.activeNuklear, window.menuQueue, optionsMenuWrapper.getWrapped().UUID);
-							setWindowState(window, WindowState.Menu);
-
-						}
-						if (nk_button_label(context, "Main Menu")) {
-							menuSystem.setActiveNuklear(window.menuQueue, window.activeNuklear, mainMenuWrapper.getWrapped().UUID);
-							setWindowState(window, WindowState.Menu);
-						}
-						context.style().window().fixed_background().data().color(alpha);
-						nk_group_end(context);
-					}
+				if (nk_group_begin(context, "", 0)) {
+					nk_group_end(context);
 				}
-			};
-		}
+
+				nk_layout_row_dynamic(context, (int) ((pauseMenuContainerBounds.height / 100) * (100 - perc)), 1);
+				if (nk_group_begin(context, "Menu", 0)) {
+					nk_layout_row_dynamic(context, (int) ((pauseMenuContainerBounds.height / 100) * (100 - perc)) / 5, 1);
+
+					if (nk_button_label(context, "Resume")) {
+						menuSystem.setActiveNuklear(window.menuQueue, null, null);
+						setWindowState(window, WindowState.Game_Running);
+					}
+					if (nk_button_label(context, "Options")) {
+						menuSystem.navigateNuklear(window.activeNuklear, window.menuQueue, optionsMenuWrapper.getWrapped().UUID);
+						setWindowState(window, WindowState.Menu);
+
+					}
+					if (nk_button_label(context, "Main Menu")) {
+						menuSystem.setActiveNuklear(window.menuQueue, window.activeNuklear, mainMenuWrapper.getWrapped().UUID);
+						setWindowState(window, WindowState.Menu);
+					}
+					context.style().window().fixed_background().data().color(alpha);
+					nk_group_end(context);
+				}
+			}
+		};
 
 		//		menuSystem.setupLevelSelectMenu(window, levelSelectMenuWrapper, levelSelectIndex, levelPreviewWrapper, levelSelect);
 
