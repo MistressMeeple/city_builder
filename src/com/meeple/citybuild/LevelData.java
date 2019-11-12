@@ -23,7 +23,7 @@ public class LevelData implements Serializable {
 	 */
 	public long activeTime = 0;
 
-	public static final int chunkSize = 2;
+	public static final int chunkSize = 16;
 	public static final float tileSize = 2;
 
 	/**
