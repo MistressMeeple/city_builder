@@ -11,6 +11,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.apache.log4j.Logger;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Vector2f;
@@ -25,30 +26,13 @@ import org.lwjgl.system.MemoryUtil;
 
 import com.meeple.shared.Delta;
 import com.meeple.shared.Tickable;
+import com.meeple.shared.frame.OGL.ShaderProgramSystem;
 
 public class FrameUtils {
+
+	private static Logger logger = Logger.getLogger(FrameUtils.class);
+
 	public static float TWOPI = (float) (Math.PI * 2f);
-
-	public static void main(String[] args) {
-
-		System.out.println("Starting timed comparison between nano->second conversions");
-
-		{
-
-			long start = System.nanoTime();
-			for (int i = 0; i < 50; i++) {
-				FrameUtils.nanosToSeconds(System.nanoTime());
-			}
-			System.out.println("Normal nano->seconds took: " + (System.nanoTime() - start));
-		}
-		{
-			long start = System.nanoTime();
-			for (int i = 0; i < 50; i++) {
-				FrameUtils.nanosToSecondsInacurate(System.nanoTime());
-			}
-			System.out.println("Bitshifted nano->second took: " + (System.nanoTime() - start));
-		}
-	}
 
 	public static void iterateRunnable(Collection<Runnable> set, boolean remove) {
 
@@ -62,7 +46,6 @@ public class FrameUtils {
 					if (r == null || remove) {
 						i.remove();
 					}
-
 				}
 			}
 		}
@@ -237,9 +220,9 @@ public class FrameUtils {
 
 			//discard notifications
 			if (severity == GL46.GL_DEBUG_SEVERITY_HIGH || severity == GL46.GL_DEBUG_SEVERITY_MEDIUM) {
-				System.err.println("[Window: " + userParam + "][" + severityString + "][" + sourceString + "][" + typeString + "] " + messageString);
+				logger.warn("[Window: " + userParam + "][" + severityString + "][" + sourceString + "][" + typeString + "] " + messageString);
 			} else if (severity == GL46.GL_DEBUG_SEVERITY_LOW) {
-				System.out.println("[Window: " + userParam + "][" + severityString + "][" + sourceString + "][" + typeString + "] " + messageString);
+				logger.trace("[Window: " + userParam + "][" + severityString + "][" + sourceString + "][" + typeString + "] " + messageString);
 			}
 		}
 	};
