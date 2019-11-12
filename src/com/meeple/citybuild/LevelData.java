@@ -1,6 +1,7 @@
 package com.meeple.citybuild;
 
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -37,24 +38,25 @@ public class LevelData implements Serializable {
 	/**
 	 * Chunk storage
 	 */
-	public Map<Vector2i, Chunk> chunks = new HashMap<>();
+	public Map<Vector2i, Chunk> chunks = Collections.synchronizedMap(new HashMap<>());
 	/**
 	 * Holds the "dictionary" of all the tile types. <br>
 	 * This is usually populated at the world generation and never touched.
 	 */
-	public Map<Byte, Object> tileTypes = new HashMap<>();
+	public Map<Byte, Object> tileTypes = Collections.synchronizedMap(new HashMap<>());
 	/**
 	 * ID indexed map of all the unique buildings. <br>
 	 * This is added to as soon as a new building is placed. 
 	 */
-	public Map<Byte, BuildingInstance> buildings = new HashMap<>();
+	public Map<Byte, BuildingInstance> buildings = Collections.synchronizedMap(new HashMap<>());
 	/**
 	 * All the entities 
 	 */
-	public Set<Entity> entities = new HashSet<>();
+	public Set<Entity> entities = Collections.synchronizedSet(new HashSet<>());
+
 
 	/**
-	 * Chunk contains a set of {@link Tile}
+	 * Chunk contains a 2d array of {@link Tile}
 	 * @author Megan
 	 *
 	 */
