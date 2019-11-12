@@ -1,4 +1,4 @@
-package com.meeple.citybuild;
+package com.meeple.citybuild.client.input;
 
 import org.joml.Vector2f;
 import org.joml.Vector3f;
@@ -6,9 +6,10 @@ import org.joml.Vector4f;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL46;
 
-import com.meeple.citybuild.render.RenderingMain;
-import com.meeple.citybuild.render.WorldRenderer;
-import com.meeple.citybuild.render.WorldRenderer.MeshExt;
+import com.meeple.citybuild.client.render.RenderingMain;
+import com.meeple.citybuild.client.render.WorldRenderer;
+import com.meeple.citybuild.client.render.WorldRenderer.MeshExt;
+import com.meeple.citybuild.server.Entity;
 import com.meeple.shared.Tickable;
 import com.meeple.shared.frame.CursorHelper;
 import com.meeple.shared.frame.CursorHelper.SpaceState;

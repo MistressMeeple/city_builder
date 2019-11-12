@@ -1,4 +1,4 @@
-package com.meeple.citybuild;
+package com.meeple.citybuild.server;
 
 import java.io.Serializable;
 import java.util.EnumSet;
@@ -8,7 +8,7 @@ import java.util.Set;
 import org.joml.Vector2f;
 import org.joml.Vector2i;
 
-import com.meeple.citybuild.LevelData.Chunk.Tile;
+import com.meeple.citybuild.server.LevelData.Chunk.Tile;
 
 
 public class Buildings {

@@ -1,4 +1,4 @@
-package com.meeple.citybuild;
+package com.meeple.citybuild.server;
 
 import java.io.Serializable;
 import java.util.Collections;
@@ -11,8 +11,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.joml.Vector2i;
 
-import com.meeple.citybuild.Buildings.BuildingInstance;
-import com.meeple.citybuild.WorldGenerator.TileTypes;
+import com.meeple.citybuild.server.Buildings.BuildingInstance;
+import com.meeple.citybuild.server.WorldGenerator.TileTypes;
 import com.meeple.shared.frame.component.FrameTimeManager;
 
 public class LevelData implements Serializable {
@@ -26,6 +26,7 @@ public class LevelData implements Serializable {
 
 	public static final int chunkSize = 16;
 	public static final float tileSize = 2;
+	public static final float fullChunkSize = chunkSize * tileSize;
 
 	/**
 	 * Name of the save. 
@@ -54,6 +55,9 @@ public class LevelData implements Serializable {
 	 */
 	public Set<Entity> entities = Collections.synchronizedSet(new HashSet<>());
 
+	public class PlayerData {
+		Map<Buildings, Boolean> unlocked = Collections.synchronizedMap(new HashMap<>());
+	}
 
 	/**
 	 * Chunk contains a 2d array of {@link Tile}

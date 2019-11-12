@@ -1,17 +1,21 @@
-package com.meeple.citybuild.render;
+package com.meeple.citybuild.client.render;
 
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.log4j.Logger;
 import org.joml.FrustumIntersection;
 import org.joml.Vector2i;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 
-import com.meeple.citybuild.LevelData;
-import com.meeple.citybuild.LevelData.Chunk;
-import com.meeple.citybuild.render.WorldRenderer.MeshExt;
+import com.meeple.citybuild.client.render.WorldRenderer.MeshExt;
+import com.meeple.citybuild.server.LevelData;
+import com.meeple.citybuild.server.LevelData.Chunk;
+import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
@@ -23,6 +27,8 @@ import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.Proj
 import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
 
 public class LevelRenderer {
+	public static Logger logger = Logger.getLogger(LevelRenderer.class);
+
 	static class CubeMesh {
 		Attribute colourAttrib = new Attribute();
 		Attribute translationAttrib = new Attribute();
@@ -79,66 +85,23 @@ public class LevelRenderer {
 				Entry<Vector2i, Chunk> entry = i.next();
 				Vector2i loc = entry.getKey();
 				Chunk chunk = entry.getValue();
-				Vector3f chunkPos = new Vector3f(loc.x * LevelData.chunkSize, loc.y * LevelData.chunkSize, 0);
-
-				switch (fi.intersectAab(chunkPos, chunkPos.add(LevelData.chunkSize * LevelData.tileSize, LevelData.chunkSize * LevelData.tileSize, 0, new Vector3f()))) {
+				Vector3f chunkPos = new Vector3f(loc.x * LevelData.fullChunkSize, loc.y * LevelData.fullChunkSize, 0);
+				MeshExt m = baked.get(chunk);
+				if (m == null) {
+					m = bakeChunk(chunkPos, chunk);
+					RenderingMain.system.loadVAO(program, m.mesh);
+					m.mesh.visible = false;
+					baked.put(chunk, m);
+				}
+				switch (fi.intersectAab(chunkPos, chunkPos.add(LevelData.fullChunkSize, LevelData.fullChunkSize, 0, new Vector3f()))) {
 
 					case FrustumIntersection.INSIDE:
 					case FrustumIntersection.INTERSECT:
-
+//						m.mesh.visible = true;
 						//render chunk
-
-						//TODO bake chunk instead
-						for (int x = 0; x < chunk.tiles.length; x++) {
-							for (int y = 0; y < chunk.tiles[x].length; y++) {
-								Vector3f tilePos = chunkPos.add(x * LevelData.tileSize, y * LevelData.tileSize, 0, new Vector3f());
-
-								Vector4f colour = new Vector4f();
-								MeshExt m = new MeshExt();
-								WorldRenderer.setupDiscardMesh3D(m, 4);
-								m.mesh.modelRenderType = GLDrawMode.TriangleFan;
-								m.positionAttrib.data.add(tilePos.x + 0f);
-								m.positionAttrib.data.add(tilePos.y + 0f);
-								m.positionAttrib.data.add(tilePos.z + 0f);
-
-								m.positionAttrib.data.add(tilePos.x + LevelData.tileSize);
-								m.positionAttrib.data.add(tilePos.y + 0f);
-								m.positionAttrib.data.add(tilePos.z + 0f);
-
-								m.positionAttrib.data.add(tilePos.x + LevelData.tileSize);
-								m.positionAttrib.data.add(tilePos.y + LevelData.tileSize);
-								m.positionAttrib.data.add(tilePos.z + 0f);
-
-								m.positionAttrib.data.add(tilePos.x + 0f);
-								m.positionAttrib.data.add(tilePos.y + LevelData.tileSize);
-								m.positionAttrib.data.add(tilePos.z + 0f);
-								m.mesh.name = "tile" + tilePos.x + "." + tilePos.y;
-
-								switch (chunk.tiles[x][y].type) {
-									case Hole:
-
-										colour = new Vector4f(0.1f, 0.1f, 0.1f, 1f);
-										RenderingMain.system.loadVAO(program, m.mesh);
-										break;
-									case Ground:
-
-										colour = new Vector4f(0.1f, 1f, 0.1f, 1f);
-										RenderingMain.system.loadVAO(program, m.mesh);
-										break;
-									case Other:
-										colour = new Vector4f(0f, 0f, 1f, 1f);
-										RenderingMain.system.loadVAO(program, m.mesh);
-										break;
-								}
-								m.colourAttrib.data.add(colour.x);
-								m.colourAttrib.data.add(colour.y);
-								m.colourAttrib.data.add(colour.z);
-								m.colourAttrib.data.add(colour.w);
-
-							}
-						}
-
+						break;
 					case FrustumIntersection.OUTSIDE:
+//						m.mesh.visible = false;
 						break;
 					default:
 						break;
@@ -146,57 +109,69 @@ public class LevelRenderer {
 
 			}
 		}
-
-		/*	{
-				Vector4f colour = new Vector4f(1, 1, 0, 1);
-				MeshExt m = new MeshExt();
-				WorldRenderer.setupDiscardMesh3D(m, 4);
-		
-				m.positionAttrib.data.add(0f);
-				m.positionAttrib.data.add(0f);
-				m.positionAttrib.data.add(0f);
-		
-				m.positionAttrib.data.add(1f);
-				m.positionAttrib.data.add(0f);
-				m.positionAttrib.data.add(0f);
-		
-				m.positionAttrib.data.add(1f);
-				m.positionAttrib.data.add(0f);
-				m.positionAttrib.data.add(1f);
-		
-				m.positionAttrib.data.add(0f);
-				m.positionAttrib.data.add(0f);
-				m.positionAttrib.data.add(1f);
-		
-				m.colourAttrib.data.add(colour.x);
-				m.colourAttrib.data.add(colour.y);
-				m.colourAttrib.data.add(colour.z);
-				m.colourAttrib.data.add(colour.w);
-				m.mesh.name = "model";
-				m.mesh.modelRenderType = GLDrawMode.LineLoop;
-				RenderingMain.system.loadVAO(program, m.mesh);
-			}*/
 		drawAxis(program);
-		/*
-				{
-		
-					Vector4f colour = new Vector4f(1, 1, 1, 1);
-					MeshExt m = new MeshExt();
-					WorldRenderer.setupDiscardMesh3D(m, 1);
-					Vector3f pos = vp.view.getWrapped().springArm.lookAt.get();
-		
-					m.positionAttrib.data.add(pos.x);
-					m.positionAttrib.data.add(pos.y);
-					m.positionAttrib.data.add(pos.z);
-		
-					m.colourAttrib.data.add(colour.x);
-					m.colourAttrib.data.add(colour.y);
-					m.colourAttrib.data.add(colour.z);
-					m.colourAttrib.data.add(colour.w);
-					m.mesh.name = "model";
-					m.mesh.modelRenderType = GLDrawMode.Points;
-					RenderingMain.system.loadVAO(program, m.mesh);
-				}*/
+
+	}
+
+	Map<Chunk, MeshExt> baked = new HashMap<>();
+
+	private MeshExt bakeChunk(Vector3f chunkPos, Chunk chunk) {
+		MeshExt m = new MeshExt();
+
+		WorldRenderer.setupDiscardMesh3D(m, 4);
+		m.mesh.modelRenderType = GLDrawMode.TriangleFan;
+		m.mesh.name = "chunk_" + (int) chunkPos.x + "_" + (int) chunkPos.y;
+		m.mesh.renderCount = 0;
+
+		m.positionAttrib.data.add(0f);
+		m.positionAttrib.data.add(0f);
+		m.positionAttrib.data.add(0f);
+
+		m.positionAttrib.data.add(LevelData.tileSize);
+		m.positionAttrib.data.add(0f);
+		m.positionAttrib.data.add(0f);
+
+		m.positionAttrib.data.add(LevelData.tileSize);
+		m.positionAttrib.data.add(LevelData.tileSize);
+		m.positionAttrib.data.add(0f);
+
+		m.positionAttrib.data.add(0f);
+		m.positionAttrib.data.add(LevelData.tileSize);
+		m.positionAttrib.data.add(0f);
+
+		//TODO bake chunk instead
+		for (int x = 0; x < chunk.tiles.length; x++) {
+			for (int y = 0; y < chunk.tiles[x].length; y++) {
+				Vector3f tilePos = chunkPos.add(x * LevelData.tileSize, y * LevelData.tileSize, 0, new Vector3f());
+				Vector4f colour = new Vector4f();
+				switch (chunk.tiles[x][y].type) {
+					case Hole:
+
+						break;
+					case Ground:
+
+						colour = new Vector4f(0.1f, 1f, 0.1f, 1f);
+						FrameUtils.appendToList(m.offsetAttrib.data, tilePos);
+						m.colourAttrib.data.add(colour.x);
+						m.colourAttrib.data.add(colour.y);
+						m.colourAttrib.data.add(colour.z);
+						m.colourAttrib.data.add(colour.w);
+						m.mesh.renderCount += 1;
+						break;
+					case Other:
+						colour = new Vector4f(0f, 0f, 1f, 1f);
+						FrameUtils.appendToList(m.offsetAttrib.data, tilePos);
+						m.colourAttrib.data.add(colour.x);
+						m.colourAttrib.data.add(colour.y);
+						m.colourAttrib.data.add(colour.z);
+						m.colourAttrib.data.add(colour.w);
+						m.mesh.renderCount += 1;
+						break;
+				}
+
+			}
+		}
+		return m;
 	}
 
 	private void drawAxis(ShaderProgram program) {
@@ -206,6 +181,7 @@ public class LevelRenderer {
 			Vector4f colour = new Vector4f(1, 0, 0, 1);
 			MeshExt m = new MeshExt();
 			WorldRenderer.setupDiscardMesh3D(m, 2);
+			m.mesh.singleFrameDiscard = true;
 
 			m.positionAttrib.data.add(0f);
 			m.positionAttrib.data.add(0f);
@@ -219,6 +195,7 @@ public class LevelRenderer {
 			m.colourAttrib.data.add(colour.y);
 			m.colourAttrib.data.add(colour.z);
 			m.colourAttrib.data.add(colour.w);
+			FrameUtils.appendToList(m.offsetAttrib.data, new Vector3f());
 			m.mesh.name = "model";
 			m.mesh.modelRenderType = GLDrawMode.Line;
 			RenderingMain.system.loadVAO(program, m.mesh);
@@ -241,6 +218,7 @@ public class LevelRenderer {
 			m.colourAttrib.data.add(colour.y);
 			m.colourAttrib.data.add(colour.z);
 			m.colourAttrib.data.add(colour.w);
+			FrameUtils.appendToList(m.offsetAttrib.data, new Vector3f());
 			m.mesh.name = "model";
 			m.mesh.modelRenderType = GLDrawMode.Line;
 			RenderingMain.system.loadVAO(program, m.mesh);
@@ -263,6 +241,7 @@ public class LevelRenderer {
 			m.colourAttrib.data.add(colour.y);
 			m.colourAttrib.data.add(colour.z);
 			m.colourAttrib.data.add(colour.w);
+			FrameUtils.appendToList(m.offsetAttrib.data, new Vector3f());
 			m.mesh.name = "model";
 			m.mesh.modelRenderType = GLDrawMode.Line;
 			RenderingMain.system.loadVAO(program, m.mesh);

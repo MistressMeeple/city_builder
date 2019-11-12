@@ -1,14 +1,11 @@
-package com.meeple.citybuild;
+package com.meeple.citybuild.client;
 
 import java.io.File;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
-import java.util.WeakHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -22,20 +19,22 @@ import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.joml.Math;
-import org.joml.Vector2f;
-import org.joml.Vector2i;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL46;
 
-import com.meeple.citybuild.LevelData.Chunk;
-import com.meeple.citybuild.LevelData.Chunk.Tile;
-import com.meeple.citybuild.WorldGenerator.TileTypes;
-import com.meeple.citybuild.render.LevelRenderer;
-import com.meeple.citybuild.render.RenderingMain;
-import com.meeple.citybuild.render.WorldRenderer;
-import com.meeple.citybuild.render.WorldRenderer.MeshExt;
+import com.meeple.citybuild.RayHelper;
+import com.meeple.citybuild.client.input.CameraControlHandler;
+import com.meeple.citybuild.client.render.LevelRenderer;
+import com.meeple.citybuild.client.render.RenderingMain;
+import com.meeple.citybuild.client.render.WorldRenderer;
+import com.meeple.citybuild.client.render.WorldRenderer.MeshExt;
+import com.meeple.citybuild.server.Buildings;
+import com.meeple.citybuild.server.Entity;
+import com.meeple.citybuild.server.GameManager;
+import com.meeple.citybuild.server.LevelData.Chunk.Tile;
+import com.meeple.citybuild.server.WorldGenerator.TileTypes;
 import com.meeple.shared.ClientOptionSystem;
 import com.meeple.shared.Delta;
 import com.meeple.shared.Tickable;
@@ -51,15 +50,19 @@ import com.meeple.shared.frame.camera.VPMatrixSystem;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpringArm;
+import com.meeple.shared.frame.component.Bounds2DComponent;
 import com.meeple.shared.frame.nuklear.NkContextSingleton;
+import com.meeple.shared.frame.nuklear.NkWindowProperties;
 import com.meeple.shared.frame.nuklear.NuklearMenuSystem;
 import com.meeple.shared.frame.nuklear.NuklearMenuSystem.BtnState;
 import com.meeple.shared.frame.nuklear.NuklearMenuSystem.Button;
+import com.meeple.shared.frame.nuklear.NuklearUIComponent;
 import com.meeple.shared.frame.window.ClientWindowSystem;
 import com.meeple.shared.frame.window.WindowManager;
 import com.meeple.shared.frame.window.WindowState;
 import com.meeple.shared.frame.wrapper.Wrapper;
 import com.meeple.shared.frame.wrapper.WrapperImpl;
+
 
 public class CityBuilderMain extends GameManager implements Consumer<ExecutorService>, ClientWindowSystem {
 
@@ -267,60 +270,6 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		return newState;
 
 	}
-
-	private void bakeChunk(Chunk chunk, MeshExt mesh) {
-		Map<Vector2f, Integer> count = new HashMap<>();
-		for (int x = 0; x < chunk.tiles.length; x++) {
-			for (int y = 0; y < chunk.tiles[x].length; y++) {
-				Tile curr = FrameUtils.getOrNull(chunk.tiles, x, y);
-				if (curr != null && curr.type != TileTypes.Hole) {
-					for (float dx = -LevelData.tileSize / 2; dx <= LevelData.tileSize / 2; dx += LevelData.tileSize / 2) {
-						for (float dy = -LevelData.tileSize / 2; dy <= LevelData.tileSize / 2; dy += LevelData.tileSize / 2) {
-
-							if (dx != 0 && dy != 0) {
-								Vector2f pos = new Vector2f((x * LevelData.tileSize) + dx, (y * LevelData.tileSize) + dy);
-								Integer i = count.getOrDefault(pos, 0);
-								i += 1;
-								count.put(pos, i);
-							}
-						}
-					}
-				}
-
-			}
-		}
-
-		Set<Entry<Vector2f, Integer>> set = count.entrySet();
-		int vertCount = 0;
-		Vector2f center = new Vector2f();
-		synchronized (count) {
-			for (Iterator<Entry<Vector2f, Integer>> iterator = set.iterator(); iterator.hasNext();) {
-				Entry<Vector2f, Integer> entry = iterator.next();
-				Vector2f pos = entry.getKey();
-				Integer integer = entry.getValue();
-				//				logger.trace(pos + " " + integer);
-				if (integer == 1 || integer == 3) {
-					FrameUtils.appendToList(mesh.colourAttrib.data, new Vector4f(1, 0, 0, 1));
-					mesh.positionAttrib.data.add(pos.x);
-					mesh.positionAttrib.data.add(pos.y);
-					mesh.positionAttrib.data.add(0);
-					vertCount++;
-					center.add(pos.x, pos.y);
-				}
-			}
-		}
-		center = center.mul(1f / (float) vertCount);
-		logger.trace(center);
-
-		mesh.positionAttrib.data.add(center.x);
-		mesh.positionAttrib.data.add(center.y);
-		mesh.positionAttrib.data.add(1);
-		WorldRenderer.setupDiscardMesh3D(mesh, vertCount + 1);
-		mesh.mesh.modelRenderType = GLDrawMode.Points;
-		mesh.colourAttrib.instanced = false;
-		logger.trace("ned");
-	}
-
 	public Tickable renderGame(ClientWindow window, VPMatrix vpMatrix, Entity cameraAnchorEntity, ProjectionMatrix ortho, RayHelper rh, KeyInputSystem keyInput) {
 
 		//		ShaderProgram mainProgram = new ShaderProgram();
@@ -361,7 +310,6 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		vpSystem.preMult(vpMatrix);
 		Tickable tick = CameraControlHandler.handlePitchingTick(window, ortho, arm);
 
-		WeakHashMap<Chunk, MeshExt> chunks = new WeakHashMap<>();
 		return (time) -> {
 
 			vpSystem.preMult(vpMatrix);
@@ -372,39 +320,40 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 			keyInput.tick(window.mousePressTicks, window.mousePressMap, time.nanos);
 			keyInput.tick(window.keyPressTicks, window.keyPressMap, time.nanos);
 			if (level != null) {
-				bakeChunk(level.chunks.get(new Vector2i()), new MeshExt());
 				CameraControlHandler.handlePanningTick(window, ortho, vpMatrix.view.getWrapped(), cameraAnchorEntity);
 				tick.apply(time);
-				{
-					long mouseLeftClick = window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
-					if (mouseLeftClick > 0) {
-						Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, window, vpMatrix.proj.getWrapped(), vpMatrix.view.getWrapped());
-						rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z), new Vector3f(vpMatrix.view.getWrapped().position), this);
-						Tile tile = rh.getCurrentTile();
-						if (tile != null) {
-							tile.type = TileTypes.Other;
-						}
-						Vector3f c = rh.getCurrentTerrainPoint();
-						if (c != null) {
 
-							Vector4f colour = new Vector4f(1, 0, 0, 1);
-							MeshExt m = new MeshExt();
-							WorldRenderer.setupDiscardMesh3D(m, 1);
-
-							m.positionAttrib.data.add(c.x);
-							m.positionAttrib.data.add(c.y);
-							m.positionAttrib.data.add(c.z + 1f);
-
-							m.colourAttrib.data.add(colour.x);
-							m.colourAttrib.data.add(colour.y);
-							m.colourAttrib.data.add(colour.z);
-							m.colourAttrib.data.add(colour.w);
-							m.mesh.name = "model";
-							m.mesh.modelRenderType = GLDrawMode.Points;
-							m.mesh.singleFrameDiscard = false;
-							RenderingMain.system.loadVAO(program, m.mesh);
-						}
+				long mouseLeftClick = window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
+				if (mouseLeftClick > 0) {
+					Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, window, vpMatrix.proj.getWrapped(), vpMatrix.view.getWrapped());
+					rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z), new Vector3f(vpMatrix.view.getWrapped().position), this);
+					Tile tile = rh.getCurrentTile();
+					if (tile != null) {
+						tile.type = TileTypes.Other;
 					}
+					Vector3f c = rh.getCurrentTerrainPoint();
+					if (c != null) {
+
+						Vector4f colour = new Vector4f(1, 0, 0, 1);
+						MeshExt m = new MeshExt();
+						WorldRenderer.setupDiscardMesh3D(m, 1);
+						m.mesh.singleFrameDiscard = true;
+
+						m.positionAttrib.data.add(c.x);
+						m.positionAttrib.data.add(c.y);
+						m.positionAttrib.data.add(c.z + 1f);
+
+						m.colourAttrib.data.add(colour.x);
+						m.colourAttrib.data.add(colour.y);
+						m.colourAttrib.data.add(colour.z);
+						m.colourAttrib.data.add(colour.w);
+
+						m.mesh.name = "model";
+						m.mesh.modelRenderType = GLDrawMode.Points;
+						m.mesh.singleFrameDiscard = false;
+						RenderingMain.system.loadVAO(program, m.mesh);
+					}
+
 				}
 
 				//TODO level clear colour
@@ -447,6 +396,69 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		window.clearColour.set(r, g, b, 0);
 
 		return false;
+	}
+
+	Wrapper<Buildings> placement = new WrapperImpl<>();
+
+	private void setupUI(NuklearMenuSystem menuSystem, GameManager game) {
+
+		NuklearUIComponent placementUI = new NuklearUIComponent();
+
+		placementUI.container = window;
+		Bounds2DComponent placementUIParentBounds = placementUI.container.getBounds2DComponent();
+		placementUI.UUID = menuSystem.generateUUID();
+		placementUI.title = "Pause";
+		placementUI.bounds.set(0, placementUIParentBounds.height * 0.75, placementUIParentBounds.width, placementUIParentBounds.height);
+
+		placementUI.visible = false;
+		placementUI.properties.add(NkWindowProperties.BACKGROUND);
+		placementUI.properties.add(NkWindowProperties.NO_SCROLLBAR);/*
+																	placementUI.render = new BiConsumer<NkContext, MemoryStack>() {
+																	
+																	@Override
+																	public void accept(NkContext context, MemoryStack stack) {
+																	
+																	NkColor trueAlpha = NuklearMenuSystem.createColour(stack, 0, 0, 0, 0);
+																	NkColor alpha = NuklearMenuSystem.createColour(stack, 0, 0, 0, 155);
+																	context.style().window().fixed_background().data().color(trueAlpha);
+																	int perc = 30;
+																	nk_layout_row_dynamic(context, (int) ((placementUIParentBounds.height * 0.2f)), 3);
+																	nk_layout_row(context, Nuklear.NK_DYNAMIC, (int) (placementUIParentBounds.height * 0.2), new float[] { 0.2f, 0.6f, 0.2f });
+																	if (nk_group_begin(context, "pad_left", 0)) {
+																	nk_group_end(context);
+																	}
+																	if (nk_group_begin(context, "main", 0)) {
+																	if (nk_button_label(context, "Home")) {
+																	placement.setWrapped(new Buildings());
+																	}
+																	nk_group_end(context);
+																	}
+																	if (nk_group_begin(context, "pad_right", 0)) {
+																	nk_group_end(context);
+																	}
+																	
+																	nk_layout_row_dynamic(context, (int) ((placementUIParentBounds.height / 100) * (100 - perc)), 1);
+																	if (nk_group_begin(context, "Menu", 0)) {
+																	nk_layout_row_dynamic(context, (int) ((placementUIParentBounds.height / 100) * (100 - perc)) / 5, 1);
+																	
+																	if (nk_button_label(context, "Resume")) {
+																	menuSystem.setActiveNuklear(window.menuQueue, null, null);
+																	setWindowState(window, WindowState.Game_Running);
+																	}
+																	if (nk_button_label(context, "Options")) {
+																	//							menuSystem.navigateNuklear(window.activeNuklear, window.menuQueue, optionsMenuWrapper.getWrapped().UUID);
+																	setWindowState(window, WindowState.Menu);
+																	
+																	}
+																	if (nk_button_label(context, "Main Menu")) {
+																	//							menuSystem.setActiveNuklear(window.menuQueue, window.activeNuklear, mainMenuWrapper.getWrapped().UUID);
+																	setWindowState(window, WindowState.Menu);
+																	}
+																	context.style().window().fixed_background().data().color(alpha);
+																	nk_group_end(context);
+																	}
+																	}
+																	};*/
 	}
 
 	@Override

@@ -1,4 +1,4 @@
-package com.meeple.citybuild;
+package com.meeple.citybuild.server;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -17,14 +17,10 @@ import org.apache.log4j.Logger;
 import org.joml.Vector2i;
 import org.joml.Vector3f;
 
-import com.meeple.citybuild.LevelData.Chunk;
-import com.meeple.citybuild.LevelData.Chunk.Tile;
+import com.meeple.citybuild.server.LevelData.Chunk;
+import com.meeple.citybuild.server.LevelData.Chunk.Tile;
 import com.meeple.shared.Delta;
-import com.meeple.shared.Tickable;
 import com.meeple.shared.frame.FrameUtils;
-import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
-import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
-import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 import com.meeple.shared.frame.wrapper.Wrapper;
 import com.meeple.shared.frame.wrapper.WrapperImpl;
 
@@ -34,7 +30,7 @@ public abstract class GameManager {
 	static final String LevelFolder = "saves/";
 	static final String LevelExt = ".sv";
 	static final long wait = 10l;
-	LevelData level;
+	protected LevelData level;
 	WorldGenerator worldGen = new WorldGenerator();
 	private Thread levelThread ;
 

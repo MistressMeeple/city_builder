@@ -1,4 +1,4 @@
-package com.meeple.citybuild;
+package com.meeple.citybuild.server;
 
 import org.joml.Vector3f;
 

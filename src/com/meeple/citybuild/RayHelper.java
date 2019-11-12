@@ -2,7 +2,8 @@ package com.meeple.citybuild;
 
 import org.joml.Vector3f;
 
-import com.meeple.citybuild.LevelData.Chunk.Tile;
+import com.meeple.citybuild.server.GameManager;
+import com.meeple.citybuild.server.LevelData.Chunk.Tile;
 
 public class RayHelper {
 

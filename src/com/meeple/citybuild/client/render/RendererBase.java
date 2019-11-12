@@ -1,4 +1,4 @@
-package com.meeple.citybuild.render;
+package com.meeple.citybuild.client.render;
 
 import org.joml.Vector2f;
 
