@@ -15,8 +15,11 @@ import com.meeple.shared.frame.component.HasBounds2D;
 
 public class NuklearUIComponent implements HasBounds2D {
 	public HasBounds2D container;
+	/**
+	 * Bounds in x-y and w-h
+	 */
 	public Bounds2DComponent bounds = new Bounds2DComponent();
-	public String UUID = "W" + System.currentTimeMillis();
+	public String UUID = null;
 	public String title = "Default Nuklear Window";
 	public EnumSet<NkWindowProperties> properties = EnumSet.noneOf(NkWindowProperties.class);
 

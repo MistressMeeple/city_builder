@@ -1,6 +1,9 @@
 package com.meeple.citybuild.client;
 
+import static org.lwjgl.nuklear.Nuklear.*;
+
 import java.io.File;
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -10,6 +13,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -21,8 +25,14 @@ import org.apache.log4j.PatternLayout;
 import org.joml.Math;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
+import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.GLFW;
+import org.lwjgl.nuklear.NkColor;
+import org.lwjgl.nuklear.NkContext;
+import org.lwjgl.nuklear.NkVec2;
+import org.lwjgl.nuklear.Nuklear;
 import org.lwjgl.opengl.GL46;
+import org.lwjgl.system.MemoryStack;
 
 import com.meeple.citybuild.RayHelper;
 import com.meeple.citybuild.client.input.CameraControlHandler;
@@ -53,6 +63,8 @@ import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpri
 import com.meeple.shared.frame.component.Bounds2DComponent;
 import com.meeple.shared.frame.nuklear.NkContextSingleton;
 import com.meeple.shared.frame.nuklear.NkWindowProperties;
+import com.meeple.shared.frame.nuklear.NuklearManager;
+import com.meeple.shared.frame.nuklear.NuklearManager.RegisteredGUIS;
 import com.meeple.shared.frame.nuklear.NuklearMenuSystem;
 import com.meeple.shared.frame.nuklear.NuklearMenuSystem.BtnState;
 import com.meeple.shared.frame.nuklear.NuklearMenuSystem.Button;
@@ -62,7 +74,6 @@ import com.meeple.shared.frame.window.WindowManager;
 import com.meeple.shared.frame.window.WindowState;
 import com.meeple.shared.frame.wrapper.Wrapper;
 import com.meeple.shared.frame.wrapper.WrapperImpl;
-
 
 public class CityBuilderMain extends GameManager implements Consumer<ExecutorService>, ClientWindowSystem {
 
@@ -96,6 +107,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 	//TODO remove this 
 	final ClientWindow window = new ClientWindow();
+	NuklearUIComponent placementUI = new NuklearUIComponent();
 
 	@Override
 	public void accept(ExecutorService executorService) {
@@ -157,11 +169,11 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 		};
 		AtomicInteger clientQuitCounter = new AtomicInteger();
-
 		try (GLFWManager glManager = new GLFWManager(); WindowManager windowManager = new WindowManager()) {
 			RayHelper rh = new RayHelper();
 
 			Tickable t = renderGame(window, vpMatrix, cameraAnchorEntity, ortho, rh, keyInput);
+
 			FrameUtils.addToSetMap(stateRendering, WindowState.Game_Running, t, syncSetSupplier);
 
 			clientQuitCounter.incrementAndGet();
@@ -184,7 +196,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 					//TODO find latest save
 					String latestName = "";
 					levelSelect.accept(latestName);
-					menuSystem.setActiveNuklear(window.menuQueue, window.activeNuklear, null);
+					menuSystem.setActiveNuklear(window.menuQueue, window.registeredNuklear, null);
 				}
 
 			};
@@ -206,7 +218,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 					//TODO find loaded file name
 					String loadedName = "";
 					levelSelect.accept(loadedName);
-					menuSystem.setActiveNuklear(window.menuQueue, window.activeNuklear, null);
+					menuSystem.setActiveNuklear(window.menuQueue, window.registeredNuklear, null);
 				}
 
 			};
@@ -226,12 +238,35 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 				public void onClick() {
 					logger.trace("NEW game click");
 					levelSelect.accept(null);
-					menuSystem.setActiveNuklear(window.menuQueue, window.activeNuklear, null);
+					menuSystem.setActiveNuklear(window.menuQueue, window.registeredNuklear, null);
 				}
-
 			};
 
 			setupMenu(window, stateRendering, optionsSystem, menuSystem, nkContext, continueBtn, loadBtn, newBtn);
+			setupUI(menuSystem, window.registeredNuklear, placementUI);
+			Map<WindowState, Delta> ticks = new HashMap<>();
+			window.events.render.add(0, (delta) -> {
+
+				if (window.state.getWrapped() != null) {
+
+					Delta time = ticks.get(window.state.getWrapped());
+					if (time == null) {
+						time = new Delta();
+						ticks.put(window.state.getWrapped(), time);
+					}
+					time.nanos = delta.nanos;
+					time.seconds = delta.seconds;
+					time.totalNanos += delta.nanos;
+
+					if (window.currentFocus != null) {
+						logger.trace(window.state.getWrapped() + " " + ((NuklearUIComponent) window.currentFocus).title);
+					}
+					Set<Tickable> r = stateRendering.get(window.state.getWrapped());
+					FrameUtils.iterateTickable(r, time);
+				}
+				return false;
+
+			});
 			start(windowManager, window, nkContext, clientQuitCounter, executorService);
 
 		}
@@ -259,17 +294,23 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 	@Override
 	public WindowState onWindowStateChange(WindowState oldState, WindowState newState) {
 		if (newState == WindowState.Game_Pause) {
+			placementUI.visible = false;
+
 			pauseGame();
 		}
 		if (newState == WindowState.Game_Running) {
+			placementUI.visible = true;
 			resumeGame();
 		}
 		if (newState == WindowState.Menu || newState == WindowState.Close) {
+
+			placementUI.visible = false;
 			quitGame();
 		}
 		return newState;
 
 	}
+
 	public Tickable renderGame(ClientWindow window, VPMatrix vpMatrix, Entity cameraAnchorEntity, ProjectionMatrix ortho, RayHelper rh, KeyInputSystem keyInput) {
 
 		//		ShaderProgram mainProgram = new ShaderProgram();
@@ -309,7 +350,6 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 		vpSystem.preMult(vpMatrix);
 		Tickable tick = CameraControlHandler.handlePitchingTick(window, ortho, arm);
-
 		return (time) -> {
 
 			vpSystem.preMult(vpMatrix);
@@ -320,6 +360,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 			keyInput.tick(window.mousePressTicks, window.mousePressMap, time.nanos);
 			keyInput.tick(window.keyPressTicks, window.keyPressMap, time.nanos);
 			if (level != null) {
+
 				CameraControlHandler.handlePanningTick(window, ortho, vpMatrix.view.getWrapped(), cameraAnchorEntity);
 				tick.apply(time);
 
@@ -333,7 +374,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 					}
 					Vector3f c = rh.getCurrentTerrainPoint();
 					if (c != null) {
-
+						//TODO rendering debug mouse cursor pos
 						Vector4f colour = new Vector4f(1, 0, 0, 1);
 						MeshExt m = new MeshExt();
 						WorldRenderer.setupDiscardMesh3D(m, 1);
@@ -350,7 +391,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 						m.mesh.name = "model";
 						m.mesh.modelRenderType = GLDrawMode.Points;
-						m.mesh.singleFrameDiscard = false;
+						m.mesh.singleFrameDiscard = true;
 						RenderingMain.system.loadVAO(program, m.mesh);
 					}
 
@@ -366,6 +407,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 				//				RenderingMain.system.loadVAO(program, mesh.mesh);
 
 			}
+
 			RenderingMain.system.render(program);
 			RenderingMain.system.render(uiProgram);
 			//this is the cube test rendering program
@@ -398,72 +440,115 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		return false;
 	}
 
+	private boolean renderPause(Delta time) {
+		return false;
+	}
+
 	Wrapper<Buildings> placement = new WrapperImpl<>();
 
-	private void setupUI(NuklearMenuSystem menuSystem, GameManager game) {
-
-		NuklearUIComponent placementUI = new NuklearUIComponent();
-
+	private void setupUI(NuklearMenuSystem menuSystem, RegisteredGUIS guis, NuklearUIComponent placementUI) {
+		int height = 100;
 		placementUI.container = window;
 		Bounds2DComponent placementUIParentBounds = placementUI.container.getBounds2DComponent();
-		placementUI.UUID = menuSystem.generateUUID();
+		placementUI.UUID = NuklearMenuSystem.generateUUID();
 		placementUI.title = "Pause";
-		placementUI.bounds.set(0, placementUIParentBounds.height * 0.75, placementUIParentBounds.width, placementUIParentBounds.height);
+		placementUI.bounds.set(0, placementUIParentBounds.height - height, placementUIParentBounds.width, height);
+		placementUI.bounds.set(0, 0, placementUIParentBounds.width, placementUIParentBounds.height);
 
 		placementUI.visible = false;
 		placementUI.properties.add(NkWindowProperties.BACKGROUND);
-		placementUI.properties.add(NkWindowProperties.NO_SCROLLBAR);/*
-																	placementUI.render = new BiConsumer<NkContext, MemoryStack>() {
-																	
-																	@Override
-																	public void accept(NkContext context, MemoryStack stack) {
-																	
-																	NkColor trueAlpha = NuklearMenuSystem.createColour(stack, 0, 0, 0, 0);
-																	NkColor alpha = NuklearMenuSystem.createColour(stack, 0, 0, 0, 155);
-																	context.style().window().fixed_background().data().color(trueAlpha);
-																	int perc = 30;
-																	nk_layout_row_dynamic(context, (int) ((placementUIParentBounds.height * 0.2f)), 3);
-																	nk_layout_row(context, Nuklear.NK_DYNAMIC, (int) (placementUIParentBounds.height * 0.2), new float[] { 0.2f, 0.6f, 0.2f });
-																	if (nk_group_begin(context, "pad_left", 0)) {
-																	nk_group_end(context);
-																	}
-																	if (nk_group_begin(context, "main", 0)) {
-																	if (nk_button_label(context, "Home")) {
-																	placement.setWrapped(new Buildings());
-																	}
-																	nk_group_end(context);
-																	}
-																	if (nk_group_begin(context, "pad_right", 0)) {
-																	nk_group_end(context);
-																	}
-																	
-																	nk_layout_row_dynamic(context, (int) ((placementUIParentBounds.height / 100) * (100 - perc)), 1);
-																	if (nk_group_begin(context, "Menu", 0)) {
-																	nk_layout_row_dynamic(context, (int) ((placementUIParentBounds.height / 100) * (100 - perc)) / 5, 1);
-																	
-																	if (nk_button_label(context, "Resume")) {
-																	menuSystem.setActiveNuklear(window.menuQueue, null, null);
-																	setWindowState(window, WindowState.Game_Running);
-																	}
-																	if (nk_button_label(context, "Options")) {
-																	//							menuSystem.navigateNuklear(window.activeNuklear, window.menuQueue, optionsMenuWrapper.getWrapped().UUID);
-																	setWindowState(window, WindowState.Menu);
-																	
-																	}
-																	if (nk_button_label(context, "Main Menu")) {
-																	//							menuSystem.setActiveNuklear(window.menuQueue, window.activeNuklear, mainMenuWrapper.getWrapped().UUID);
-																	setWindowState(window, WindowState.Menu);
-																	}
-																	context.style().window().fixed_background().data().color(alpha);
-																	nk_group_end(context);
-																	}
-																	}
-																	};*/
+		placementUI.properties.add(NkWindowProperties.NO_SCROLLBAR);
+		placementUI.render = new BiConsumer<NkContext, MemoryStack>() {
+
+			@Override
+			public void accept(NkContext context, MemoryStack stack) {
+
+				NkColor trueAlpha = NuklearMenuSystem.createColour(stack, 0, 0, 0, 0);
+				NkColor alpha = NuklearMenuSystem.createColour(stack, 0, 0, 0, 155);
+				context.style().window().fixed_background().data().color(trueAlpha);
+
+				nk_layout_row(context, NK_DYNAMIC, height, new float[] { 0.2f, 0.6f, 0.2f });
+				if (nk_group_begin(context, "pad_left", 0)) {
+					nk_group_end(context);
+				}
+
+				if (nk_group_begin(context, "main", 0)) {
+					nk_layout_row_dynamic(context, height * 0.75f, 4);
+					NkVec2 size = NkVec2.mallocStack(stack);
+					size.set(10, 10);
+					if (nk_menu_begin_label(context, "test", NK_TEXT_ALIGN_LEFT, size)) {
+						if (nk_menu_item_label(context, "item 1", NK_TEXT_ALIGN_LEFT)) {
+							logger.trace("press");
+
+						}
+						Nuklear.nk_menu_end(context);
+					}
+					/*
+										if (Nuklear.nk_button_label(context, "Home1 ")) {
+											placement.setWrapped(new Buildings());
+										}*/
+					if (nk_button_label(context, "Home2")) {
+						placement.setWrapped(new Buildings());
+					}
+					if (nk_button_label(context, "Home3")) {
+						placement.setWrapped(new Buildings());
+					}
+					if (nk_button_label(context, "Home4")) {
+						placement.setWrapped(new Buildings());
+					}
+					nk_group_end(context);
+				}
+				if (nk_group_begin(context, "pad_right", 0)) {
+					nk_group_end(context);
+				}
+
+			}
+		};
+		int max = 10;
+		ByteBuffer textBuffer = BufferUtils.createByteBuffer(max);
+		Wrapper<String> text = new WrapperImpl<>("fwafs");
+		int[] len = { text.getWrapped().length() };
+
+		placementUI.render = new BiConsumer<NkContext, MemoryStack>() {
+
+			@Override
+			public void accept(NkContext ctx, MemoryStack stack) {
+
+				nk_layout_row_dynamic(ctx, 50, 1);
+
+				NuklearManager.textAreaPre(textBuffer, text, max);
+				nk_edit_string(ctx, NK_EDIT_BOX, textBuffer, len, max, (edit, unicode) -> nnk_filter_ascii(edit, unicode));
+				NuklearManager.textAreaPost(text, textBuffer);
+				nk_layout_row_dynamic(ctx, 50, 16);
+
+				nk_label(ctx, "label", NK_TEXT_ALIGN_LEFT);
+				nk_text(ctx, "text", NK_TEXT_ALIGN_LEFT);
+				nk_button_symbol(ctx, NK_SYMBOL_CIRCLE_OUTLINE);
+				nk_button_symbol(ctx, NK_SYMBOL_CIRCLE_SOLID);
+				nk_button_symbol(ctx, NK_SYMBOL_MAX);
+				nk_button_symbol(ctx, NK_SYMBOL_MINUS);
+				nk_button_symbol(ctx, NK_SYMBOL_NONE);
+
+				nk_button_symbol(ctx, NK_SYMBOL_PLUS);
+				nk_button_symbol(ctx, NK_SYMBOL_RECT_OUTLINE);
+				nk_button_symbol(ctx, NK_SYMBOL_RECT_SOLID);
+				nk_button_symbol(ctx, NK_SYMBOL_TRIANGLE_DOWN);
+				nk_button_symbol(ctx, NK_SYMBOL_TRIANGLE_LEFT);
+
+				nk_button_symbol(ctx, NK_SYMBOL_TRIANGLE_RIGHT);
+				nk_button_symbol(ctx, NK_SYMBOL_TRIANGLE_UP);
+				nk_button_symbol(ctx, NK_SYMBOL_UNDERSCORE);
+				nk_button_symbol(ctx, NK_SYMBOL_X);
+
+			}
+
+		};
+		menuSystem.registerUI(guis, placementUI);
+
 	}
 
 	@Override
 	public void levelTick(Delta delta) {
-		// TODO Auto-generated method stub
 
 	}
 

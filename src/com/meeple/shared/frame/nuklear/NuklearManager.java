@@ -18,6 +18,7 @@ import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,6 +28,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 
+import org.apache.log4j.Logger;
+import org.lwjgl.glfw.GLFWCharCallbackI;
 import org.lwjgl.glfw.GLFWScrollCallbackI;
 import org.lwjgl.nuklear.NkBuffer;
 import org.lwjgl.nuklear.NkColor;
@@ -48,51 +51,20 @@ import org.lwjgl.stb.STBTTPackedchar;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.Platform;
 
+import com.meeple.citybuild.client.CityBuilderMain;
 import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.OpenGLSettingPop;
 import com.meeple.shared.frame.window.ActiveWindowsComponent;
 import com.meeple.shared.frame.window.MirroredWindowCallbacks;
 import com.meeple.shared.frame.window.Window;
+import com.meeple.shared.frame.wrapper.Wrapper;
 
 public class NuklearManager {
 
+	public static Logger logger = Logger.getLogger(NuklearManager.class);
+
 	public class RegisteredGUIS {
 		public final Map<String, NuklearUIComponent> guis = Collections.synchronizedMap(new HashMap<>());
-	}
-
-	public void render(NkContextSingleton context, Collection<NuklearUIComponent> set) {
-		if (set != null && !set.isEmpty()) {
-			synchronized (set) {
-				Iterator<NuklearUIComponent> i = set.iterator();
-				while (i.hasNext()) {
-					internalRenderSingle(context, i.next());
-				}
-			}
-		}
-	}
-
-	public void render(NkContextSingleton context, NuklearUIComponent window) {
-		internalRenderSingle(context, window);
-	}
-
-	private void internalRenderSingle(NkContextSingleton context, NuklearUIComponent window) {
-
-		try (MemoryStack stack = stackPush()) {
-			BiConsumer<NkContext, MemoryStack> r = window.preRender;
-			if (r != null) {
-				r.accept(context.context, stack);
-			}
-			NkRect rect = NkRect.mallocStack(stack);
-
-			if (nk_begin(
-				context.context,
-				window.title,
-				nk_rect(window.bounds.posX, window.bounds.posY, window.bounds.width, window.bounds.height, rect),
-				NkWindowProperties.flags(window.properties))) {
-				window.render.accept(context.context, stack);
-			}
-			nk_end(context.context);
-		}
 	}
 
 	public static Runnable globalEventsHandler(NkContextSingleton context, ActiveWindowsComponent windows) {
@@ -135,6 +107,10 @@ public class NuklearManager {
 	}
 
 	public void registerUI(RegisteredGUIS windows, NuklearUIComponent UI) {
+		if (UI.UUID == null || UI.UUID.isEmpty()) {
+			UI.UUID = NuklearMenuSystem.generateUUID();
+			logger.trace("UUID of window '" + UI.title + "' was null. ");
+		}
 		windows.guis.put(UI.UUID, UI);
 
 	}
@@ -149,9 +125,28 @@ public class NuklearManager {
 					synchronized (windows.guis) {
 						Iterator<NuklearUIComponent> i = set.iterator();
 						while (i.hasNext()) {
-							NuklearUIComponent window = i.next();
-							if (window.visible) {
-								internalRenderSingle(context, window);
+							NuklearUIComponent ui = i.next();
+							if (ui.visible) {
+								try (MemoryStack stack = stackPush()) {
+									BiConsumer<NkContext, MemoryStack> r = ui.preRender;
+									if (r != null) {
+										r.accept(context.context, stack);
+									}
+									NkRect rect = NkRect.mallocStack(stack);
+
+									if (nk_begin(
+										context.context,
+										ui.title,
+										nk_rect(ui.bounds.posX, ui.bounds.posY, ui.bounds.width, ui.bounds.height, rect),
+										NkWindowProperties.flags(ui.properties))) {
+										ui.render.accept(context.context, stack);
+									}
+									if (nk_window_has_focus(context.context)) {
+										window.currentFocus = ui;
+									}
+									nk_end(context.context);
+								}
+
 							}
 						}
 					}
@@ -358,10 +353,18 @@ public class NuklearManager {
 				}
 			}
 		});
-		cb.charCallbackSet.add((windowID, codepoint) -> nk_input_unicode(context.context, codepoint));
+		cb.charCallbackSet.add(new GLFWCharCallbackI() {
+
+			@Override
+			public void invoke(long window, int codepoint) {
+				nk_input_unicode(context.context, codepoint);
+
+			}
+		});
 		cb.keyCallbackSet.add((windowID, key, scancode, action, mods) -> {
 			boolean press = action == GLFW_PRESS;
 			switch (key) {
+
 				case GLFW_KEY_DELETE:
 					nk_input_key(context.context, NK_KEY_DEL, press);
 					break;
@@ -747,6 +750,31 @@ public class NuklearManager {
 		nk_style_pop_color(context);
 		nk_style_pop_color(context);
 		nk_style_pop_color(context);
+	}
+
+	public static void textAreaPre(ByteBuffer textBuffer, Wrapper<String> text, int max) {
+
+		textBuffer.clear();
+		byte[] arr = text.getWrapped().getBytes();
+		if (arr.length > max) {
+			arr = Arrays.copyOfRange(arr, 0, max - 2);
+		}
+		textBuffer.put(arr);
+		if (arr[arr.length - 1] != 0) {
+			textBuffer.put((byte) 0);
+		}
+		textBuffer.flip();
+	}
+
+	public static void textAreaPost(Wrapper<String> text, ByteBuffer textBuffer) {
+
+		if (textBuffer.hasRemaining()) {
+			byte[] arr = new byte[textBuffer.remaining()];
+			textBuffer.get(arr);
+			text.setWrapped(new String(arr));
+		} else {
+			text.setWrapped("");
+		}
 	}
 	/*
 		protected NkColor createNKColor(MemoryStack stack, int r, int g, int b, int a) {

@@ -31,7 +31,10 @@ public class Window extends EmptyComponent implements HasBounds2D {
 	public final WindowEvents events = new WindowEvents();
 	public final Vector4f clearColour = new Vector4f(0, 0, 0, 0);
 	public final MirroredWindowCallbacks callbacks = new MirroredWindowCallbacks();
-
+	/**
+	 * Normally which nuklear window has focus 
+	 */
+	public transient Object currentFocus = null;
 	//	public final Map<String, Object> properties = new HashMap<>();
 
 	@Override

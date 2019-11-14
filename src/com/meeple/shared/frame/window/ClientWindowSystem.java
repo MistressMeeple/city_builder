@@ -42,9 +42,7 @@ import org.lwjgl.system.MemoryStack;
 import com.meeple.shared.ClientOptionSystem;
 import com.meeple.shared.ClientOptionSystem.Delimeter;
 import com.meeple.shared.ClientOptions;
-import com.meeple.shared.Delta;
 import com.meeple.shared.Tickable;
-import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.GLFWThread;
 import com.meeple.shared.frame.OAL.AudioData;
 import com.meeple.shared.frame.OGL.KeyInputSystem;
@@ -79,7 +77,7 @@ public interface ClientWindowSystem {
 		//		KeyInputSystem keyInput = new KeyInputSystem();
 		//		NkContextSingleton nkContext = new NkContextSingleton();
 		//		CustomMenuSystem menuSystem = new CustomMenuSystem();
-		public RegisteredGUIS activeNuklear;
+		public RegisteredGUIS registeredNuklear;
 		public ActiveMenuQueue menuQueue;
 		public final FrameTimeManager eventTimeManager = new FrameTimeManager();
 		public final FrameTimeManager renderTimeManager = new FrameTimeManager();
@@ -171,6 +169,12 @@ public interface ClientWindowSystem {
 		return audio;
 	}
 
+	public default void initWindow(ClientWindow window, NuklearMenuSystem menuSystem) {
+
+		window.registeredNuklear = menuSystem.new RegisteredGUIS();
+		window.menuQueue = menuSystem.new ActiveMenuQueue();
+	}
+
 	/**
 	 * setup the shared menu system for my windows
 	 *<br>
@@ -185,18 +189,12 @@ public interface ClientWindowSystem {
 	 */
 	public default void setupMenu(ClientWindow window, Map<WindowState, Set<Tickable>> stateRendering, ClientOptionSystem clientOptionSystem, NuklearMenuSystem menuSystem,
 		NkContextSingleton nkContext, Button... buttons) {
-
-		window.activeNuklear = menuSystem.new RegisteredGUIS();
-		window.menuQueue = menuSystem.new ActiveMenuQueue();
-
-		Wrapper<NuklearUIComponent> mainMenuWrapper = new WrapperImpl<>();
+		initWindow(window, menuSystem);
+		menuSystem.create(nkContext, window, window.registeredNuklear);
 
 		NuklearUIComponent mainMenu = new NuklearUIComponent();
-		mainMenuWrapper.setWrapped(mainMenu);
-
-		Wrapper<NuklearUIComponent> optionsMenuWrapper = new WrapperImpl<NuklearUIComponent>();
-		Wrapper<NuklearUIComponent> pauseMenuWrapper = new WrapperImpl<NuklearUIComponent>();
-		Wrapper<Map<WindowState, Delta>> stateTicks = new WrapperImpl<>();
+		NuklearUIComponent pauseMenu = new NuklearUIComponent();
+		NuklearUIComponent optionsMenu = new NuklearUIComponent();
 		GLFWKeyCallbackI menuNavigation = new GLFWKeyCallbackI() {
 
 			@Override
@@ -211,14 +209,14 @@ public interface ClientWindowSystem {
 							break;
 						case Game_Running:
 
-							menuSystem.navigateNuklear(window.activeNuklear, window.menuQueue, pauseMenuWrapper.getWrapped().UUID);
+							menuSystem.navigateNuklear(window.registeredNuklear, window.menuQueue, pauseMenu.UUID);
 							setWindowState(window, WindowState.Game_Pause);
 							break;
 						case Loading:
 
 							break;
 						case Menu:
-							if (menuSystem.getActiveMenu(window.menuQueue) != mainMenu) {
+							if (NuklearMenuSystem.getActiveMenu(window.menuQueue) != mainMenu) {
 								menuSystem.goBackNuklear(window.menuQueue);
 							}
 							break;
@@ -248,7 +246,7 @@ public interface ClientWindowSystem {
 
 							break;
 						case Menu:
-							if (menuSystem.getActiveMenu(window.menuQueue) != mainMenu) {
+							if (NuklearMenuSystem.getActiveMenu(window.menuQueue) != mainMenu) {
 								menuSystem.goBackNuklear(window.menuQueue);
 							}
 							break;
@@ -260,9 +258,7 @@ public interface ClientWindowSystem {
 				}
 			}
 		};
-		//this is initial state, no need to set through 	setWindowState()
-		window.state.setWrapped(WindowState.Menu);
-		menuSystem.create(nkContext, window, window.activeNuklear);
+
 		Menu mainMenuDetails = new Menu() {
 
 			@Override
@@ -278,7 +274,7 @@ public interface ClientWindowSystem {
 
 			@Override
 			public void secondaryClick() {
-				menuSystem.navigateNuklear(window.activeNuklear, window.menuQueue, optionsMenuWrapper.getWrapped().UUID);
+				menuSystem.navigateNuklear(window.registeredNuklear, window.menuQueue, optionsMenu.UUID);
 
 			}
 
@@ -348,7 +344,7 @@ public interface ClientWindowSystem {
 			};
 			window.events.postCreation.add(setupButtons);
 		*/
-		optionsMenuWrapper.setWrapped(new NuklearUIComponent());
+		
 		Menu optionsMenuDetails = new Menu() {
 
 			@Override
@@ -452,23 +448,23 @@ public interface ClientWindowSystem {
 				return NK_WINDOW_SCROLL_AUTO_HIDE;
 			}
 		};
-		optionsMenuWrapper.getWrapped().close.add(new Consumer<NuklearUIComponent>() {
+		optionsMenu.close.add(new Consumer<NuklearUIComponent>() {
 
 			@Override
 			public void accept(NuklearUIComponent updateTo) {
 				clientOptionSystem.writeSettingsFile(window.clientOptions);
 			}
 		});
-		optionsMenuWrapper.getWrapped().title = "Options";
-		menuSystem.setupMenu(window, optionsMenuWrapper.getWrapped(), optionsMenuDetails);
+		optionsMenu.title = "Options";
+		menuSystem.setupMenu(window, optionsMenu, optionsMenuDetails);
 		//TODO setup pause menu
 
-		NuklearUIComponent pauseMenu = new NuklearUIComponent();
-		pauseMenuWrapper.setWrapped(pauseMenu);
+		
+		
 
 		pauseMenu.container = window;
 		Bounds2DComponent pauseMenuContainerBounds = pauseMenu.container.getBounds2DComponent();
-		pauseMenu.UUID = menuSystem.generateUUID();
+		pauseMenu.UUID = NuklearMenuSystem.generateUUID();
 		pauseMenu.title = "Pause";
 		pauseMenu.bounds.set((pauseMenuContainerBounds.width / 3), 0, pauseMenuContainerBounds.width / 3, pauseMenuContainerBounds.height);
 
@@ -499,12 +495,12 @@ public interface ClientWindowSystem {
 						setWindowState(window, WindowState.Game_Running);
 					}
 					if (nk_button_label(context, "Options")) {
-						menuSystem.navigateNuklear(window.activeNuklear, window.menuQueue, optionsMenuWrapper.getWrapped().UUID);
+						menuSystem.navigateNuklear(window.registeredNuklear, window.menuQueue, optionsMenu.UUID);
 						setWindowState(window, WindowState.Menu);
 
 					}
 					if (nk_button_label(context, "Main Menu")) {
-						menuSystem.setActiveNuklear(window.menuQueue, window.activeNuklear, mainMenuWrapper.getWrapped().UUID);
+						menuSystem.setActiveNuklear(window.menuQueue, window.registeredNuklear, mainMenu.UUID);
 						setWindowState(window, WindowState.Menu);
 					}
 					context.style().window().fixed_background().data().color(alpha);
@@ -515,38 +511,14 @@ public interface ClientWindowSystem {
 
 		//		menuSystem.setupLevelSelectMenu(window, levelSelectMenuWrapper, levelSelectIndex, levelPreviewWrapper, levelSelect);
 
-		menuSystem.registerUI(window.activeNuklear, mainMenuWrapper.getWrapped());
-		menuSystem.registerUI(window.activeNuklear, optionsMenuWrapper.getWrapped());
-		menuSystem.registerUI(window.activeNuklear, pauseMenuWrapper.getWrapped());
+		menuSystem.registerUI(window.registeredNuklear, mainMenu);
+		menuSystem.registerUI(window.registeredNuklear, optionsMenu);
+		menuSystem.registerUI(window.registeredNuklear, pauseMenu);
 
-		menuSystem.navigateNuklear(window.activeNuklear, window.menuQueue, mainMenuWrapper.getWrapped().UUID);
-
-		stateTicks.setWrapped(new HashMap<>());
+		menuSystem.navigateNuklear(window.registeredNuklear, window.menuQueue, mainMenu.UUID);
 
 		window.callbacks.keyCallbackSet.add(menuNavigation);
 		window.callbacks.mouseButtonCallbackSet.add(mouse);
-		window.events.render.add(0, (delta) -> {
-
-			if (window.state.getWrapped() != null) {
-				Map<WindowState, Delta> ticks = stateTicks.getWrapped();
-				if (ticks == null) {
-					ticks = new HashMap<>();
-					stateTicks.setWrapped(ticks);
-				}
-				Delta time = ticks.get(window.state.getWrapped());
-				if (time == null) {
-					time = new Delta();
-					ticks.put(window.state.getWrapped(), time);
-				}
-				time.nanos = delta.nanos;
-				time.seconds = delta.seconds;
-				time.totalNanos += delta.nanos;
-				Set<Tickable> r = stateRendering.get(window.state.getWrapped());
-				FrameUtils.iterateTickable(r, time);
-			}
-			return false;
-
-		});
 	}
 
 	public default NuklearUIComponent setupLevelSelectMenu(ClientWindow window, NuklearMenuSystem menuSystem, Wrapper<LevelPreview[]> levelPreviewWrapper,

@@ -171,7 +171,7 @@ public class NuklearMenuSystem extends NuklearManager {
 
 	private static int UUID = 0;
 
-	public String generateUUID() {
+	public static String generateUUID() {
 		int uuid = UUID;
 		UUID += 1;
 		return "w." + uuid;
@@ -259,7 +259,7 @@ public class NuklearMenuSystem extends NuklearManager {
 
 	}
 
-	public NuklearUIComponent getActiveMenu(ActiveMenuQueue menuQueue) {
+	public static NuklearUIComponent getActiveMenu(ActiveMenuQueue menuQueue) {
 		NuklearUIComponent current = null;
 		if (!menuQueue.getWrapped().isEmpty()) {
 			NuklearUIComponent curr = menuQueue.getWrapped().get(menuQueue.getWrapped().size() - 1);
