@@ -6,10 +6,10 @@ import org.joml.Vector4f;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.MemoryUtil;
 
-import com.meeple.components.IDComponent;
-import com.meeple.components.NamedComponent;
 import com.meeple.shared.frame.component.Bounds2DComponent;
 import com.meeple.shared.frame.component.HasBounds2D;
+import com.meeple.shared.frame.component.IDComponent;
+import com.meeple.shared.frame.component.NamedComponent;
 
 public class Window implements HasBounds2D, NamedComponent, IDComponent<Long> {
 	private long windowID = 0;

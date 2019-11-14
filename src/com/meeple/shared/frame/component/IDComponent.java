@@ -1,4 +1,4 @@
-package com.meeple.components;
+package com.meeple.shared.frame.component;
 
 public interface IDComponent<T> {
 
