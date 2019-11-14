@@ -1,13 +1,8 @@
 package com.meeple.components;
 
-public interface NamedComponent extends Component {
-	public static final String nameTag= "name";
+public interface NamedComponent  {
 
-	public default String getName() {
-		return Component.get(this, nameTag);
-	}
+	public String getName();
 
-	public default void setName(String name) {
-		getComponents().put(nameTag, name);
-	}
+	public void setName(String name);
 }
