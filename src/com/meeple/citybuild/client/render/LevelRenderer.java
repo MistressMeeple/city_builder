@@ -97,11 +97,11 @@ public class LevelRenderer {
 
 					case FrustumIntersection.INSIDE:
 					case FrustumIntersection.INTERSECT:
-//						m.mesh.visible = true;
+						m.mesh.visible = true;
 						//render chunk
 						break;
 					case FrustumIntersection.OUTSIDE:
-//						m.mesh.visible = false;
+						m.mesh.visible = false;
 						break;
 					default:
 						break;
