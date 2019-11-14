@@ -86,15 +86,15 @@ public class NuklearManager {
 						//						Boolean isNuklearWindow = (Boolean) window.properties.getOrDefault("isNuklearWindow", null);
 						//						if (isNuklearWindow != null && isNuklearWindow) {
 						if (mouse.grab()) {
-							glfwSetInputMode(window.windowID, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+							glfwSetInputMode(window.getID(), GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 						} else if (mouse.grabbed()) {
 							float prevX = mouse.prev().x();
 							float prevY = mouse.prev().y();
-							glfwSetCursorPos(window.windowID, prevX, prevY);
+							glfwSetCursorPos(window.getID(), prevX, prevY);
 							mouse.pos().x(prevX);
 							mouse.pos().y(prevY);
 						} else if (mouse.ungrab()) {
-							glfwSetInputMode(window.windowID, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+							glfwSetInputMode(window.getID(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 						}
 						//						}
 					}
@@ -467,11 +467,11 @@ public class NuklearManager {
 							memCopy(text, memAddress(str), len);
 							str.put(len, (byte) 0);
 
-							glfwSetClipboardString(window.windowID, str);
+							glfwSetClipboardString(window.getID(), str);
 						}
 					})
 					.paste((handle, edit) -> {
-						long text = nglfwGetClipboardString(window.windowID);
+						long text = nglfwGetClipboardString(window.getID());
 						if (text != NULL) {
 							nnk_textedit_paste(edit, text, nnk_strlen(text));
 						}

@@ -54,24 +54,24 @@ public class GLFWThread extends Thread {
 		for (Runnable r : runnables) {
 			this.runnables.add(r);
 		}
-		this.setName("GLFW Thread-" + window.title);
+		this.setName("GLFW Thread-" + window.getName());
 	}
 
 	@Override
 	public void run() {
 		FrameUtils.iterateRunnable(window.events.preCreation, false);
-		glfwMakeContextCurrent(window.windowID);
+		glfwMakeContextCurrent(window.getID());
 		window.capabilities = GL.createCapabilities();
 		glfwSwapInterval(window.vSync ? 1 : 0);
 		glClearColor(window.clearColour.x, window.clearColour.x, window.clearColour.z, window.clearColour.w);
 		FrameUtils.iterateRunnable(window.events.postCreation, false);
 
-		GL46.glDebugMessageCallback(FrameUtils.defaultDebugMessage, window.windowID);
+		GL46.glDebugMessageCallback(FrameUtils.defaultDebugMessage, window.getID());
 		//			return quit.get() > 0 && !window.shouldClose;
 
 		Wrapper<Long> prev = new WrapperImpl<>();
 		Delta delta = new Delta();
-		while (quit.get() > 0 && !window.shouldClose && !Thread.currentThread().isInterrupted() && !window.hasClosed && !GLFW.glfwWindowShouldClose(window.windowID)) {
+		while (quit.get() > 0 && !window.shouldClose && !Thread.currentThread().isInterrupted() && !window.hasClosed && !GLFW.glfwWindowShouldClose(window.getID())) {
 			///Time management
 			long curr = System.nanoTime();
 
@@ -91,7 +91,7 @@ public class GLFWThread extends Thread {
 				glViewport(0, 0, window.frameBufferSizeX, window.frameBufferSizeY);
 			}
 
-			glfwSwapBuffers(window.windowID);
+			glfwSwapBuffers(window.getID());
 			FrameUtils.iterateRunnable(window.events.frameEnd, false);
 
 			frameTimeManager.run();
@@ -108,7 +108,7 @@ public class GLFWThread extends Thread {
 		logger.debug("Closing thread with name '" + Thread.currentThread().getName() + "'");
 
 		FrameUtils.iterateRunnable(window.events.preCleanup, false);
-		GLFW.glfwSetWindowShouldClose(window.windowID, true);
+		GLFW.glfwSetWindowShouldClose(window.getID(), true);
 		window.shouldClose = true;
 
 	}

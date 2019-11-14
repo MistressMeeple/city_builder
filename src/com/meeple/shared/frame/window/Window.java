@@ -6,13 +6,15 @@ import org.joml.Vector4f;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.MemoryUtil;
 
+import com.meeple.components.Component.BaseComponent;
+import com.meeple.components.IDComponent;
+import com.meeple.components.NamedComponent;
 import com.meeple.shared.frame.component.Bounds2DComponent;
-import com.meeple.shared.frame.component.EmptyComponent;
 import com.meeple.shared.frame.component.HasBounds2D;
 
-public class Window extends EmptyComponent implements HasBounds2D {
-	public long windowID = 0;
-	public String title = "Default Title";
+public class Window extends BaseComponent implements HasBounds2D, NamedComponent, IDComponent<Long> {
+//	public long windowID = 0;
+//	public String title = "Default Title";
 	public Long monitor = MemoryUtil.NULL;
 	public Long share = MemoryUtil.NULL;
 	public boolean vSync = true;

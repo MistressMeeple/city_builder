@@ -38,7 +38,7 @@ public class WindowManager implements AutoCloseable {
 
 	private static void internalCreate(Window window, ActiveWindowsComponent active) {
 		if (!window.created) {
-			logger.trace("Creating new window '" + window.title + "'");
+			logger.trace("Creating new window '" + window.getName() + "'");
 
 			// Configure GLFW
 			GLFW.glfwDefaultWindowHints(); // optional, the current window hints are already the default
@@ -55,8 +55,8 @@ public class WindowManager implements AutoCloseable {
 				}
 			}
 
-			window.windowID = GLFW.glfwCreateWindow(window.bounds.width.intValue(), window.bounds.height.intValue(), window.title, window.monitor, window.share);
-			if (window.windowID == MemoryUtil.NULL) {
+			window.setID(GLFW.glfwCreateWindow(window.bounds.width.intValue(), window.bounds.height.intValue(), window.getName(), window.monitor, window.share));
+			if (window.getID() == MemoryUtil.NULL) {
 				throw new RuntimeException("Failed to create the GLFW window");
 			}
 
@@ -76,12 +76,12 @@ public class WindowManager implements AutoCloseable {
 
 				}
 				// position the window
-				glfwSetWindowPos(window.windowID, window.bounds.posX.intValue(), window.bounds.posY.intValue());
+				glfwSetWindowPos(window.getID(), window.bounds.posX.intValue(), window.bounds.posY.intValue());
 			}
 
 			window.frameBufferSizeX = window.bounds.width.intValue();
 			window.frameBufferSizeY = window.bounds.height.intValue();
-			new WindowCallbackManager().setWindowCallbacks(window.windowID, window.callbacks);
+			new WindowCallbackManager().setWindowCallbacks(window.getID(), window.callbacks);
 
 			window.created = true;
 		}
@@ -251,7 +251,7 @@ public class WindowManager implements AutoCloseable {
 					while (i.hasNext()) {
 						Window w = i.next();
 
-						if (w.shouldClose || glfwWindowShouldClose(w.windowID)) {
+						if (w.shouldClose || glfwWindowShouldClose(w.getID())) {
 							//quit.decrementAndGet();
 							WindowManager.closeWindowUnmanaged(w);
 							FrameUtils.iterateRunnable(w.events.postCleanup, false);
@@ -274,7 +274,7 @@ public class WindowManager implements AutoCloseable {
 			@Override
 			public void run() {
 				if (primaryWindow != null) {
-					if (glfwWindowShouldClose(primaryWindow.windowID) || primaryWindow.shouldClose) {
+					if (glfwWindowShouldClose(primaryWindow.getID()) || primaryWindow.shouldClose) {
 						quit.set(0);
 					}
 				}
@@ -351,7 +351,7 @@ public class WindowManager implements AutoCloseable {
 	}
 
 	public static void closeWindowUnmanaged(Window window) {
-		logger.trace("Closing window with ID: " + window.windowID);
+		logger.trace("Closing window with ID: " + window.getID());
 		window.shouldClose = true;
 		Thread thread = window.loopThread;
 		if (thread != null) {
@@ -362,9 +362,9 @@ public class WindowManager implements AutoCloseable {
 				//interupted 
 			}
 		}
-		logger.debug("Closing window '" + window.title + "'");
-		Callbacks.glfwFreeCallbacks(window.windowID);
-		GLFW.glfwDestroyWindow(window.windowID);
+		logger.debug("Closing window '" + window.getName() + "'");
+		Callbacks.glfwFreeCallbacks(window.getID());
+		GLFW.glfwDestroyWindow(window.getID());
 		FrameUtils.iterateRunnable(window.events.postCleanup, false);
 		window.hasClosed = true;
 	}

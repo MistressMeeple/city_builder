@@ -826,7 +826,7 @@ public interface ClientWindowSystem {
 		clientOptionSystem.readSettingsFile(window.clientOptions);
 
 		WindowHints.debug = true;
-		window.title = "Main Window";
+		window.setName( "Main Window");
 		window.vSync = true;
 		WindowHints hints = new WindowHints().setVisible(false).setDoublebuffer(true).setResizable(false);
 		window.hints.copyFrom(hints, false);
@@ -850,15 +850,15 @@ public interface ClientWindowSystem {
 			if (window.queueChangeCursorType.getWrapped() != null) {
 				switch (window.queueChangeCursorType.getWrapped()) {
 					case Disabled:
-						glfwSetInputMode(window.windowID, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+						glfwSetInputMode(window.getID(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 						window.currentCursorType.setWrapped(GLFWCursorType.Disabled);
 						break;
 					case Hidden:
-						glfwSetInputMode(window.windowID, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+						glfwSetInputMode(window.getID(), GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 						window.currentCursorType.setWrapped(GLFWCursorType.Hidden);
 						break;
 					case Normal:
-						glfwSetInputMode(window.windowID, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+						glfwSetInputMode(window.getID(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 						window.currentCursorType.setWrapped(GLFWCursorType.Normal);
 						break;
 					default:
@@ -870,7 +870,7 @@ public interface ClientWindowSystem {
 
 		window.events.postCreation.add(() -> {
 			logger.debug("Started new window thread: " + Thread.currentThread().getName());
-			glfwShowWindow(window.windowID);
+			glfwShowWindow(window.getID());
 		});
 		/*
 		 * Thread time management settings
