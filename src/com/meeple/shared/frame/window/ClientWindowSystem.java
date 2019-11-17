@@ -401,7 +401,6 @@ public interface ClientWindowSystem {
 						int masterVolume = window.clientOptions.get(Delimeter.Int, ClientOptions.intOptions.masterVolumeName, 50);
 						masterVolume = nk_slide_int(context, 0, masterVolume, 100, 5);
 						window.clientOptions.put(ClientOptions.intOptions.masterVolumeName, masterVolume);
-
 					}
 
 					nk_label(context, "" + window.clientOptions.get(Delimeter.Int, ClientOptions.intOptions.masterVolumeName), NK_TEXT_CENTERED);
@@ -738,9 +737,9 @@ public interface ClientWindowSystem {
 	 * @param service
 	 */
 	public default void start(WindowManager windowManager, ClientWindow window, NkContextSingleton nkContext, AtomicInteger quitCountdown, ExecutorService service) {
-
-		setupAudioSystem(window);
-		closeAudioSystem(window);
+		/*
+				setupAudioSystem(window);
+				closeAudioSystem(window);*/
 		WindowMonitorBoundsSystem wmbs = new WindowMonitorBoundsSystem();
 		wmbs.centerBoundsInMonitor(0, window.bounds);
 
