@@ -13,6 +13,7 @@ public class WindowEvents {
 	public Set<Runnable> frameStart = Collections.synchronizedSet(new HashSet<>());
 	public Set<Runnable> preClear = Collections.synchronizedSet(new HashSet<>());
 	public List<Tickable> render = Collections.synchronizedList(new ArrayList<>());
+	public List<Tickable> postRender = Collections.synchronizedList(new ArrayList<>());
 	public Set<Runnable> frameEnd = Collections.synchronizedSet(new HashSet<>());
 
 	public Set<Runnable> preCreation = Collections.synchronizedSet(new HashSet<>());

@@ -87,6 +87,7 @@ public class GLFWThread extends Thread {
 			glClear(window.clearType);
 
 			FrameUtils.iterateTickable(window.events.render, delta);
+			FrameUtils.iterateTickable(window.events.postRender, delta);
 			try (MemoryStack stack = stackPush()) {
 				glViewport(0, 0, window.frameBufferSizeX, window.frameBufferSizeY);
 			}
