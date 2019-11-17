@@ -241,12 +241,12 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 					menuSystem.setActiveNuklear(window.menuQueue, window.registeredNuklear, null);
 				}
 			};
-
+			
 			setupMenu(window, stateRendering, optionsSystem, menuSystem, nkContext, continueBtn, loadBtn, newBtn);
 			setupUI(menuSystem, window.registeredNuklear, placementUI);
 			Map<WindowState, Delta> ticks = new HashMap<>();
 			window.events.render.add(0, (delta) -> {
-
+				
 				if (window.state.getWrapped() != null) {
 
 					Delta time = ticks.get(window.state.getWrapped());
@@ -268,7 +268,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 			});
 			start(windowManager, window, nkContext, clientQuitCounter, executorService);
-
+			
 		}
 		shutdownService(executorService);
 		logger.info("closing client now!");
@@ -295,7 +295,6 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 	public WindowState onWindowStateChange(WindowState oldState, WindowState newState) {
 		if (newState == WindowState.Game_Pause) {
 			placementUI.visible = false;
-
 			pauseGame();
 		}
 		if (newState == WindowState.Game_Running) {
@@ -343,6 +342,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 			puW.setWrapped(levelRenderer.setupWorldProgram(program, vpSystem, vpMatrix));
 			uipuW.setWrapped(levelRenderer.setupUIProgram(uiProgram, vpSystem.projSystem, ortho));
+			
 			/*mpuW.setWrapped(levelRenderer.setupMainProgram(mainProgram, vpSystem, vpMatrix));
 			RenderingMain.system.loadVAO(mainProgram, cube);*/
 
@@ -378,7 +378,6 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 						Vector4f colour = new Vector4f(1, 0, 0, 1);
 						MeshExt m = new MeshExt();
 						WorldRenderer.setupDiscardMesh3D(m, 1);
-						m.mesh.singleFrameDiscard = true;
 
 						m.positionAttrib.data.add(c.x);
 						m.positionAttrib.data.add(c.y);
@@ -441,6 +440,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 	}
 
 	private boolean renderPause(Delta time) {
+		
 		return false;
 	}
 
