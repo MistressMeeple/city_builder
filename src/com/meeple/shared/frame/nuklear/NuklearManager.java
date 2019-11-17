@@ -51,9 +51,7 @@ import org.lwjgl.stb.STBTTPackedchar;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.Platform;
 
-import com.meeple.citybuild.client.CityBuilderMain;
 import com.meeple.shared.frame.FrameUtils;
-import com.meeple.shared.frame.OpenGLSettingPop;
 import com.meeple.shared.frame.window.ActiveWindowsComponent;
 import com.meeple.shared.frame.window.MirroredWindowCallbacks;
 import com.meeple.shared.frame.window.Window;
@@ -115,44 +113,39 @@ public class NuklearManager {
 
 	}
 
-	public Runnable getGuiRenderer(NkContextSingleton context, Window window, RegisteredGUIS windows) {
-		return new Runnable() {
-
-			@Override
-			public void run() {
-				if (windows.guis != null && !windows.guis.isEmpty()) {
-					Collection<NuklearUIComponent> set = windows.guis.values();
-					synchronized (windows.guis) {
-						Iterator<NuklearUIComponent> i = set.iterator();
-						while (i.hasNext()) {
-							NuklearUIComponent ui = i.next();
-							if (ui.visible) {
-								try (MemoryStack stack = stackPush()) {
-									BiConsumer<NkContext, MemoryStack> r = ui.preRender;
-									if (r != null) {
-										r.accept(context.context, stack);
-									}
-									NkRect rect = NkRect.mallocStack(stack);
-
-									if (nk_begin(
-										context.context,
-										ui.title,
-										nk_rect(ui.bounds.posX, ui.bounds.posY, ui.bounds.width, ui.bounds.height, rect),
-										NkWindowProperties.flags(ui.properties))) {
-										ui.render.accept(context.context, stack);
-									}
-									if (nk_window_has_focus(context.context)) {
-										window.currentFocus = ui;
-									}
-									nk_end(context.context);
-								}
-
+	public void renderGUIs(NkContextSingleton context, Window window, Collection<NuklearUIComponent> uis) {
+		Object o = null;
+		if (uis != null && !uis.isEmpty()) {
+			synchronized (uis) {
+				Iterator<NuklearUIComponent> i = uis.iterator();
+				while (i.hasNext()) {
+					NuklearUIComponent ui = i.next();
+					if (ui.visible) {
+						try (MemoryStack stack = stackPush()) {
+							BiConsumer<NkContext, MemoryStack> r = ui.preRender;
+							if (r != null) {
+								r.accept(context.context, stack);
 							}
+							NkRect rect = NkRect.mallocStack(stack);
+
+							if (nk_begin(
+								context.context,
+								ui.title,
+								nk_rect(ui.bounds.posX, ui.bounds.posY, ui.bounds.width, ui.bounds.height, rect),
+								NkWindowProperties.flags(ui.properties))) {
+								ui.render.accept(context.context, stack);
+							}
+							if (nk_window_has_focus(context.context)) {
+								o = ui;
+							}
+							nk_end(context.context);
 						}
+
 					}
 				}
 			}
-		};
+		}
+		window.currentFocus = o;
 	}
 
 	public void create(NkContextSingleton context, Window window, RegisteredGUIS windows) {
@@ -170,7 +163,8 @@ public class NuklearManager {
 			}
 		});
 
-		window.events.frameStart.add(getGuiRenderer(context, window, windows));
+		//TODO not render here
+		window.events.frameStart.add(() -> renderGUIs(context, window, windows.guis.values()));
 		window.events.render
 			.add(
 				(delta) -> {
@@ -208,107 +202,105 @@ public class NuklearManager {
 
 	private void render(NkContextSingleton context, Window window, int AA, int max_vertex_buffer, int max_element_buffer) {
 
-		try (OpenGLSettingPop pop = new OpenGLSettingPop()) {
-			try (MemoryStack stack = stackPush()) {
+		try (MemoryStack stack = stackPush()) {
 
-				// setup global state
-				glEnable(GL_BLEND);
-				glBlendEquation(GL_FUNC_ADD);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-				glDisable(GL_CULL_FACE);
-				glDisable(GL_DEPTH_TEST);
-				glEnable(GL_SCISSOR_TEST);
-				glActiveTexture(GL_TEXTURE0);
+			// setup global state
+			glEnable(GL_BLEND);
+			glBlendEquation(GL_FUNC_ADD);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			glDisable(GL_CULL_FACE);
+			glDisable(GL_DEPTH_TEST);
+			glEnable(GL_SCISSOR_TEST);
+			glActiveTexture(GL_TEXTURE0);
 
-				// setup program
-				glUseProgram(context.prog);
-				glUniform1i(context.uniform_tex, 0);
-				glUniformMatrix4fv(
-					context.uniform_proj,
-					false,
-					stack
-						.floats(
-							2.0f / window.bounds.width,
-							0.0f,
-							0.0f,
-							0.0f,
-							0.0f,
-							-2.0f / window.bounds.height,
-							0.0f,
-							0.0f,
-							0.0f,
-							0.0f,
-							-1.0f,
-							0.0f,
-							-1.0f,
-							1.0f,
-							0.0f,
-							1.0f));
-			}
-
-			{
-				// convert from command queue into draw list and draw to screen
-
-				// allocate vertex and element buffer
-				glBindVertexArray(context.vao);
-				glBindBuffer(GL_ARRAY_BUFFER, context.vbo);
-				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, context.ebo);
-				glBufferData(GL_ARRAY_BUFFER, max_vertex_buffer, GL_STREAM_DRAW);
-				glBufferData(GL_ELEMENT_ARRAY_BUFFER, max_element_buffer, GL_STREAM_DRAW);
-				// load draw vertices & elements directly into vertex + element buffer
-
-				//TODO this is making index out of range error
-				ByteBuffer vertices = Objects.requireNonNull(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY, max_vertex_buffer, null));
-				ByteBuffer elements = Objects.requireNonNull(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY, max_element_buffer, null));
-
-				try (MemoryStack stack = stackPush()) {
-					// fill convert configuration
-					NkConvertConfig config = NkConvertConfig
-						.callocStack(stack)
-						.vertex_layout(NkContextSingleton.VERTEX_LAYOUT)
-						.vertex_size(20)
-						.vertex_alignment(4)
-						.null_texture(NkContextSingleton.null_texture)
-						.circle_segment_count(22)
-						.curve_segment_count(22)
-						.arc_segment_count(22)
-						.global_alpha(1.0f)
-						.shape_AA(AA)
-						.line_AA(AA);
-
-					// setup buffers to load vertices and elements
-					NkBuffer vbuf = NkBuffer.mallocStack(stack);
-					NkBuffer ebuf = NkBuffer.mallocStack(stack);
-
-					nk_buffer_init_fixed(vbuf, vertices/*, max_vertex_buffer*/);
-					nk_buffer_init_fixed(ebuf, elements/*, max_element_buffer*/);
-					nk_convert(context.context, context.cmds, vbuf, ebuf, config);
-				}
-				glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
-				glUnmapBuffer(GL_ARRAY_BUFFER);
-
-				// iterate over and execute each draw command
-				float fb_scale_x = (float) window.frameBufferSizeX / (float) window.bounds.width;
-				float fb_scale_y = (float) window.frameBufferSizeY / (float) window.bounds.height;
-
-				long offset = NULL;
-				for (NkDrawCommand cmd = nk__draw_begin(context.context, context.cmds); cmd != null; cmd = nk__draw_next(cmd, context.cmds, context.context)) {
-					if (cmd.elem_count() == 0) {
-						continue;
-					}
-					glBindTexture(GL_TEXTURE_2D, cmd.texture().id());
-					glScissor(
-						(int) (cmd.clip_rect().x() * fb_scale_x),
-						(int) ((window.bounds.height - (int) (cmd.clip_rect().y() + cmd.clip_rect().h())) * fb_scale_y),
-						(int) (cmd.clip_rect().w() * fb_scale_x),
-						(int) (cmd.clip_rect().h() * fb_scale_y));
-					glDrawElements(GL_TRIANGLES, cmd.elem_count(), GL_UNSIGNED_SHORT, offset);
-					offset += cmd.elem_count() * 2;
-				}
-				nk_clear(context.context);
-			}
-
+			// setup program
+			glUseProgram(context.prog);
+			glUniform1i(context.uniform_tex, 0);
+			glUniformMatrix4fv(
+				context.uniform_proj,
+				false,
+				stack
+					.floats(
+						2.0f / window.bounds.width,
+						0.0f,
+						0.0f,
+						0.0f,
+						0.0f,
+						-2.0f / window.bounds.height,
+						0.0f,
+						0.0f,
+						0.0f,
+						0.0f,
+						-1.0f,
+						0.0f,
+						-1.0f,
+						1.0f,
+						0.0f,
+						1.0f));
 		}
+
+		{
+			// convert from command queue into draw list and draw to screen
+
+			// allocate vertex and element buffer
+			glBindVertexArray(context.vao);
+			glBindBuffer(GL_ARRAY_BUFFER, context.vbo);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, context.ebo);
+			glBufferData(GL_ARRAY_BUFFER, max_vertex_buffer, GL_STREAM_DRAW);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, max_element_buffer, GL_STREAM_DRAW);
+			// load draw vertices & elements directly into vertex + element buffer
+
+			//TODO this is making index out of range error
+			ByteBuffer vertices = Objects.requireNonNull(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY, max_vertex_buffer, null));
+			ByteBuffer elements = Objects.requireNonNull(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY, max_element_buffer, null));
+
+			try (MemoryStack stack = stackPush()) {
+				// fill convert configuration
+				NkConvertConfig config = NkConvertConfig
+					.callocStack(stack)
+					.vertex_layout(NkContextSingleton.VERTEX_LAYOUT)
+					.vertex_size(20)
+					.vertex_alignment(4)
+					.null_texture(NkContextSingleton.null_texture)
+					.circle_segment_count(22)
+					.curve_segment_count(22)
+					.arc_segment_count(22)
+					.global_alpha(1.0f)
+					.shape_AA(AA)
+					.line_AA(AA);
+
+				// setup buffers to load vertices and elements
+				NkBuffer vbuf = NkBuffer.mallocStack(stack);
+				NkBuffer ebuf = NkBuffer.mallocStack(stack);
+
+				nk_buffer_init_fixed(vbuf, vertices/*, max_vertex_buffer*/);
+				nk_buffer_init_fixed(ebuf, elements/*, max_element_buffer*/);
+				nk_convert(context.context, context.cmds, vbuf, ebuf, config);
+			}
+			glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+			glUnmapBuffer(GL_ARRAY_BUFFER);
+
+			// iterate over and execute each draw command
+			float fb_scale_x = (float) window.frameBufferSizeX / (float) window.bounds.width;
+			float fb_scale_y = (float) window.frameBufferSizeY / (float) window.bounds.height;
+
+			long offset = NULL;
+			for (NkDrawCommand cmd = nk__draw_begin(context.context, context.cmds); cmd != null; cmd = nk__draw_next(cmd, context.cmds, context.context)) {
+				if (cmd.elem_count() == 0) {
+					continue;
+				}
+				glBindTexture(GL_TEXTURE_2D, cmd.texture().id());
+				glScissor(
+					(int) (cmd.clip_rect().x() * fb_scale_x),
+					(int) ((window.bounds.height - (int) (cmd.clip_rect().y() + cmd.clip_rect().h())) * fb_scale_y),
+					(int) (cmd.clip_rect().w() * fb_scale_x),
+					(int) (cmd.clip_rect().h() * fb_scale_y));
+				glDrawElements(GL_TRIANGLES, cmd.elem_count(), GL_UNSIGNED_SHORT, offset);
+				offset += cmd.elem_count() * 2;
+			}
+			nk_clear(context.context);
+		}
+
 	}
 
 	private void detatchAndDelete(NkContextSingleton context) {
@@ -742,7 +734,7 @@ public class NuklearManager {
 		}
 	}
 
-	public void styledButton(NkContext context, NkColor disabled, Runnable r) {
+	public static void styledButton(NkContext context, NkColor disabled, Runnable r) {
 		nk_style_push_color(context, context.style().button().hover().data().color(), disabled);
 		nk_style_push_color(context, context.style().button().normal().data().color(), disabled);
 		nk_style_push_color(context, context.style().button().active().data().color(), disabled);
