@@ -237,9 +237,7 @@ public class NuklearManager {
 						1.0f,
 						0.0f,
 						1.0f));
-		}
 
-		{
 			// convert from command queue into draw list and draw to screen
 
 			// allocate vertex and element buffer
@@ -254,52 +252,50 @@ public class NuklearManager {
 			ByteBuffer vertices = Objects.requireNonNull(glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY, max_vertex_buffer, null));
 			ByteBuffer elements = Objects.requireNonNull(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY, max_element_buffer, null));
 
-			try (MemoryStack stack = stackPush()) {
-				// fill convert configuration
-				NkConvertConfig config = NkConvertConfig
-					.callocStack(stack)
-					.vertex_layout(NkContextSingleton.VERTEX_LAYOUT)
-					.vertex_size(20)
-					.vertex_alignment(4)
-					.null_texture(NkContextSingleton.null_texture)
-					.circle_segment_count(22)
-					.curve_segment_count(22)
-					.arc_segment_count(22)
-					.global_alpha(1.0f)
-					.shape_AA(AA)
-					.line_AA(AA);
+			// fill convert configuration
+			NkConvertConfig config = NkConvertConfig
+				.callocStack(stack)
+				.vertex_layout(NkContextSingleton.VERTEX_LAYOUT)
+				.vertex_size(20)
+				.vertex_alignment(4)
+				.null_texture(NkContextSingleton.null_texture)
+				.circle_segment_count(22)
+				.curve_segment_count(22)
+				.arc_segment_count(22)
+				.global_alpha(1.0f)
+				.shape_AA(AA)
+				.line_AA(AA);
 
-				// setup buffers to load vertices and elements
-				NkBuffer vbuf = NkBuffer.mallocStack(stack);
-				NkBuffer ebuf = NkBuffer.mallocStack(stack);
+			// setup buffers to load vertices and elements
+			NkBuffer vbuf = NkBuffer.mallocStack(stack);
+			NkBuffer ebuf = NkBuffer.mallocStack(stack);
 
-				nk_buffer_init_fixed(vbuf, vertices/*, max_vertex_buffer*/);
-				nk_buffer_init_fixed(ebuf, elements/*, max_element_buffer*/);
-				nk_convert(context.context, context.cmds, vbuf, ebuf, config);
-			}
-			glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
-			glUnmapBuffer(GL_ARRAY_BUFFER);
-
-			// iterate over and execute each draw command
-			float fb_scale_x = (float) window.frameBufferSizeX / (float) window.bounds.width;
-			float fb_scale_y = (float) window.frameBufferSizeY / (float) window.bounds.height;
-
-			long offset = NULL;
-			for (NkDrawCommand cmd = nk__draw_begin(context.context, context.cmds); cmd != null; cmd = nk__draw_next(cmd, context.cmds, context.context)) {
-				if (cmd.elem_count() == 0) {
-					continue;
-				}
-				glBindTexture(GL_TEXTURE_2D, cmd.texture().id());
-				glScissor(
-					(int) (cmd.clip_rect().x() * fb_scale_x),
-					(int) ((window.bounds.height - (int) (cmd.clip_rect().y() + cmd.clip_rect().h())) * fb_scale_y),
-					(int) (cmd.clip_rect().w() * fb_scale_x),
-					(int) (cmd.clip_rect().h() * fb_scale_y));
-				glDrawElements(GL_TRIANGLES, cmd.elem_count(), GL_UNSIGNED_SHORT, offset);
-				offset += cmd.elem_count() * 2;
-			}
-			nk_clear(context.context);
+			nk_buffer_init_fixed(vbuf, vertices/*, max_vertex_buffer*/);
+			nk_buffer_init_fixed(ebuf, elements/*, max_element_buffer*/);
+			nk_convert(context.context, context.cmds, vbuf, ebuf, config);
 		}
+		glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+		glUnmapBuffer(GL_ARRAY_BUFFER);
+
+		// iterate over and execute each draw command
+		float fb_scale_x = (float) window.frameBufferSizeX / (float) window.bounds.width;
+		float fb_scale_y = (float) window.frameBufferSizeY / (float) window.bounds.height;
+
+		long offset = NULL;
+		for (NkDrawCommand cmd = nk__draw_begin(context.context, context.cmds); cmd != null; cmd = nk__draw_next(cmd, context.cmds, context.context)) {
+			if (cmd.elem_count() == 0) {
+				continue;
+			}
+			glBindTexture(GL_TEXTURE_2D, cmd.texture().id());
+			glScissor(
+				(int) (cmd.clip_rect().x() * fb_scale_x),
+				(int) ((window.bounds.height - (int) (cmd.clip_rect().y() + cmd.clip_rect().h())) * fb_scale_y),
+				(int) (cmd.clip_rect().w() * fb_scale_x),
+				(int) (cmd.clip_rect().h() * fb_scale_y));
+			glDrawElements(GL_TRIANGLES, cmd.elem_count(), GL_UNSIGNED_SHORT, offset);
+			offset += cmd.elem_count() * 2;
+		}
+		nk_clear(context.context);
 
 	}
 
@@ -687,7 +683,8 @@ public class NuklearManager {
 		try {
 			imageBuffer = IOUtil.ioResourceToByteBuffer(imageLocation, 8 * 1024);
 		} catch (IOException e) {
-			throw new RuntimeException(e);
+			logger.error("Failed to load resource");
+			return null;
 		}
 		try (MemoryStack stack = MemoryStack.stackPush();) {
 			IntBuffer w = stack.mallocInt(1);
@@ -696,9 +693,9 @@ public class NuklearManager {
 
 			// These are the properties we need to define a texture in OpenGL
 			if (!STBImage.stbi_info_from_memory(imageBuffer, w, h, comp)) {
-				throw new RuntimeException("Failed to read image information: " + STBImage.stbi_failure_reason());
+				logger.error("Failed to read image information: " + STBImage.stbi_failure_reason());
 			} else {
-				System.out.println("image loaded with reason: " + STBImage.stbi_failure_reason());
+				logger.warn("image loaded with reason: " + STBImage.stbi_failure_reason());
 			}
 			ByteBuffer buffer = STBImage.stbi_load_from_memory(imageBuffer, w, h, comp, 4);
 
@@ -729,8 +726,7 @@ public class NuklearManager {
 			img.handle(it -> it.id(textureID));
 
 			return img;
-		} catch (Exception e) {
-			return null;
+
 		}
 	}
 
