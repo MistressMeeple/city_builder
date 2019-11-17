@@ -18,8 +18,8 @@ import com.meeple.shared.frame.wrapper.WrapperImpl;
 
 public class NuklearMenuSystem extends NuklearManager {
 
-	private static int topPadding = 50;
-	private static int bottomPadding = 5;
+	public static int topPadding = 50;
+	public static int bottomPadding = 5;
 	public static int buttonHeight = 35;
 	public static int sub = 6;
 
