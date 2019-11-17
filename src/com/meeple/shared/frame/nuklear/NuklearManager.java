@@ -38,6 +38,7 @@ import org.lwjgl.nuklear.NkConvertConfig;
 import org.lwjgl.nuklear.NkDrawCommand;
 import org.lwjgl.nuklear.NkImage;
 import org.lwjgl.nuklear.NkMouse;
+import org.lwjgl.nuklear.NkPluginFilterI;
 import org.lwjgl.nuklear.NkRect;
 import org.lwjgl.nuklear.NkUserFont;
 import org.lwjgl.nuklear.NkUserFontGlyph;
@@ -754,15 +755,12 @@ public class NuklearManager {
 		textBuffer.flip();
 	}
 
-	public static void textAreaPost(Wrapper<String> text, ByteBuffer textBuffer) {
-
-		if (textBuffer.hasRemaining()) {
-			byte[] arr = new byte[textBuffer.remaining()];
-			textBuffer.get(arr);
-			text.setWrapped(new String(arr));
-		} else {
-			text.setWrapped("");
-		}
+	public static String textArea(NkContext ctx, MemoryStack stack, String string, int maxLen,int flags,NkPluginFilterI filter) {
+		ByteBuffer buffer = stack.calloc(maxLen);
+		int length = memASCII(string, false, buffer);
+		IntBuffer len = stack.ints(length);
+		nk_edit_string(ctx, flags, buffer, len, maxLen - 1, filter);
+		return memASCII(buffer, len.get(0));
 	}
 	/*
 		protected NkColor createNKColor(MemoryStack stack, int r, int g, int b, int a) {
