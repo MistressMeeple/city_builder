@@ -755,19 +755,26 @@ public class NuklearManager {
 		textBuffer.flip();
 	}
 
-	public static String textArea(NkContext ctx, MemoryStack stack, String string, int maxLen,int flags,NkPluginFilterI filter) {
+	public static String textArea(NkContext ctx, MemoryStack stack, String string, int maxLen, int flags, NkPluginFilterI filter) {
 		ByteBuffer buffer = stack.calloc(maxLen);
 		int length = memASCII(string, false, buffer);
 		IntBuffer len = stack.ints(length);
 		nk_edit_string(ctx, flags, buffer, len, maxLen - 1, filter);
 		return memASCII(buffer, len.get(0));
 	}
-	/*
-		protected NkColor createNKColor(MemoryStack stack, int r, int g, int b, int a) {
-			byte br = (byte) r,
-				bg = (byte) g,
-				bb = (byte) b,
-				ba = (byte) a;
-			return NkColor.mallocStack(stack).set(br, bg, bb, ba);
-		}*/
+
+	public static void setNkColour(NkColor colour, int r, int g, int b) {
+		byte br = (byte) r,
+			bg = (byte) g,
+			bb = (byte) b;
+		colour.r(br).g(bg).b(bb);
+	}
+
+	public static void setNkColour(NkColor colour, int r, int g, int b, int a) {
+		byte br = (byte) r,
+			bg = (byte) g,
+			bb = (byte) b,
+			ba = (byte) a;
+		colour.r(br).g(bg).b(bb).a(ba);
+	}
 }
