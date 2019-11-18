@@ -191,6 +191,7 @@ public interface ClientWindowSystem {
 		NkContextSingleton nkContext, Button... buttons) {
 		initWindow(window, menuSystem);
 		menuSystem.create(nkContext, window, window.registeredNuklear);
+		window.state.setWrapped(WindowState.Menu);
 
 		NuklearUIComponent mainMenu = new NuklearUIComponent();
 		NuklearUIComponent pauseMenu = new NuklearUIComponent();
@@ -475,9 +476,6 @@ public interface ClientWindowSystem {
 			@Override
 			public void accept(NkContext context, MemoryStack stack) {
 
-				NkColor trueAlpha = NuklearMenuSystem.createColour(stack, 0, 0, 0, 0);
-				NkColor alpha = NuklearMenuSystem.createColour(stack, 0, 0, 0, 155);
-				context.style().window().fixed_background().data().color(trueAlpha);
 				int perc = 30;
 				nk_layout_row_dynamic(context, (int) ((pauseMenuContainerBounds.height / 100) * perc), 1);
 
@@ -502,7 +500,6 @@ public interface ClientWindowSystem {
 						menuSystem.setActiveNuklear(window.menuQueue, window.registeredNuklear, mainMenu.UUID);
 						setWindowState(window, WindowState.Menu);
 					}
-					context.style().window().fixed_background().data().color(alpha);
 					nk_group_end(context);
 				}
 			}
