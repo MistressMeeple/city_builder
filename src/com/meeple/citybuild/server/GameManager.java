@@ -32,7 +32,7 @@ public abstract class GameManager {
 	static final long wait = 10l;
 	protected LevelData level;
 	WorldGenerator worldGen = new WorldGenerator();
-	private Thread levelThread ;
+	private Thread levelThread;
 
 	public synchronized void newGame(long seed) {
 		level = new LevelData();
@@ -49,6 +49,10 @@ public abstract class GameManager {
 	 * @return Level read from file or null
 	 */
 	public synchronized void loadLevel(File fileIn) {
+		if (fileIn == null) {
+			logger.warn("no file given to load from");
+			return;
+		}
 		logger.trace("Loading level from file: " + fileIn.toString());
 		try (ObjectInputStream oos = new ObjectInputStream(new FileInputStream(fileIn))) {
 			level = (LevelData) oos.readObject();
@@ -142,41 +146,44 @@ public abstract class GameManager {
 
 	}
 
-	public  void pauseGame() {
+	public void pauseGame() {
 		if (level == null) {
 			logger.error("No game loaded. cannot pause game");
 			return;
 		}
 		if (level.pause.compareAndSet(false, true)) {
-			logger.trace("pausing game");
+			logger.trace("Pausing game");
 		}
 	}
 
-	public  void resumeGame() {
+	public void resumeGame() {
 		if (level == null) {
 			logger.error("No game loaded. cannot resume game");
 			return;
 		}
 		if (level.pause.compareAndSet(true, false)) {
-			logger.trace("resuming game");
+			logger.trace("Resuming game");
 			synchronized (level.gamePauseLock) {
 				level.gamePauseLock.notifyAll();
 			}
 		}
 	}
 
-	public  void quitGame() {
+	public void quitGame() {
 		if (level == null) {
 			logger.error("No game loaded. cannot quit game");
 			return;
 		}
 		level.quit.compareAndSet(false, true);
-		logger.trace("quit");
+		logger.trace("Quiting game");
 		synchronized (level.gamePauseLock) {
 			level.gamePauseLock.notifyAll();
 		}
-		levelThread.interrupt();
-
+		try {
+			levelThread.interrupt();
+		} catch (Exception e) {
+			//silent catch
+		}
 	}
 
 	/**
@@ -241,7 +248,6 @@ public abstract class GameManager {
 
 		return result;
 	}
-
 
 	public abstract void levelTick(Delta delta);
 

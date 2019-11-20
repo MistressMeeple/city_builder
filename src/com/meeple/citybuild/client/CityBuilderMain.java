@@ -1,9 +1,6 @@
 package com.meeple.citybuild.client;
 
-import static org.lwjgl.nuklear.Nuklear.*;
-
 import java.io.File;
-import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -13,7 +10,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -25,25 +21,22 @@ import org.apache.log4j.PatternLayout;
 import org.joml.Math;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
-import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.GLFW;
-import org.lwjgl.nuklear.NkColor;
-import org.lwjgl.nuklear.NkContext;
-import org.lwjgl.nuklear.NkVec2;
-import org.lwjgl.nuklear.Nuklear;
 import org.lwjgl.opengl.GL46;
-import org.lwjgl.system.MemoryStack;
 
 import com.meeple.citybuild.RayHelper;
 import com.meeple.citybuild.client.gui.GameUI;
+import com.meeple.citybuild.client.gui.LoadingScreen;
+import com.meeple.citybuild.client.gui.MainMenuScreen;
+import com.meeple.citybuild.client.gui.PauseScreen;
 import com.meeple.citybuild.client.input.CameraControlHandler;
 import com.meeple.citybuild.client.render.LevelRenderer;
+import com.meeple.citybuild.client.render.Renderable;
 import com.meeple.citybuild.client.render.RenderingMain;
-import com.meeple.citybuild.client.render.WorldRenderer;
-import com.meeple.citybuild.client.render.WorldRenderer.MeshExt;
 import com.meeple.citybuild.server.Buildings;
 import com.meeple.citybuild.server.Entity;
 import com.meeple.citybuild.server.GameManager;
+import com.meeple.citybuild.server.LevelData;
 import com.meeple.citybuild.server.LevelData.Chunk.Tile;
 import com.meeple.citybuild.server.WorldGenerator.TileTypes;
 import com.meeple.shared.ClientOptionSystem;
@@ -55,28 +48,25 @@ import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.GLFWManager;
 import com.meeple.shared.frame.OGL.KeyInputSystem;
 import com.meeple.shared.frame.OGL.ShaderProgram;
-import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.UniformManager;
 import com.meeple.shared.frame.camera.VPMatrixSystem;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpringArm;
-import com.meeple.shared.frame.component.Bounds2DComponent;
 import com.meeple.shared.frame.nuklear.NkContextSingleton;
-import com.meeple.shared.frame.nuklear.NkWindowProperties;
-import com.meeple.shared.frame.nuklear.NuklearManager;
-import com.meeple.shared.frame.nuklear.NuklearManager.RegisteredGUIS;
 import com.meeple.shared.frame.nuklear.NuklearMenuSystem;
 import com.meeple.shared.frame.nuklear.NuklearMenuSystem.BtnState;
 import com.meeple.shared.frame.nuklear.NuklearMenuSystem.Button;
 import com.meeple.shared.frame.nuklear.NuklearUIComponent;
 import com.meeple.shared.frame.window.ClientWindowSystem;
+import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
+import com.meeple.shared.frame.window.ClientWindowSystem.WindowEvent;
 import com.meeple.shared.frame.window.WindowManager;
 import com.meeple.shared.frame.window.WindowState;
 import com.meeple.shared.frame.wrapper.Wrapper;
 import com.meeple.shared.frame.wrapper.WrapperImpl;
 
-public class CityBuilderMain extends GameManager implements Consumer<ExecutorService>, ClientWindowSystem {
+public class CityBuilderMain extends GameManager implements Consumer<ExecutorService> {
 
 	public static Logger logger = Logger.getLogger(CityBuilderMain.class);
 	private static String debugLayout = "[%r - %d{HH:mm:ss:SSS}][%t][%p] (%F:%L) %m%n";
@@ -118,8 +108,8 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		NkContextSingleton nkContext = new NkContextSingleton();
 		ClientOptionSystem optionsSystem = new ClientOptionSystem();
 
-		setupWindow(window, keyInput, nkContext, optionsSystem);
-		Map<WindowState, Set<Tickable>> stateRendering = new HashMap<>();
+		ClientWindowSystem.setupWindow(window, keyInput, nkContext, optionsSystem);
+//		Map<WindowState, Set<Tickable>> stateRendering = new HashMap<>();
 
 		VPMatrix vpMatrix = new VPMatrix();
 		CameraSpringArm arm = vpMatrix.view.getWrapped().springArm;
@@ -135,16 +125,17 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 				return cameraAnchorEntity.position;
 			}
 		};
-
-		FrameUtils.addToSetMap(stateRendering, WindowState.Menu, this::renderMenu, syncSetSupplier);
-		FrameUtils.addToSetMap(stateRendering, WindowState.Loading, this::renderLoading, syncSetSupplier);
+		/*
+				FrameUtils.addToSetMap(stateRendering, WindowState.MainMenu, this::renderMenu, syncSetSupplier);
+				FrameUtils.addToSetMap(stateRendering, WindowState.Loading, this::renderLoading, syncSetSupplier);*/
 		window.events.preCleanup.add(() -> {
 			shutdownService(executorService);
 		});
+		window.changeStateEvent = this::onWindowStateChange;
 
 		Consumer<String> levelSelect = (fileName) -> {
 
-			setWindowState(window, WindowState.Loading);
+			window.setWindowState(WindowState.Loading);
 
 			executorService.execute(() -> {
 
@@ -164,7 +155,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 					Thread.sleep(1000);
 				} catch (InterruptedException err) {
 				}
-				setWindowState(window, WindowState.Game_Running);
+				window.setWindowState(WindowState.Game);
 
 			});
 
@@ -175,7 +166,18 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 			Tickable t = renderGame(window, vpMatrix, cameraAnchorEntity, ortho, rh, keyInput);
 
-			FrameUtils.addToSetMap(stateRendering, WindowState.Game_Running, t, syncSetSupplier);
+//			FrameUtils.addToSetMap(stateRendering, WindowState.Game, t, syncSetSupplier);
+
+			gameRenderScreen = new Renderable() {
+
+				@Override
+				public void render(NkContextSingleton nkContext, ClientWindow window, Delta delta) {
+					t.apply(delta);
+				}
+			};
+			gameUIScreen.colour.w = 0f;
+
+			gameRenderScreen.setChild(gameUIScreen);
 
 			clientQuitCounter.incrementAndGet();
 			NuklearMenuSystem menuSystem = new NuklearMenuSystem();
@@ -243,22 +245,18 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 				}
 			};
 
-			if (false) {
-				setupMenu(window, stateRendering, optionsSystem, menuSystem, nkContext, continueBtn, loadBtn, newBtn);
-			} else {
-				initWindow(window, menuSystem);
-				menuSystem.create(nkContext, window, window.registeredNuklear);
-			}
-//			setupUI(menuSystem, window.registeredNuklear, placementUI);
-//			GameUI g = new GameUI();
-			
+			menuSystem.create(nkContext, window, window.registeredNuklear);
+			window.eventListeners.add(this::handleWindowEvent);
+			window.setChild(loadingScreen);
+			loadingScreen.setChild(mainMenuScreen);
+
 			Map<WindowState, Delta> ticks = new HashMap<>();
 
 			window.events.render.add(0, (delta) -> {
 
-				if (window.state.getWrapped() != null) {
-//					g.layout(nkContext.context, window);
-					WindowState state = window.state.getWrapped();
+				if (window.state != null) {
+
+					WindowState state = window.state;
 					Delta time = ticks.get(state);
 					if (time == null) {
 						time = new Delta();
@@ -267,23 +265,72 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 					time.nanos = delta.nanos;
 					time.seconds = delta.seconds;
 					time.totalNanos += delta.nanos;
-					logger.trace(state);
+
 					//					System.out.println(nk_item_is_any_active(nkContext.context));
 					if (window.currentFocus != null) {
 						//						logger.trace(window.state.getWrapped() + " " + ((NuklearUIComponent) window.currentFocus).title);
 					}
-					Set<Tickable> r = stateRendering.get(state);
-					FrameUtils.iterateTickable(r, time);
+					//					Set<Tickable> r = stateRendering.get(state);
+					window.renderTree(nkContext, window, delta);
+					//					FrameUtils.iterateTickable(r, time);
 				}
 				return false;
 
 			});
-			start(windowManager, window, nkContext, clientQuitCounter, executorService);
+			ClientWindowSystem.start(windowManager, window, nkContext, clientQuitCounter, executorService);
 
 		}
 		shutdownService(executorService);
 		logger.info("closing client now!");
 
+	}
+
+	Renderable gameRenderScreen;
+	LoadingScreen loadingScreen = new LoadingScreen();
+	GameUI gameUIScreen = new GameUI();
+	MainMenuScreen mainMenuScreen = new MainMenuScreen();
+	PauseScreen pauseScreen = new PauseScreen();
+
+	public void handleWindowEvent(WindowEvent event, Object param) {
+		switch (event) {
+			case ClientClose:
+				quitGame();
+				window.shouldClose = true;
+				break;
+			case GameLoad:
+				loadLevel((File) param);
+				if (level == null) {
+					level = new LevelData();
+				}
+				break;
+			case GamePause:
+				pauseGame();
+				break;
+			case GameResume:
+				resumeGame();
+				break;
+			case GameSave:
+				saveGame();
+				break;
+			case GameStart:
+				if (level == null) {
+					level = new LevelData();
+				}
+				loadingScreen.setChild(gameRenderScreen);
+				break;
+			case GoToMainMenu:
+				window.setChild(mainMenuScreen);
+				logger.trace("herp, todo");
+				break;
+			case OptionsClose:
+				logger.trace("herp, todo");
+				break;
+			case OptionsOpen:
+				logger.trace("herp, todo");
+				break;
+			default:
+				break;
+		}
 	}
 
 	private void shutdownService(ExecutorService executorService) {
@@ -302,18 +349,16 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		}
 	}
 
-	@Override
 	public WindowState onWindowStateChange(WindowState oldState, WindowState newState) {
-		if (newState == WindowState.Game_Pause) {
+		if (newState == WindowState.Game/*_Pause*/) {
 			placementUI.visible = false;
 			pauseGame();
 		}
-		if (newState == WindowState.Game_Running) {
+		if (newState == WindowState.Game/*_Running*/) {
 			placementUI.visible = true;
 			resumeGame();
 		}
-		if (newState == WindowState.Menu || newState == WindowState.Close) {
-
+		if (newState == WindowState.MainMenu || newState == WindowState.Close) {
 			placementUI.visible = false;
 			quitGame();
 		}
@@ -362,7 +407,6 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		vpSystem.preMult(vpMatrix);
 		Tickable tick = CameraControlHandler.handlePitchingTick(window, ortho, arm);
 		return (time) -> {
-
 			vpSystem.preMult(vpMatrix);
 			RenderingMain.system.queueUniformUpload(program, RenderingMain.multiUpload, puW.getWrapped(), vpMatrix);
 			//TODO change line thickness
@@ -435,7 +479,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		float r = (float) (Math.sin(menuSeconds * 0.03f + 0.1f)) * 0.5f;
 		float g = (float) (Math.sin(menuSeconds * 0.02f + 0.2f)) * 0.5f;
 		float b = (float) (Math.sin(menuSeconds * 0.01f + 0.3f)) * 0.5f;
-//		logger.trace(window.clearColour);
+		//		logger.trace(window.clearColour);
 		window.clearColour.set(r, g, b, 1f);
 		return false;
 
@@ -458,8 +502,6 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 	}
 
 	Wrapper<Buildings> placement = new WrapperImpl<>();
-
-
 
 	@Override
 	public void levelTick(Delta delta) {

@@ -1,8 +1,5 @@
 package com.meeple.citybuild.client.render;
 
-public class GameLayer {
+public abstract class GameLayer extends Renderable {
 
-	public void render() {
-
-	}
 }

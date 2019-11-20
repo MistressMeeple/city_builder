@@ -2,6 +2,10 @@ package com.meeple.citybuild.client.render;
 
 import org.joml.Vector4f;
 
+import com.meeple.shared.Delta;
+import com.meeple.shared.frame.nuklear.NkContextSingleton;
+import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
+
 public abstract class Renderable {
 	public String name;
 	public final Vector4f colour = new Vector4f();
@@ -67,24 +71,34 @@ public abstract class Renderable {
 	 * Renders the entire tree using {@link #renderUp()}.<br>
 	 * This can be called from any Renderable that is part of this rendering tree
 	 */
-	public void renderTree() {
+	public void renderTree(NkContextSingleton nkContext, ClientWindow window, Delta delta) {
 		Renderable child = getRootChild();
-		child.renderUp();
+		child.renderUp(nkContext, window, delta);
 	}
 
 	/**
 	 * recursive render call for whole tree
 	 */
-	private void renderUp() {
+	private void renderUp(NkContextSingleton nkContext, ClientWindow window, Delta delta) {
 		if (this.isTransparent()) {
 			Renderable parent = getParent();
 			if (parent != null) {
-				parent.renderUp();
+				parent.renderUp(nkContext, window, delta);
 			}
 		}
-		this.render();
+		this.render(nkContext, window, delta);
 	}
 
-	public abstract void render();
+	public void clearParent() {
+		this.parent.clearChild();
+		this.parent = null;
+	}
+
+	public void clearChild() {
+		this.child.clearParent();
+		this.child = null;
+	}
+
+	public abstract void render(NkContextSingleton nkContext, ClientWindow window, Delta delta);
 
 }

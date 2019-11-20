@@ -5,25 +5,22 @@ import static org.lwjgl.system.MemoryStack.*;
 
 import org.lwjgl.nuklear.NkContext;
 import org.lwjgl.nuklear.NkRect;
-import org.lwjgl.nuklear.NkVec2;
 import org.lwjgl.nuklear.Nuklear;
 import org.lwjgl.system.MemoryStack;
 
 import com.meeple.citybuild.client.render.Renderable;
+import com.meeple.shared.Delta;
+import com.meeple.shared.frame.nuklear.NkContextSingleton;
 import com.meeple.shared.frame.nuklear.NuklearManager;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 
 public class GameUI extends Renderable {
 
-	@Override
-	public void render() {
-
-	}
 
 	String string = "";
-	int[] val = new int[3];
 
-	private void layout(NkContext ctx, ClientWindow window) {
+	public void render(NkContextSingleton context, ClientWindow window,Delta delta) {
+		NkContext ctx = context.context;
 		int width = (int) (window.bounds.width * 0.75f);
 		int height = (int) (window.bounds.height * 0.5f);
 		int x = (int) (window.bounds.width - width) / 2;

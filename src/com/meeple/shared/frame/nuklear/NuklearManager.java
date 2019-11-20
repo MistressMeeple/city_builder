@@ -62,9 +62,6 @@ public class NuklearManager {
 
 	public static Logger logger = Logger.getLogger(NuklearManager.class);
 
-	public class RegisteredGUIS {
-		public final Map<String, NuklearUIComponent> guis = Collections.synchronizedMap(new HashMap<>());
-	}
 
 	public static Runnable globalEventsHandler(NkContextSingleton context, ActiveWindowsComponent windows) {
 
@@ -105,12 +102,12 @@ public class NuklearManager {
 		return r;
 	}
 
-	public void registerUI(RegisteredGUIS windows, NuklearUIComponent UI) {
+	public void registerUI( Map<String, NuklearUIComponent> windows, NuklearUIComponent UI) {
 		if (UI.UUID == null || UI.UUID.isEmpty()) {
 			UI.UUID = NuklearMenuSystem.generateUUID();
 			logger.trace("UUID of window '" + UI.title + "' was null. ");
 		}
-		windows.guis.put(UI.UUID, UI);
+		windows.put(UI.UUID, UI);
 
 	}
 
@@ -149,7 +146,7 @@ public class NuklearManager {
 		window.currentFocus = o;
 	}
 
-	public void create(NkContextSingleton context, Window window, RegisteredGUIS windows) {
+	public void create(NkContextSingleton context, Window window,  Map<String, NuklearUIComponent> windows) {
 
 		addWindowCallbacks(context, window);
 
@@ -165,19 +162,45 @@ public class NuklearManager {
 		});
 
 		//TODO not render here
-		window.events.frameStart.add(() -> renderGUIs(context, window, windows.guis.values()));
+		//		window.events.frameStart.add(() -> renderGUIs(context, window, windows.guis.values()));
 		window.events.render
 			.add(
 				(delta) -> {
 
-					/*
-					 * IMPORTANT: `nk_glfw_render` modifies some global OpenGL state
-					 * with blending, scissor, face culling, depth test and viewport and
-					 * defaults everything back into a default state.
-					 * Make sure to either a.) save and restore or b.) reset your own state after
-					 * rendering the UI.
-					 */
+					/* IMPORTANT: `nk_glfw_render` modifies some global OpenGL state
+					* with blending, scissor, face culling, depth test and viewport and
+					* defaults everything back into a default state.
+					* Make sure to either a.) save and restore or b.) reset your own state after
+					* rendering the UI.*/
+					boolean blend = glGetBoolean(GL_BLEND);
+					boolean cull = glGetBoolean(GL_CULL_FACE);
+					boolean depth = glGetBoolean(GL_DEPTH_TEST);
+					boolean scissor = glGetBoolean(GL_SCISSOR_TEST);
+
 					render(context, window, NK_ANTI_ALIASING_ON, NkContextSingleton.MAX_VERTEX_BUFFER, NkContextSingleton.MAX_ELEMENT_BUFFER);
+
+					if (blend) {
+						glEnable(GL_BLEND);
+					} else {
+						glDisable(GL_BLEND);
+					}
+					if (cull) {
+						glEnable(GL_CULL_FACE);
+					} else {
+						glDisable(GL_CULL_FACE);
+					}
+					if (depth) {
+						glEnable(GL_DEPTH_TEST);
+					} else {
+						glDisable(GL_DEPTH_TEST);
+					}
+
+					if (scissor) {
+						glEnable(GL_SCISSOR_TEST);
+					} else {
+						glDisable(GL_SCISSOR_TEST);
+					}
+
 					return false;
 				});
 		window.events.preCleanup.add(new Runnable() {

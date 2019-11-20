@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiConsumer;
 
 import org.lwjgl.nuklear.NkColor;
@@ -34,6 +35,37 @@ public class NuklearMenuSystem extends NuklearManager {
 		public String getName();
 
 		public void onClick();
+	}
+
+	public static abstract class ButtonImpl implements Button {
+		public String name;
+		public BtnState state;
+
+		public ButtonImpl(String name) {
+			this.name = name;
+			this.state = BtnState.Visible;
+		}
+
+		public ButtonImpl(String name, BtnState state) {
+
+			this.name = name;
+			this.state = state;
+		}
+
+		@Override
+		public BtnState getState() {
+
+			return state;
+		}
+
+		@Override
+		public String getName() {
+			return name;
+		}
+
+		@Override
+		public abstract void onClick();
+
 	}
 
 	public static interface Menu {
@@ -188,13 +220,7 @@ public class NuklearMenuSystem extends NuklearManager {
 		return disabled;
 	}
 
-	public class ActiveMenuQueue extends WrapperImpl<List<NuklearUIComponent>> {
-		private static final long serialVersionUID = 4065125318297657335L;
-
-		public ActiveMenuQueue() {
-			this.setWrapped(Collections.synchronizedList(new ArrayList<>()));
-		}
-	}
+	
 
 	/**
 	 * Removes all menu items from the active menu queue then navigates to the registered UI's UUID<br>
@@ -203,13 +229,13 @@ public class NuklearMenuSystem extends NuklearManager {
 	 * @param menuQueue
 	 * @param updateTo
 	 */
-	public void setActiveNuklear(ActiveMenuQueue menuQueue, RegisteredGUIS guis, String updateTo) {
+	public void setActiveNuklear(List<NuklearUIComponent> menuQueue,  Map<String, NuklearUIComponent> guis, String updateTo) {
 		NuklearUIComponent newUI = null;
 		if (guis != null && updateTo != null) {
-			newUI = guis.guis.get(updateTo);
+			newUI = guis.get(updateTo);
 		}
-		synchronized (menuQueue.getWrapped()) {
-			for (Iterator<NuklearUIComponent> iterator = menuQueue.getWrapped().iterator(); iterator.hasNext();) {
+		synchronized (menuQueue) {
+			for (Iterator<NuklearUIComponent> iterator = menuQueue.iterator(); iterator.hasNext();) {
 				NuklearUIComponent type = iterator.next();
 				iterator.remove();
 				setWindowInvisible(type, newUI);
@@ -220,8 +246,8 @@ public class NuklearMenuSystem extends NuklearManager {
 		}
 	}
 
-	public void navigateNuklear(RegisteredGUIS guis, ActiveMenuQueue menuQueue, String updateTo) {
-		NuklearUIComponent update = guis.guis.get(updateTo);
+	public void navigateNuklear( Map<String, NuklearUIComponent> guis, List<NuklearUIComponent> menuQueue, String updateTo) {
+		NuklearUIComponent update = guis.get(updateTo);
 		if (update != null) {
 			navigateNuklear(menuQueue, update);
 		} else {
@@ -230,8 +256,8 @@ public class NuklearMenuSystem extends NuklearManager {
 
 	}
 
-	private void navigateNuklear(ActiveMenuQueue menuQueue, NuklearUIComponent nav) {
-		List<NuklearUIComponent> queue = menuQueue.getWrapped();
+	private void navigateNuklear(List<NuklearUIComponent> menuQueue, NuklearUIComponent nav) {
+		List<NuklearUIComponent> queue = menuQueue;
 		int queueSize = queue.size();
 		if (queueSize > 0) {
 			NuklearUIComponent prev = queue.get(queueSize - 1);
@@ -241,8 +267,8 @@ public class NuklearMenuSystem extends NuklearManager {
 		queue.add(nav);
 	}
 
-	public void goBackNuklear(ActiveMenuQueue menuQueue) {
-		List<NuklearUIComponent> queue = menuQueue.getWrapped();
+	public void goBackNuklear(List<NuklearUIComponent> menuQueue) {
+		List<NuklearUIComponent> queue = menuQueue;
 		int queueSize = queue.size();
 		if (queueSize > 0) {
 			NuklearUIComponent prev = queue.remove(queueSize - 1);
@@ -259,10 +285,10 @@ public class NuklearMenuSystem extends NuklearManager {
 
 	}
 
-	public static NuklearUIComponent getActiveMenu(ActiveMenuQueue menuQueue) {
+	public static NuklearUIComponent getActiveMenu(List<NuklearUIComponent> menuQueue) {
 		NuklearUIComponent current = null;
-		if (!menuQueue.getWrapped().isEmpty()) {
-			NuklearUIComponent curr = menuQueue.getWrapped().get(menuQueue.getWrapped().size() - 1);
+		if (!menuQueue.isEmpty()) {
+			NuklearUIComponent curr = menuQueue.get(menuQueue.size() - 1);
 
 			if (curr != null) {
 				current = curr;
