@@ -1,19 +1,8 @@
 package com.meeple.citybuild.client.gui;
 
-import static org.lwjgl.nuklear.Nuklear.*;
-
-import java.util.function.Consumer;
-
-import org.lwjgl.nuklear.NkColor;
-import org.lwjgl.nuklear.NkContext;
-import org.lwjgl.nuklear.NkRect;
-import org.lwjgl.nuklear.NkStyleScrollbar;
-import org.lwjgl.nuklear.NkStyleWindow;
-import org.lwjgl.nuklear.NkStyleWindowHeader;
 import org.lwjgl.system.MemoryStack;
 
 import com.meeple.shared.frame.nuklear.NkContextSingleton;
-import com.meeple.shared.frame.nuklear.NuklearManager;
 
 public class NuklearSkin {
 

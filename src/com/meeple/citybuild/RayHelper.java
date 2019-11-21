@@ -1,6 +1,5 @@
 package com.meeple.citybuild;
 
-import org.joml.Vector2i;
 import org.joml.Vector3f;
 
 import com.meeple.citybuild.server.GameManager;

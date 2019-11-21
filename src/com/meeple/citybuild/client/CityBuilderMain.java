@@ -1,11 +1,8 @@
 package com.meeple.citybuild.client;
 
 import java.io.File;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -18,7 +15,6 @@ import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
-import org.joml.Math;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 import org.lwjgl.glfw.GLFW;
@@ -36,7 +32,6 @@ import com.meeple.citybuild.client.render.RenderingMain;
 import com.meeple.citybuild.server.Buildings;
 import com.meeple.citybuild.server.Entity;
 import com.meeple.citybuild.server.GameManager;
-import com.meeple.citybuild.server.LevelData;
 import com.meeple.citybuild.server.LevelData.Chunk.Tile;
 import com.meeple.citybuild.server.WorldGenerator.TileTypes;
 import com.meeple.shared.ClientOptionSystem;
@@ -44,7 +39,6 @@ import com.meeple.shared.Delta;
 import com.meeple.shared.Tickable;
 import com.meeple.shared.frame.CursorHelper;
 import com.meeple.shared.frame.CursorHelper.SpaceState;
-import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.GLFWManager;
 import com.meeple.shared.frame.OGL.KeyInputSystem;
 import com.meeple.shared.frame.OGL.ShaderProgram;
@@ -73,13 +67,6 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 	static String LevelFolder = "saves/";
 	static String LevelExt = ".sv";
 	//	private static String normalLayout = "[%d{HH:mm:ss:SSS}][%r]][%t][%p][%c] %m%n";
-
-	private static Supplier<Set<Tickable>> syncSetSupplier = new Supplier<Set<Tickable>>() {
-		@Override
-		public Set<Tickable> get() {
-			return Collections.synchronizedSet(new HashSet<>());
-		}
-	};
 
 	public static void main(String[] args) throws Exception {
 

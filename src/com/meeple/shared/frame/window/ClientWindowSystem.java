@@ -31,7 +31,6 @@ import javax.swing.JOptionPane;
 
 import org.apache.log4j.Logger;
 import org.lwjgl.BufferUtils;
-import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWFramebufferSizeCallbackI;
 import org.lwjgl.nuklear.NkColor;
 import org.lwjgl.nuklear.NkContext;
@@ -59,7 +58,6 @@ import com.meeple.shared.frame.nuklear.NuklearMenuSystem.BtnState;
 import com.meeple.shared.frame.nuklear.NuklearMenuSystem.Menu;
 import com.meeple.shared.frame.nuklear.NuklearUIComponent;
 import com.meeple.shared.frame.thread.ThreadManager.Builder;
-import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 import com.meeple.shared.frame.wrapper.Wrapper;
 import com.meeple.shared.frame.wrapper.WrapperImpl;
 

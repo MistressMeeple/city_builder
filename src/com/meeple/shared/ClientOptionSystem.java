@@ -10,10 +10,9 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
-
-import java.util.Set;
 
 public class ClientOptionSystem {
 	private static Logger logger = Logger.getLogger(ClientOptionSystem.class);

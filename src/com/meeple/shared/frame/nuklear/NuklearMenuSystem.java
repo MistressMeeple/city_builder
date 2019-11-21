@@ -2,8 +2,6 @@ package com.meeple.shared.frame.nuklear;
 
 import static org.lwjgl.nuklear.Nuklear.*;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -15,7 +13,6 @@ import org.lwjgl.system.MemoryStack;
 
 import com.meeple.shared.frame.component.Bounds2DComponent;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
-import com.meeple.shared.frame.wrapper.WrapperImpl;
 
 public class NuklearMenuSystem extends NuklearManager {
 
