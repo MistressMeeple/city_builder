@@ -60,7 +60,6 @@ public class NuklearManager {
 
 	public static Logger logger = Logger.getLogger(NuklearManager.class);
 
-
 	public static Runnable globalEventsHandler(NkContextSingleton context, ActiveWindowsComponent windows) {
 
 		Runnable r = new Runnable() {
@@ -100,7 +99,7 @@ public class NuklearManager {
 		return r;
 	}
 
-	public void registerUI( Map<String, NuklearUIComponent> windows, NuklearUIComponent UI) {
+	public void registerUI(Map<String, NuklearUIComponent> windows, NuklearUIComponent UI) {
 		if (UI.UUID == null || UI.UUID.isEmpty()) {
 			UI.UUID = NuklearMenuSystem.generateUUID();
 			logger.trace("UUID of window '" + UI.title + "' was null. ");
@@ -144,7 +143,7 @@ public class NuklearManager {
 		window.currentFocus = o;
 	}
 
-	public void create(NkContextSingleton context, Window window,  Map<String, NuklearUIComponent> windows) {
+	public void create(NkContextSingleton context, Window window, Map<String, NuklearUIComponent> windows) {
 
 		addWindowCallbacks(context, window);
 

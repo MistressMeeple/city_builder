@@ -36,7 +36,7 @@ public abstract class UniformManager<Name, ID> {
 	 */
 	public <T> void uploadUniforms(Map<UniformManager<?, ?>.Uniform<?>, List<?>> uniforms) {
 
-		iterateUniforms(uniforms, new BiConsumer<UniformManager<Name, ID>.Uniform<?>,List<?>>() {
+		iterateUniforms(uniforms, new BiConsumer<UniformManager<Name, ID>.Uniform<?>, List<?>>() {
 
 			@Override
 			public void accept(UniformManager<Name, ID>.Uniform<?> uniform, List<?> queue) {

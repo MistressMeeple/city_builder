@@ -38,5 +38,4 @@ public class ColourUtils {
 		return new Vector4f(r, g, b, 1);
 	}
 
-
 }

@@ -10,7 +10,6 @@ import org.joml.Vector2i;
 
 import com.meeple.citybuild.server.LevelData.Chunk.Tile;
 
-
 public class Buildings {
 
 	public static BuildingTemplate stockpileTemplate = new BuildingTemplate() {

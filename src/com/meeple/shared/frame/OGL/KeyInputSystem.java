@@ -61,5 +61,4 @@ public class KeyInputSystem {
 		mousePressMap.put(mouseKey, action != GLFW.GLFW_RELEASE);
 	}
 
-
 }

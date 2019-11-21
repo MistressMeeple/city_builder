@@ -15,4 +15,3 @@ public enum ContextRobustness implements HasID<Integer> {
 		return id;
 	}
 }
-

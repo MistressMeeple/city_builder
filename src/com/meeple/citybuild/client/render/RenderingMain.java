@@ -24,7 +24,7 @@ public class RenderingMain {
 	 * Multiple upload uniform manager instance
 	 */
 	public static UniformManager<String[], Integer[]> multiUpload = new MultiUniformSystem();
-	public static IShaderUniformUploadSystem<Matrix4f, Integer> mat4SingleUploader = (upload,uniformID,stack)->{
-		GL46.glUniformMatrix4fv(uniformID, false, IShaderUniformUploadSystem.generateMatrix4fBuffer(stack, upload));		
+	public static IShaderUniformUploadSystem<Matrix4f, Integer> mat4SingleUploader = (upload, uniformID, stack) -> {
+		GL46.glUniformMatrix4fv(uniformID, false, IShaderUniformUploadSystem.generateMatrix4fBuffer(stack, upload));
 	};
 }

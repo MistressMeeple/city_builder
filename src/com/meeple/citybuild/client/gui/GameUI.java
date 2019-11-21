@@ -16,10 +16,9 @@ import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 
 public class GameUI extends Renderable {
 
-
 	String string = "";
 
-	public void render(NkContextSingleton context, ClientWindow window,Delta delta) {
+	public void render(NkContextSingleton context, ClientWindow window, Delta delta) {
 		NkContext ctx = context.context;
 		int width = (int) (window.bounds.width * 0.75f);
 		int height = (int) (window.bounds.height * 0.5f);

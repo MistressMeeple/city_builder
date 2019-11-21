@@ -15,7 +15,7 @@ import org.lwjgl.nuklear.NkUserFont;
 public class NkContextSingleton {
 	public static final String fontFolder = "resources/fonts/";
 	public static final String fontExtension = ".ttf";
-	public static NkUserFont default_font ;
+	public static NkUserFont default_font;
 
 	public static NkDrawNullTexture null_texture = NkDrawNullTexture.create();
 	public static final int BUFFER_INITIAL_SIZE = 4 * 1024;
@@ -54,7 +54,7 @@ public class NkContextSingleton {
 	}
 
 	public NkContext context = NkContext.create();
-	public String fontName="FiraSans";
+	public String fontName = "FiraSans";
 	/**
 	 * It is important to store the TTF buffer externally for the STB library to use
 	 */

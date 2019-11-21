@@ -19,7 +19,7 @@ public class PauseScreen extends Renderable {
 	public static Logger logger = Logger.getLogger(PauseScreen.class);
 
 	@Override
-	public void render(NkContextSingleton nkContext, ClientWindow window,Delta delta) {
+	public void render(NkContextSingleton nkContext, ClientWindow window, Delta delta) {
 		NkContext ctx = nkContext.context;
 		int width = (int) (window.bounds.width * 0.25f);
 		int height = (int) (window.bounds.height * 0.5f);
@@ -43,7 +43,7 @@ public class PauseScreen extends Renderable {
 				}
 				if (nk_button_label(ctx, "Main Menu")) {
 					window.sendEvent(WindowEvent.GameSave);
-					window.sendEvent(WindowEvent.GoToMainMenu);					
+					window.sendEvent(WindowEvent.GoToMainMenu);
 				}
 
 			}

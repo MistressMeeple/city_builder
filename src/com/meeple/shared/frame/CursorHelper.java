@@ -120,5 +120,4 @@ public class CursorHelper {
 		return ret;
 	}
 
-
 }

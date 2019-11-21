@@ -19,7 +19,6 @@ public class ClientOptionSystem {
 	private static final File file = new File("options.txt");
 	private static final String[] strSplits = { ":", "=" };
 
-
 	public enum Delimeter {
 		Int("i", Integer.class, "I\\s*" + strSplits[0] + "\\s*\\w*\\s*" + strSplits[1] + "\\s*\\d*", "%d"),
 		Bool("b", Boolean.class, "B\\s*" + strSplits[0] + "\\s*\\w*\\s*" + strSplits[1] + "\\s*(true|false)", "%b"),

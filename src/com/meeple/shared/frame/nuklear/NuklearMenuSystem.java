@@ -217,8 +217,6 @@ public class NuklearMenuSystem extends NuklearManager {
 		return disabled;
 	}
 
-	
-
 	/**
 	 * Removes all menu items from the active menu queue then navigates to the registered UI's UUID<br>
 	 * Passing null to either the guis or the updateTo variables will clear the entire menu and not switch to any UI
@@ -226,7 +224,7 @@ public class NuklearMenuSystem extends NuklearManager {
 	 * @param menuQueue
 	 * @param updateTo
 	 */
-	public void setActiveNuklear(List<NuklearUIComponent> menuQueue,  Map<String, NuklearUIComponent> guis, String updateTo) {
+	public void setActiveNuklear(List<NuklearUIComponent> menuQueue, Map<String, NuklearUIComponent> guis, String updateTo) {
 		NuklearUIComponent newUI = null;
 		if (guis != null && updateTo != null) {
 			newUI = guis.get(updateTo);
@@ -243,7 +241,7 @@ public class NuklearMenuSystem extends NuklearManager {
 		}
 	}
 
-	public void navigateNuklear( Map<String, NuklearUIComponent> guis, List<NuklearUIComponent> menuQueue, String updateTo) {
+	public void navigateNuklear(Map<String, NuklearUIComponent> guis, List<NuklearUIComponent> menuQueue, String updateTo) {
 		NuklearUIComponent update = guis.get(updateTo);
 		if (update != null) {
 			navigateNuklear(menuQueue, update);

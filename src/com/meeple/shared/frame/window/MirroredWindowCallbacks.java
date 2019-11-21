@@ -44,7 +44,7 @@ public class MirroredWindowCallbacks {
 	protected GLFWWindowRefreshCallbackI windowRefreshCallback;
 	protected GLFWWindowSizeCallbackI windowSizeCallback;
 	protected GLDebugMessageCallbackI debugMessageCallback;
-	
+
 	public Set<GLFWCharCallbackI> charCallbackSet = Collections.synchronizedSet(new HashSet<>());
 	public Set<GLFWCharModsCallbackI> charModsCallbackSet = Collections.synchronizedSet(new HashSet<>());
 	public Set<GLFWCursorEnterCallbackI> cursorEnterCallbackSet = Collections.synchronizedSet(new HashSet<>());
@@ -63,7 +63,6 @@ public class MirroredWindowCallbacks {
 	public Set<GLFWWindowRefreshCallbackI> windowRefreshCallbackSet = Collections.synchronizedSet(new HashSet<>());
 	public Set<GLFWWindowSizeCallbackI> windowSizeCallbackSet = Collections.synchronizedSet(new HashSet<>());
 	public Set<GLDebugMessageCallbackI> debugMessageCallbackSet = Collections.synchronizedSet(new HashSet<>());
-	
 
 	public MirroredWindowCallbacks() {
 

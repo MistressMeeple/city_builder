@@ -142,7 +142,6 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 			window.setChild(loadingScreen);
 			loadingScreen.setChild(mainMenuScreen);
 
-
 			window.events.render.add(0, (delta) -> {
 
 				//					System.out.println(nk_item_is_any_active(nkContext.context));
