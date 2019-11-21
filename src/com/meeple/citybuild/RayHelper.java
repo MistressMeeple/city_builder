@@ -1,8 +1,10 @@
 package com.meeple.citybuild;
 
+import org.joml.Vector2i;
 import org.joml.Vector3f;
 
 import com.meeple.citybuild.server.GameManager;
+import com.meeple.citybuild.server.LevelData.Chunk;
 import com.meeple.citybuild.server.LevelData.Chunk.Tile;
 
 public class RayHelper {
@@ -12,6 +14,7 @@ public class RayHelper {
 
 	private Vector3f currentTerrainPoint;
 
+	private Chunk chunk;
 	private Tile tile;
 
 	public Vector3f getCurrentTerrainPoint() {
@@ -20,6 +23,10 @@ public class RayHelper {
 
 	public Tile getCurrentTile() {
 		return tile;
+	}
+
+	public Chunk getCurrentChunk() {
+		return chunk;
 	}
 
 	public void update(Vector3f ray, Vector3f cameraPos, GameManager game) {
@@ -43,14 +50,18 @@ public class RayHelper {
 		float half = start + ((finish - start) / 2f);
 		if (count >= RECURSION_COUNT) {
 			Vector3f endPoint = getPointOnRay(ray, half, camPos);
-			Tile tile = game.getTile(endPoint);
 
-			if (tile != null) {
-				this.tile = tile;
-				return endPoint;
-			} else {
-				return null;
+			Tile tile = null;
+			Chunk c = game.getChunk(endPoint);
+			if (c != null) {
+				chunk = c;
+				tile = game.getTile(c, endPoint);
+				if (tile != null) {
+					this.tile = tile;
+					return endPoint;
+				}
 			}
+			return null;
 		}
 		if (intersectionInRange(start, half, ray, camPos)) {
 			return binarySearch(count + 1, start, half, ray, camPos, game);

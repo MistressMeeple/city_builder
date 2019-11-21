@@ -214,6 +214,15 @@ public abstract class GameManager {
 		return result;
 	}
 
+	public Tile getTile(Chunk c, Vector3f worldCoords) {
+		Tile result = null;
+		if (c != null) {
+			Vector2i index = new Vector2i(tileIndex(worldCoords.x), tileIndex(worldCoords.y));
+			result = c.tiles[index.x][index.y];
+		}
+		return result;
+	}
+
 	/**
 	 * Searches the sphere for all entities and returns a set containing any found. 
 	 * @param level level to search

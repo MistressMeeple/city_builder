@@ -109,7 +109,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		ClientOptionSystem optionsSystem = new ClientOptionSystem();
 
 		ClientWindowSystem.setupWindow(window, keyInput, nkContext, optionsSystem);
-//		Map<WindowState, Set<Tickable>> stateRendering = new HashMap<>();
+		//		Map<WindowState, Set<Tickable>> stateRendering = new HashMap<>();
 
 		VPMatrix vpMatrix = new VPMatrix();
 		CameraSpringArm arm = vpMatrix.view.getWrapped().springArm;
@@ -166,7 +166,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 			Tickable t = renderGame(window, vpMatrix, cameraAnchorEntity, ortho, rh, keyInput);
 
-//			FrameUtils.addToSetMap(stateRendering, WindowState.Game, t, syncSetSupplier);
+			//			FrameUtils.addToSetMap(stateRendering, WindowState.Game, t, syncSetSupplier);
 
 			gameRenderScreen = new Renderable() {
 
@@ -298,10 +298,24 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 				window.shouldClose = true;
 				break;
 			case GameLoad:
-				loadLevel((File) param);
-				if (level == null) {
-					level = new LevelData();
+				if (param != null) {
+					if (param instanceof File) {
+						loadLevel((File) param);
+					} else if (param instanceof Number) {
+						newGame(((Number) param).longValue());
+					} else {
+						try {
+							newGame((long) param);
+						} catch (ClassCastException e) {
+							//wasnt a number
+
+						}
+					}
 				}
+				if (level == null) {
+					newGame(System.currentTimeMillis());
+				}
+
 				break;
 			case GamePause:
 				pauseGame();
@@ -313,9 +327,6 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 				saveGame();
 				break;
 			case GameStart:
-				if (level == null) {
-					level = new LevelData();
-				}
 				loadingScreen.setChild(gameRenderScreen);
 				break;
 			case GoToMainMenu:
@@ -331,6 +342,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 			default:
 				break;
 		}
+
 	}
 
 	private void shutdownService(ExecutorService executorService) {
@@ -425,9 +437,10 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 					rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z), new Vector3f(vpMatrix.view.getWrapped().position), this);
 					Tile tile = rh.getCurrentTile();
 					if (tile != null) {
-						System.out.println(tile.type);
 						tile.type = TileTypes.Other;
+						rh.getCurrentChunk().rebake.set(true);
 					}
+
 					Vector3f c = rh.getCurrentTerrainPoint();
 					/*
 																if (c != null) {
@@ -470,35 +483,6 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 			//						RenderingMain.system.render(mainProgram);
 			return false;
 		};
-	}
-
-	private boolean renderMenu(Delta time) {
-
-		double menuSeconds = FrameUtils.nanosToSeconds(time.totalNanos);
-
-		float r = (float) (Math.sin(menuSeconds * 0.03f + 0.1f)) * 0.5f;
-		float g = (float) (Math.sin(menuSeconds * 0.02f + 0.2f)) * 0.5f;
-		float b = (float) (Math.sin(menuSeconds * 0.01f + 0.3f)) * 0.5f;
-		//		logger.trace(window.clearColour);
-		window.clearColour.set(r, g, b, 1f);
-		return false;
-
-	}
-
-	private boolean renderLoading(Delta time) {
-		double menuSeconds = FrameUtils.nanosToSeconds(time.totalNanos);
-
-		float r = (float) (Math.sin(menuSeconds * 0.03f + 0.1f)) * 0.5f;
-		float g = (float) (Math.sin(menuSeconds * 0.02f + 0.2f)) * 0.5f;
-		float b = (float) (Math.sin(menuSeconds * 0.01f + 0.3f)) * 0.5f;
-		window.clearColour.set(r, g, b, 1f);
-
-		return false;
-	}
-
-	private boolean renderPause(Delta time) {
-
-		return false;
 	}
 
 	Wrapper<Buildings> placement = new WrapperImpl<>();

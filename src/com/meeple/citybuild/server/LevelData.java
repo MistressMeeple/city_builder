@@ -65,6 +65,7 @@ public class LevelData implements Serializable {
 	 *
 	 */
 	public class Chunk implements Serializable {
+		public AtomicBoolean rebake = new AtomicBoolean(true);
 		private static final long serialVersionUID = 5810527395504498634L;
 
 		/**

@@ -87,7 +87,10 @@ public class LevelRenderer {
 				Chunk chunk = entry.getValue();
 				Vector3f chunkPos = new Vector3f(loc.x * LevelData.fullChunkSize, loc.y * LevelData.fullChunkSize, 0);
 				MeshExt m = baked.get(chunk);
-				if (m == null) {
+				if (m == null || chunk.rebake.getAndSet(false)) {
+					if (m != null) {
+						m.mesh.singleFrameDiscard = true;
+					}
 					m = bakeChunk(chunkPos, chunk);
 					RenderingMain.system.loadVAO(program, m.mesh);
 					m.mesh.visible = false;
