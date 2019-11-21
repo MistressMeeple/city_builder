@@ -20,7 +20,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 import javax.sound.sampled.AudioFormat;
@@ -140,26 +139,6 @@ public interface ClientWindowSystem {
 
 		public void setCursorType(GLFWCursorType cursor) {
 			this.queueChangeCursorType.setWrapped(cursor);
-		}
-
-		/**
-		 * For better control use 	{@link ClientWindowSystem#setWindowState(ClientWindow, WindowState) }
-		 */
-		public WindowState state = WindowState.Loading;
-		public BiFunction<WindowState, WindowState, WindowState> changeStateEvent;
-
-		/**
-		 * Changes the window state with the {@link #onWindowStateChange(WindowState, WindowState)} function
-		 * @param window
-		 * @param state
-		 */
-		public void setWindowState(WindowState state) {
-			WindowState s = this.state;
-			if (changeStateEvent != null) {
-				this.state = (changeStateEvent.apply(s, state));
-			} else {
-				this.state = (state);
-			}
 		}
 
 		public Set<BiConsumer<WindowEvent, Object>> eventListeners = Collections.synchronizedSet(new HashSet<>());

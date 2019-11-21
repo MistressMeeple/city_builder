@@ -1,8 +1,6 @@
 package com.meeple.citybuild.client;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -49,8 +47,6 @@ import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpringArm;
 import com.meeple.shared.frame.nuklear.NkContextSingleton;
 import com.meeple.shared.frame.nuklear.NuklearMenuSystem;
-import com.meeple.shared.frame.nuklear.NuklearMenuSystem.BtnState;
-import com.meeple.shared.frame.nuklear.NuklearMenuSystem.Button;
 import com.meeple.shared.frame.nuklear.NuklearUIComponent;
 import com.meeple.shared.frame.window.ClientWindowSystem;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
@@ -118,35 +114,8 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		window.events.preCleanup.add(() -> {
 			shutdownService(executorService);
 		});
-		window.changeStateEvent = this::onWindowStateChange;
+		//		window.changeStateEvent = this::onWindowStateChange;
 
-		Consumer<String> levelSelect = (fileName) -> {
-
-			window.setWindowState(WindowState.Loading);
-
-			executorService.execute(() -> {
-
-				if (fileName != null && !fileName.isEmpty()) {
-					logger.trace("Loading game");
-					loadLevel(new File(fileName));
-				} else {
-					logger.trace("Starting new game");
-					newGame(0l);
-				}
-
-				executorService.execute(() -> {
-					startGame();
-				});
-				//just sleep a second to make it a nicer transition
-				try {
-					Thread.sleep(1000);
-				} catch (InterruptedException err) {
-				}
-				window.setWindowState(WindowState.Game);
-
-			});
-
-		};
 		AtomicInteger clientQuitCounter = new AtomicInteger();
 		try (GLFWManager glManager = new GLFWManager(); WindowManager windowManager = new WindowManager()) {
 			RayHelper rh = new RayHelper();
@@ -168,99 +137,21 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 			clientQuitCounter.incrementAndGet();
 			NuklearMenuSystem menuSystem = new NuklearMenuSystem();
-			Button continueBtn = new Button() {
-
-				@Override
-				public BtnState getState() {
-					return BtnState.Visible;
-				}
-
-				@Override
-				public String getName() {
-					return "continue";
-				}
-
-				@Override
-				public void onClick() {
-					logger.trace("continue game click");
-					//TODO find latest save
-					String latestName = "";
-					levelSelect.accept(latestName);
-					menuSystem.setActiveNuklear(window.menuQueue, window.registeredNuklear, null);
-				}
-
-			};
-			Button loadBtn = new Button() {
-
-				@Override
-				public BtnState getState() {
-					return BtnState.Visible;
-				}
-
-				@Override
-				public String getName() {
-					return "Load Game";
-				}
-
-				@Override
-				public void onClick() {
-					logger.trace("Load game click");
-					//TODO find loaded file name
-					String loadedName = "";
-					levelSelect.accept(loadedName);
-					menuSystem.setActiveNuklear(window.menuQueue, window.registeredNuklear, null);
-				}
-
-			};
-			Button newBtn = new Button() {
-
-				@Override
-				public BtnState getState() {
-					return BtnState.Visible;
-				}
-
-				@Override
-				public String getName() {
-					return "New Game";
-				}
-
-				@Override
-				public void onClick() {
-					logger.trace("NEW game click");
-					levelSelect.accept(null);
-					menuSystem.setActiveNuklear(window.menuQueue, window.registeredNuklear, null);
-				}
-			};
-
 			menuSystem.create(nkContext, window, window.registeredNuklear);
 			window.eventListeners.add(this::handleWindowEvent);
 			window.setChild(loadingScreen);
 			loadingScreen.setChild(mainMenuScreen);
 
-			Map<WindowState, Delta> ticks = new HashMap<>();
 
 			window.events.render.add(0, (delta) -> {
 
-				if (window.state != null) {
-
-					WindowState state = window.state;
-					Delta time = ticks.get(state);
-					if (time == null) {
-						time = new Delta();
-						ticks.put(state, time);
-					}
-					time.nanos = delta.nanos;
-					time.seconds = delta.seconds;
-					time.totalNanos += delta.nanos;
-
-					//					System.out.println(nk_item_is_any_active(nkContext.context));
-					if (window.currentFocus != null) {
-						//						logger.trace(window.state.getWrapped() + " " + ((NuklearUIComponent) window.currentFocus).title);
-					}
-					//					Set<Tickable> r = stateRendering.get(state);
-					window.renderTree(nkContext, window, delta);
-					//					FrameUtils.iterateTickable(r, time);
+				//					System.out.println(nk_item_is_any_active(nkContext.context));
+				if (window.currentFocus != null) {
+					//						logger.trace(window.state.getWrapped() + " " + ((NuklearUIComponent) window.currentFocus).title);
 				}
+
+				window.renderTree(nkContext, window, delta);
+
 				return false;
 
 			});
@@ -428,7 +319,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 						rh.getCurrentChunk().rebake.set(true);
 					}
 
-					Vector3f c = rh.getCurrentTerrainPoint();
+					//					Vector3f c = rh.getCurrentTerrainPoint();
 					/*
 																if (c != null) {
 																//TODO rendering debug mouse cursor pos
