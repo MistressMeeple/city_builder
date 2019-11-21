@@ -8,13 +8,13 @@ import org.lwjgl.nuklear.NkContext;
 import org.lwjgl.nuklear.NkRect;
 import org.lwjgl.system.MemoryStack;
 
-import com.meeple.citybuild.client.render.Renderable;
+import com.meeple.citybuild.client.render.Screen;
 import com.meeple.shared.Delta;
 import com.meeple.shared.frame.nuklear.NkContextSingleton;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 import com.meeple.shared.frame.window.ClientWindowSystem.WindowEvent;
 
-public class PauseScreen extends Renderable {
+public class PauseScreen extends Screen {
 
 	public static Logger logger = Logger.getLogger(PauseScreen.class);
 

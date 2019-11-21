@@ -10,14 +10,14 @@ import org.lwjgl.nuklear.NkContext;
 import org.lwjgl.nuklear.NkRect;
 import org.lwjgl.system.MemoryStack;
 
-import com.meeple.citybuild.client.render.Renderable;
+import com.meeple.citybuild.client.render.Screen;
 import com.meeple.shared.Delta;
 import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.nuklear.NkContextSingleton;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 import com.meeple.shared.frame.window.ClientWindowSystem.WindowEvent;
 
-public class MainMenuScreen extends Renderable {
+public class MainMenuScreen extends Screen {
 	public static Logger logger = Logger.getLogger(MainMenuScreen.class);
 
 	@Override

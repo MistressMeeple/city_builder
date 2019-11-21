@@ -8,13 +8,13 @@ import org.lwjgl.nuklear.NkRect;
 import org.lwjgl.nuklear.Nuklear;
 import org.lwjgl.system.MemoryStack;
 
-import com.meeple.citybuild.client.render.Renderable;
+import com.meeple.citybuild.client.render.Screen;
 import com.meeple.shared.Delta;
 import com.meeple.shared.frame.nuklear.NkContextSingleton;
 import com.meeple.shared.frame.nuklear.NuklearManager;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 
-public class GameUI extends Renderable {
+public class GameUI extends Screen {
 
 	String string = "";
 

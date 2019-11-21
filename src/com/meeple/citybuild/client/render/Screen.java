@@ -6,42 +6,42 @@ import com.meeple.shared.Delta;
 import com.meeple.shared.frame.nuklear.NkContextSingleton;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 
-public abstract class Renderable {
+public abstract class Screen {
 	public String name;
 	public final Vector4f colour = new Vector4f();
 
-	Renderable parent;
-	Renderable child;
+	Screen parent;
+	Screen child;
 
 	public final boolean isTransparent() {
 		return colour.w < 1f;
 	}
 
-	public final Renderable getParent() {
+	public final Screen getParent() {
 		return parent;
 	}
 
-	public final void setParent(Renderable parent) {
+	public final void setParent(Screen parent) {
 		this.parent = parent;
 		this.child = parent;
 	}
 
-	public final Renderable getChild() {
+	public final Screen getChild() {
 		return child;
 	}
 
-	public final void setChild(Renderable child) {
+	public final void setChild(Screen child) {
 		this.child = child;
 		child.parent = this;
 	}
 
-	public final Renderable getRootParent() {
-		Renderable r = getParent();
+	public final Screen getRootParent() {
+		Screen r = getParent();
 		if (r == null) {
 			return this;
 		}
 		while (r != null) {
-			Renderable next = r.getParent();
+			Screen next = r.getParent();
 			if (next == null) {
 				break;
 			} else {
@@ -51,13 +51,13 @@ public abstract class Renderable {
 		return r;
 	}
 
-	public final Renderable getRootChild() {
-		Renderable r = getChild();
+	public final Screen getRootChild() {
+		Screen r = getChild();
 		if (r == null) {
 			return this;
 		}
 		while (r != null) {
-			Renderable next = r.getChild();
+			Screen next = r.getChild();
 			if (next == null) {
 				break;
 			} else {
@@ -72,7 +72,7 @@ public abstract class Renderable {
 	 * This can be called from any Renderable that is part of this rendering tree
 	 */
 	public void renderTree(NkContextSingleton nkContext, ClientWindow window, Delta delta) {
-		Renderable child = getRootChild();
+		Screen child = getRootChild();
 		child.renderUp(nkContext, window, delta);
 	}
 
@@ -81,7 +81,7 @@ public abstract class Renderable {
 	 */
 	private void renderUp(NkContextSingleton nkContext, ClientWindow window, Delta delta) {
 		if (this.isTransparent()) {
-			Renderable parent = getParent();
+			Screen parent = getParent();
 			if (parent != null) {
 				parent.renderUp(nkContext, window, delta);
 			}

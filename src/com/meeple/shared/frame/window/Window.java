@@ -6,7 +6,7 @@ import org.joml.Vector4f;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.MemoryUtil;
 
-import com.meeple.citybuild.client.render.Renderable;
+import com.meeple.citybuild.client.render.Screen;
 import com.meeple.shared.Delta;
 import com.meeple.shared.frame.component.Bounds2DComponent;
 import com.meeple.shared.frame.component.HasBounds2D;
@@ -15,7 +15,7 @@ import com.meeple.shared.frame.component.NamedComponent;
 import com.meeple.shared.frame.nuklear.NkContextSingleton;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 
-public class Window extends Renderable implements HasBounds2D, NamedComponent, IDComponent<Long> {
+public class Window extends Screen implements HasBounds2D, NamedComponent, IDComponent<Long> {
 	private long windowID = 0;
 	private String name = "Default Title";
 	public Long monitor = MemoryUtil.NULL;

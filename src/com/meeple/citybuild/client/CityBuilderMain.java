@@ -16,6 +16,7 @@ import org.apache.log4j.PatternLayout;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 import org.lwjgl.glfw.GLFW;
+import org.lwjgl.nuklear.Nuklear;
 import org.lwjgl.opengl.GL46;
 
 import com.meeple.citybuild.RayHelper;
@@ -25,7 +26,7 @@ import com.meeple.citybuild.client.gui.MainMenuScreen;
 import com.meeple.citybuild.client.gui.PauseScreen;
 import com.meeple.citybuild.client.input.CameraControlHandler;
 import com.meeple.citybuild.client.render.LevelRenderer;
-import com.meeple.citybuild.client.render.Renderable;
+import com.meeple.citybuild.client.render.Screen;
 import com.meeple.citybuild.client.render.RenderingMain;
 import com.meeple.citybuild.server.Buildings;
 import com.meeple.citybuild.server.Entity;
@@ -120,11 +121,11 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		try (GLFWManager glManager = new GLFWManager(); WindowManager windowManager = new WindowManager()) {
 			RayHelper rh = new RayHelper();
 
-			Tickable t = renderGame(window, vpMatrix, cameraAnchorEntity, ortho, rh, keyInput);
+			Tickable t = renderGame(window, vpMatrix, cameraAnchorEntity, ortho, rh, keyInput, nkContext);
 
 			//			FrameUtils.addToSetMap(stateRendering, WindowState.Game, t, syncSetSupplier);
 
-			gameRenderScreen = new Renderable() {
+			gameRenderScreen = new Screen() {
 
 				@Override
 				public void render(NkContextSingleton nkContext, ClientWindow window, Delta delta) {
@@ -144,7 +145,6 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 			window.events.render.add(0, (delta) -> {
 
-				//					System.out.println(nk_item_is_any_active(nkContext.context));
 				if (window.currentFocus != null) {
 					//						logger.trace(window.state.getWrapped() + " " + ((NuklearUIComponent) window.currentFocus).title);
 				}
@@ -162,7 +162,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 	}
 
-	Renderable gameRenderScreen;
+	Screen gameRenderScreen;
 	LoadingScreen loadingScreen = new LoadingScreen();
 	GameUI gameUIScreen = new GameUI();
 	MainMenuScreen mainMenuScreen = new MainMenuScreen();
@@ -255,7 +255,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 	}
 
-	public Tickable renderGame(ClientWindow window, VPMatrix vpMatrix, Entity cameraAnchorEntity, ProjectionMatrix ortho, RayHelper rh, KeyInputSystem keyInput) {
+	public Tickable renderGame(ClientWindow window, VPMatrix vpMatrix, Entity cameraAnchorEntity, ProjectionMatrix ortho, RayHelper rh, KeyInputSystem keyInput, NkContextSingleton nkContext) {
 
 		//		ShaderProgram mainProgram = new ShaderProgram();
 		ShaderProgram program = new ShaderProgram();
@@ -304,54 +304,56 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 			keyInput.tick(window.mousePressTicks, window.mousePressMap, time.nanos);
 			keyInput.tick(window.keyPressTicks, window.keyPressMap, time.nanos);
 			if (level != null) {
+				//TODO better ui testing for mouse controls
+				if (!Nuklear.nk_item_is_any_active(nkContext.context)) {
+					CameraControlHandler.handlePanningTick(window, ortho, vpMatrix.view.getWrapped(), cameraAnchorEntity);
+					tick.apply(time);
 
-				CameraControlHandler.handlePanningTick(window, ortho, vpMatrix.view.getWrapped(), cameraAnchorEntity);
-				tick.apply(time);
+					long mouseLeftClick = window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
+					if (mouseLeftClick > 0) {
+						Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, window, vpMatrix.proj.getWrapped(), vpMatrix.view.getWrapped());
+						rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z), new Vector3f(vpMatrix.view.getWrapped().position), this);
+						Tile tile = rh.getCurrentTile();
+						if (tile != null) {
+							tile.type = TileTypes.Other;
+							rh.getCurrentChunk().rebake.set(true);
+						}
 
-				long mouseLeftClick = window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
-				if (mouseLeftClick > 0) {
-					Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, window, vpMatrix.proj.getWrapped(), vpMatrix.view.getWrapped());
-					rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z), new Vector3f(vpMatrix.view.getWrapped().position), this);
-					Tile tile = rh.getCurrentTile();
-					if (tile != null) {
-						tile.type = TileTypes.Other;
-						rh.getCurrentChunk().rebake.set(true);
+						//					Vector3f c = rh.getCurrentTerrainPoint();
+						/*
+																	if (c != null) {
+																	//TODO rendering debug mouse cursor pos
+																	Vector4f colour = new Vector4f(1, 0, 0, 1);
+																	MeshExt m = new MeshExt();
+																	WorldRenderer.setupDiscardMesh3D(m, 1);
+																	
+																	m.positionAttrib.data.add(c.x);
+																	m.positionAttrib.data.add(c.y);
+																	m.positionAttrib.data.add(c.z + 1f);
+																	
+																	m.colourAttrib.data.add(colour.x);
+																	m.colourAttrib.data.add(colour.y);
+																	m.colourAttrib.data.add(colour.z);
+																	m.colourAttrib.data.add(colour.w);
+																	
+																	m.mesh.name = "model";
+																	m.mesh.modelRenderType = GLDrawMode.Points;
+																	m.mesh.singleFrameDiscard = true;
+																	RenderingMain.system.loadVAO(program, m.mesh);
+																	}*/
+
 					}
 
-					//					Vector3f c = rh.getCurrentTerrainPoint();
-					/*
-																if (c != null) {
-																//TODO rendering debug mouse cursor pos
-																Vector4f colour = new Vector4f(1, 0, 0, 1);
-																MeshExt m = new MeshExt();
-																WorldRenderer.setupDiscardMesh3D(m, 1);
-																
-																m.positionAttrib.data.add(c.x);
-																m.positionAttrib.data.add(c.y);
-																m.positionAttrib.data.add(c.z + 1f);
-																
-																m.colourAttrib.data.add(colour.x);
-																m.colourAttrib.data.add(colour.y);
-																m.colourAttrib.data.add(colour.z);
-																m.colourAttrib.data.add(colour.w);
-																
-																m.mesh.name = "model";
-																m.mesh.modelRenderType = GLDrawMode.Points;
-																m.mesh.singleFrameDiscard = true;
-																RenderingMain.system.loadVAO(program, m.mesh);
-																}*/
+					//TODO level clear colour
+					window.clearColour.set(0f, 0f, 0f, 0f);
+					levelRenderer.preRender(level, vpMatrix, program);
+					CameraControlHandler.preRenderMouseUI(window, ortho, uiProgram).apply(time);
+
+					//				MeshExt mesh = new MeshExt();
+					//				bakeChunk(level.chunks.get(new Vector2i()), mesh);
+					//				RenderingMain.system.loadVAO(program, mesh.mesh);
 
 				}
-
-				//TODO level clear colour
-				window.clearColour.set(0f, 0f, 0f, 0f);
-				levelRenderer.preRender(level, vpMatrix, program);
-				CameraControlHandler.preRenderMouseUI(window, ortho, uiProgram).apply(time);
-
-				//				MeshExt mesh = new MeshExt();
-				//				bakeChunk(level.chunks.get(new Vector2i()), mesh);
-				//				RenderingMain.system.loadVAO(program, mesh.mesh);
-
 			}
 
 			RenderingMain.system.render(program);
