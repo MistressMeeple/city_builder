@@ -11,11 +11,24 @@ import org.joml.FrustumIntersection;
 import org.joml.Vector2i;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
+import org.lwjgl.glfw.GLFW;
+import org.lwjgl.nuklear.Nuklear;
+import org.lwjgl.opengl.GL46;
 
+import com.meeple.citybuild.RayHelper;
+import com.meeple.citybuild.client.CityBuilderMain;
+import com.meeple.citybuild.client.input.CameraControlHandler;
 import com.meeple.citybuild.client.render.WorldRenderer.MeshExt;
+import com.meeple.citybuild.server.Entity;
 import com.meeple.citybuild.server.LevelData;
 import com.meeple.citybuild.server.LevelData.Chunk;
+import com.meeple.citybuild.server.LevelData.Chunk.Tile;
+import com.meeple.citybuild.server.WorldGenerator.TileTypes;
+import com.meeple.shared.Tickable;
+import com.meeple.shared.frame.CursorHelper;
+import com.meeple.shared.frame.CursorHelper.SpaceState;
 import com.meeple.shared.frame.FrameUtils;
+import com.meeple.shared.frame.OGL.KeyInputSystem;
 import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
@@ -25,6 +38,10 @@ import com.meeple.shared.frame.camera.VPMatrixSystem;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
+import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpringArm;
+import com.meeple.shared.frame.nuklear.NkContextSingleton;
+import com.meeple.shared.frame.wrapper.Wrapper;
+import com.meeple.shared.frame.wrapper.WrapperImpl;
 
 public class LevelRenderer {
 	public static Logger logger = Logger.getLogger(LevelRenderer.class);
@@ -37,42 +54,42 @@ public class LevelRenderer {
 	public static boolean disableAlphaTest = false;
 
 	public UniformManager<String[], Integer[]>.Uniform<VPMatrix> setupWorldProgram(ShaderProgram program, VPMatrixSystem VPMatrixSystem, VPMatrix vpMatrix) {
-		UniformManager<String[], Integer[]>.Uniform<VPMatrix> u = RenderingMain.multiUpload.register(new String[] { "vpMatrix", "projectionMatrix", "viewMatrix" }, VPMatrixSystem);
+		UniformManager<String[], Integer[]>.Uniform<VPMatrix> u = RenderingMain.instance.multiUpload.register(new String[] { "vpMatrix", "projectionMatrix", "viewMatrix" }, VPMatrixSystem);
 
-		RenderingMain.system.addUniform(program, RenderingMain.multiUpload, u);
-		RenderingMain.system.queueUniformUpload(program, RenderingMain.multiUpload, u, vpMatrix);
+		RenderingMain.instance.system.addUniform(program, RenderingMain.instance.multiUpload, u);
+		RenderingMain.instance.system.queueUniformUpload(program, RenderingMain.instance.multiUpload, u, vpMatrix);
 
-		program.shaderSources.put(GLShaderType.VertexShader, RenderingMain.system.loadShaderSourceFromFile(("resources/shaders/line3D.vert")));
-		program.shaderSources.put(GLShaderType.FragmentShader, RenderingMain.system.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
+		program.shaderSources.put(GLShaderType.VertexShader, RenderingMain.instance.system.loadShaderSourceFromFile(("resources/shaders/line3D.vert")));
+		program.shaderSources.put(GLShaderType.FragmentShader, RenderingMain.instance.system.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
 
-		RenderingMain.system.create(program);
+		RenderingMain.instance.system.create(program);
 		return u;
 	}
 
 	public UniformManager<String, Integer>.Uniform<ProjectionMatrix> setupUIProgram(ShaderProgram program, ProjectionMatrixSystem pSystem, ProjectionMatrix pMatrix) {
 
-		UniformManager<String, Integer>.Uniform<ProjectionMatrix> u = RenderingMain.singleUpload.register("projectionMatrix", pSystem);
-		RenderingMain.system.addUniform(program, RenderingMain.singleUpload, u);
-		RenderingMain.system.queueUniformUpload(program, RenderingMain.singleUpload, u, pMatrix);
+		UniformManager<String, Integer>.Uniform<ProjectionMatrix> u = RenderingMain.instance.singleUpload.register("projectionMatrix", pSystem);
+		RenderingMain.instance.system.addUniform(program, RenderingMain.instance.singleUpload, u);
+		RenderingMain.instance.system.queueUniformUpload(program, RenderingMain.instance.singleUpload, u, pMatrix);
 
-		program.shaderSources.put(GLShaderType.VertexShader, RenderingMain.system.loadShaderSourceFromFile(("resources/shaders/line2D-UI.vert")));
-		program.shaderSources.put(GLShaderType.FragmentShader, RenderingMain.system.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
+		program.shaderSources.put(GLShaderType.VertexShader, RenderingMain.instance.system.loadShaderSourceFromFile(("resources/shaders/line2D-UI.vert")));
+		program.shaderSources.put(GLShaderType.FragmentShader, RenderingMain.instance.system.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
 
-		RenderingMain.system.create(program);
+		RenderingMain.instance.system.create(program);
 		return u;
 
 	}
 
 	public UniformManager<String[], Integer[]>.Uniform<VPMatrix> setupMainProgram(ShaderProgram program, VPMatrixSystem VPMatrixSystem, VPMatrix vpMatrix) {
-		UniformManager<String[], Integer[]>.Uniform<VPMatrix> u = RenderingMain.multiUpload.register(new String[] { "vpMatrix", "projectionMatrix", "viewMatrix" }, VPMatrixSystem);
+		UniformManager<String[], Integer[]>.Uniform<VPMatrix> u = RenderingMain.instance.multiUpload.register(new String[] { "vpMatrix", "projectionMatrix", "viewMatrix" }, VPMatrixSystem);
 
-		RenderingMain.system.addUniform(program, RenderingMain.multiUpload, u);
-		RenderingMain.system.queueUniformUpload(program, RenderingMain.multiUpload, u, vpMatrix);
+		RenderingMain.instance.system.addUniform(program, RenderingMain.instance.multiUpload, u);
+		RenderingMain.instance.system.queueUniformUpload(program, RenderingMain.instance.multiUpload, u, vpMatrix);
 
-		program.shaderSources.put(GLShaderType.VertexShader, RenderingMain.system.loadShaderSourceFromFile(("resources/shaders/3D-unlit.vert")));
-		program.shaderSources.put(GLShaderType.FragmentShader, RenderingMain.system.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
+		program.shaderSources.put(GLShaderType.VertexShader, RenderingMain.instance.system.loadShaderSourceFromFile(("resources/shaders/3D-unlit.vert")));
+		program.shaderSources.put(GLShaderType.FragmentShader, RenderingMain.instance.system.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
 
-		RenderingMain.system.create(program);
+		RenderingMain.instance.system.create(program);
 		return u;
 	}
 
@@ -92,7 +109,7 @@ public class LevelRenderer {
 						m.mesh.singleFrameDiscard = true;
 					}
 					m = bakeChunk(chunkPos, chunk);
-					RenderingMain.system.loadVAO(program, m.mesh);
+					RenderingMain.instance.system.loadVAO(program, m.mesh);
 					m.mesh.visible = false;
 					baked.put(chunk, m);
 				}
@@ -184,7 +201,6 @@ public class LevelRenderer {
 			Vector4f colour = new Vector4f(1, 0, 0, 1);
 			MeshExt m = new MeshExt();
 			WorldRenderer.setupDiscardMesh3D(m, 2);
-			m.mesh.singleFrameDiscard = true;
 
 			m.positionAttrib.data.add(0f);
 			m.positionAttrib.data.add(0f);
@@ -199,9 +215,9 @@ public class LevelRenderer {
 			m.colourAttrib.data.add(colour.z);
 			m.colourAttrib.data.add(colour.w);
 			FrameUtils.appendToList(m.offsetAttrib.data, new Vector3f());
-			m.mesh.name = "model";
+			m.mesh.name = "modelr";
 			m.mesh.modelRenderType = GLDrawMode.Line;
-			RenderingMain.system.loadVAO(program, m.mesh);
+			RenderingMain.instance.system.loadVAO(program, m.mesh);
 		}
 		{
 
@@ -222,9 +238,9 @@ public class LevelRenderer {
 			m.colourAttrib.data.add(colour.z);
 			m.colourAttrib.data.add(colour.w);
 			FrameUtils.appendToList(m.offsetAttrib.data, new Vector3f());
-			m.mesh.name = "model";
+			m.mesh.name = "modelg";
 			m.mesh.modelRenderType = GLDrawMode.Line;
-			RenderingMain.system.loadVAO(program, m.mesh);
+			RenderingMain.instance.system.loadVAO(program, m.mesh);
 		}
 		{
 
@@ -245,10 +261,117 @@ public class LevelRenderer {
 			m.colourAttrib.data.add(colour.z);
 			m.colourAttrib.data.add(colour.w);
 			FrameUtils.appendToList(m.offsetAttrib.data, new Vector3f());
-			m.mesh.name = "model";
+			m.mesh.name = "modelb";
 			m.mesh.modelRenderType = GLDrawMode.Line;
-			RenderingMain.system.loadVAO(program, m.mesh);
+			RenderingMain.instance.system.loadVAO(program, m.mesh);
 		}
 	}
 
+	public Tickable renderGame(CityBuilderMain cityBuilder, VPMatrix vpMatrix, Entity cameraAnchorEntity, ProjectionMatrix ortho, RayHelper rh, KeyInputSystem keyInput, NkContextSingleton nkContext) {
+
+		//		ShaderProgram mainProgram = new ShaderProgram();
+		ShaderProgram program = new ShaderProgram();
+		ShaderProgram uiProgram = new ShaderProgram();
+
+		VPMatrixSystem vpSystem = new VPMatrixSystem();
+
+		Wrapper<UniformManager<String[], Integer[]>.Uniform<VPMatrix>> puW = new WrapperImpl<>();
+		Wrapper<UniformManager<String, Integer>.Uniform<ProjectionMatrix>> uipuW = new WrapperImpl<>();
+
+		vpMatrix.proj.getWrapped().window = cityBuilder.window;
+		vpMatrix.proj.getWrapped().FOV = 90;
+		vpMatrix.proj.getWrapped().nearPlane = 0.001f;
+		vpMatrix.proj.getWrapped().farPlane = 10000f;
+		vpMatrix.proj.getWrapped().orthoAspect = 10f;
+		vpMatrix.proj.getWrapped().perspectiveOrOrtho = true;
+		vpMatrix.proj.getWrapped().scale = 1f;
+
+		ortho.window = cityBuilder.window;
+		ortho.FOV = 90;
+		ortho.nearPlane = 0.001f;
+		ortho.farPlane = 10000f;
+		ortho.orthoAspect = 10f;
+		ortho.perspectiveOrOrtho = false;
+		ortho.scale = 1f;
+		CameraSpringArm arm = vpMatrix.view.getWrapped().springArm;
+		cityBuilder.window.events.postCreation.add(() -> {
+
+			puW.setWrapped(setupWorldProgram(program, vpSystem, vpMatrix));
+			uipuW.setWrapped(setupUIProgram(uiProgram, vpSystem.projSystem, ortho));
+
+			/*mpuW.setWrapped(levelRenderer.setupMainProgram(mainProgram, vpSystem, vpMatrix));
+			RenderingMain.instance.system.loadVAO(mainProgram, cube);*/
+
+		});
+
+		vpSystem.preMult(vpMatrix);
+		Tickable tick = CameraControlHandler.handlePitchingTick(cityBuilder.window, ortho, arm);
+		return (time) -> {
+			vpSystem.preMult(vpMatrix);
+			RenderingMain.instance.system.queueUniformUpload(program, RenderingMain.instance.multiUpload, puW.getWrapped(), vpMatrix);
+			//TODO change line thickness
+			GL46.glLineWidth(3f);
+			GL46.glPointSize(3f);
+			keyInput.tick(cityBuilder.window.mousePressTicks, cityBuilder.window.mousePressMap, time.nanos);
+			keyInput.tick(cityBuilder.window.keyPressTicks, cityBuilder.window.keyPressMap, time.nanos);
+			if (cityBuilder.level != null) {
+				//TODO better ui testing for mouse controls
+				if (!Nuklear.nk_item_is_any_active(nkContext.context)) {
+					CameraControlHandler.handlePanningTick(cityBuilder.window, ortho, vpMatrix.view.getWrapped(), cameraAnchorEntity);
+					tick.apply(time);
+
+					long mouseLeftClick = cityBuilder.window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
+					if (mouseLeftClick > 0) {
+						Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, cityBuilder.window, vpMatrix.proj.getWrapped(), vpMatrix.view.getWrapped());
+						rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z), new Vector3f(vpMatrix.view.getWrapped().position), cityBuilder);
+						Tile tile = rh.getCurrentTile();
+						if (tile != null) {
+							tile.type = TileTypes.Other;
+							rh.getCurrentChunk().rebake.set(true);
+						}
+
+						//					Vector3f c = rh.getCurrentTerrainPoint();
+						/*
+																	if (c != null) {
+																	//TODO rendering debug mouse cursor pos
+																	Vector4f colour = new Vector4f(1, 0, 0, 1);
+																	MeshExt m = new MeshExt();
+																	WorldRenderer.setupDiscardMesh3D(m, 1);
+																	
+																	m.positionAttrib.data.add(c.x);
+																	m.positionAttrib.data.add(c.y);
+																	m.positionAttrib.data.add(c.z + 1f);
+																	
+																	m.colourAttrib.data.add(colour.x);
+																	m.colourAttrib.data.add(colour.y);
+																	m.colourAttrib.data.add(colour.z);
+																	m.colourAttrib.data.add(colour.w);
+																	
+																	m.mesh.name = "model";
+																	m.mesh.modelRenderType = GLDrawMode.Points;
+																	m.mesh.singleFrameDiscard = true;
+																	RenderingMain.instance.system.loadVAO(program, m.mesh);
+																	}*/
+
+					}
+
+					//TODO level clear colour
+					cityBuilder.window.clearColour.set(0f, 0f, 0f, 0f);
+					preRender(cityBuilder.level, vpMatrix, program);
+					CameraControlHandler.preRenderMouseUI(cityBuilder.window, ortho, uiProgram).apply(time);
+
+					//				MeshExt mesh = new MeshExt();
+					//				bakeChunk(level.chunks.get(new Vector2i()), mesh);
+					//				RenderingMain.instance.system.loadVAO(program, mesh.mesh);
+
+				}
+			}
+
+			RenderingMain.instance.system.render(program);
+			RenderingMain.instance.system.render(uiProgram);
+			//this is the cube test rendering program
+			//						RenderingMain.instance.system.render(mainProgram);
+			return false;
+		};
+	}
 }

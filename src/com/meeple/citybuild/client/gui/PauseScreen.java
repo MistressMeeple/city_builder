@@ -21,12 +21,12 @@ public class PauseScreen extends Screen {
 	@Override
 	public void render(NkContextSingleton nkContext, ClientWindow window, Delta delta) {
 		NkContext ctx = nkContext.context;
-		int width = (int) (window.bounds.width * 0.25f);
-		int height = (int) (window.bounds.height * 0.5f);
-		int x = (int) (window.bounds.width - width) / 2;
-		int y = (int) (window.bounds.height - height) / 2;
 
 		try (MemoryStack stack = stackPush()) {
+			int width = (int) (window.bounds.width * 0.25f);
+			int height = (int) (window.bounds.height * 0.5f);
+			int x = (int) (window.bounds.width - width) / 2;
+			int y = (int) (window.bounds.height - height) / 2;
 			NkRect rect = NkRect.mallocStack(stack);
 			if (nk_begin(ctx, "Pause", nk_rect(x, y, width, height, rect), NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_TITLE)) {
 				nk_layout_row_dynamic(ctx, 35, 1);
@@ -48,7 +48,22 @@ public class PauseScreen extends Screen {
 
 			}
 			nk_end(ctx);
-		}
+		} /*
+			try (MemoryStack stack = stackPush()) {
+			NkRect rect = NkRect.mallocStack(stack);
+			NkColor alphad = NkColor.mallocStack(stack);
+			NuklearManager
+				.setNkColour(alphad, (int) (this.colour.x * Byte.MAX_VALUE), (int) (this.colour.y * Byte.MAX_VALUE), (int) (this.colour.z * Byte.MAX_VALUE), (int) (this.colour.w * Byte.MAX_VALUE));
+			
+			nk_style_push_color(ctx, ctx.style().window().background(), alphad);
+			if (nk_begin(ctx, "bg", nk_rect(0, 0, 100, 100, rect), NK_WINDOW_NO_SCROLLBAR)) {
+			
+				//				nk_style_push_color(ctx, ctx.style().window().fixed_background().data().color(), alphad);
+				nk_label(ctx, "", 0);
+			
+			}
+			nk_style_pop_color(ctx);
+			}*/
 	}
 
 }

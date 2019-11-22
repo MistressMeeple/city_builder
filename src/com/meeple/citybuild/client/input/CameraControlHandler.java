@@ -29,6 +29,7 @@ public class CameraControlHandler {
 	static boolean invertMouse = true;
 	static boolean invertZoom = false;
 	static float zoomMult = 2f;
+	//aka deadzone
 	static final float panRadi = 0.5f;
 	static Vector4f compasColour = new Vector4f();
 	static Vector4f compasLineColour = new Vector4f();
@@ -47,10 +48,9 @@ public class CameraControlHandler {
 		Active
 	}
 
-	//	public static VPMatrix vpMatrix;
-	//	public static ProjectionMatrix proj;
-	//	public static ClientWindow window;
-	//	public static CameraSpringArm arm;
+	private static boolean inDeadzone() {
+		return true;
+	}
 
 	public static Tickable handlePitchingTick(ClientWindow window, ProjectionMatrix proj, CameraSpringArm arm) {
 		Wrapper<Float> scale = new WrapperImpl<>();
@@ -61,6 +61,7 @@ public class CameraControlHandler {
 				(windowID, xpos, ypos) -> {
 					scale.setWrapped((float) ypos + scale.getWrappedOrDefault(0f));
 				});
+
 		return (delta) -> {
 			Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, window, proj, null);
 			Vector2f dir = new Vector2f(mousePos.x, mousePos.y);
@@ -214,8 +215,8 @@ public class CameraControlHandler {
 					cameraAnchor.position.add(mouseDir.x, mouseDir.y, 0);
 					panningState = CompasState.Active;
 				}
-
 			}
+
 		}
 
 		if (panningState == CompasState.None) {
@@ -353,7 +354,7 @@ public class CameraControlHandler {
 							FrameUtils.appendToList(m.colourAttrib.data, new Vector4f(1, 0, 1, 1));
 							m.mesh.name = "compas";
 							m.zIndexAttrib.data.add(-1f);
-							RenderingMain.system.loadVAO(program, m.mesh);
+							RenderingMain.instance.system.loadVAO(program, m.mesh);
 							/*	mesh.offsetAttrib.data.clear();
 								mesh.offsetAttrib.data.add(mouseClickedPos.x);
 								mesh.offsetAttrib.data.add(mouseClickedPos.y);
@@ -399,7 +400,7 @@ public class CameraControlHandler {
 									FrameUtils.appendToList(m.colourAttrib.data, new Vector4f(1, 1, 0, 1));
 									m.mesh.name = "compasLine";
 									m.zIndexAttrib.data.add(-1f);
-									RenderingMain.system.loadVAO(program, m.mesh);
+									RenderingMain.instance.system.loadVAO(program, m.mesh);
 								}
 
 							}

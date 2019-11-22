@@ -16,6 +16,7 @@ import org.apache.log4j.PatternLayout;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 import org.lwjgl.glfw.GLFW;
+import org.lwjgl.glfw.GLFWKeyCallbackI;
 import org.lwjgl.nuklear.Nuklear;
 import org.lwjgl.opengl.GL46;
 
@@ -81,7 +82,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 	}
 
 	//TODO remove this 
-	final ClientWindow window = new ClientWindow();
+	public final ClientWindow window = new ClientWindow();
 	NuklearUIComponent placementUI = new NuklearUIComponent();
 
 	@Override
@@ -91,6 +92,8 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		KeyInputSystem keyInput = new KeyInputSystem();
 		NkContextSingleton nkContext = new NkContextSingleton();
 		ClientOptionSystem optionsSystem = new ClientOptionSystem();
+		
+		RenderingMain.init();
 
 		ClientWindowSystem.setupWindow(window, keyInput, nkContext, optionsSystem);
 		//		Map<WindowState, Set<Tickable>> stateRendering = new HashMap<>();
@@ -109,19 +112,32 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 				return cameraAnchorEntity.position;
 			}
 		};
-		/*
-				FrameUtils.addToSetMap(stateRendering, WindowState.MainMenu, this::renderMenu, syncSetSupplier);
-				FrameUtils.addToSetMap(stateRendering, WindowState.Loading, this::renderLoading, syncSetSupplier);*/
+
 		window.events.preCleanup.add(() -> {
 			shutdownService(executorService);
 		});
-		//		window.changeStateEvent = this::onWindowStateChange;
 
+		window.callbacks.keyCallbackSet.add(new GLFWKeyCallbackI() {
+
+			@Override
+			public void invoke(long windowID, int key, int scancode, int action, int mods) {
+				if (key == GLFW.GLFW_KEY_ESCAPE && action == GLFW.GLFW_PRESS) {
+					if (level != null) {
+						if (level.pause.get()) {
+							window.sendEvent(WindowEvent.GameResume);
+						} else {
+							window.sendEvent(WindowEvent.GamePause);
+						}
+					}
+				}
+			}
+		});
 		AtomicInteger clientQuitCounter = new AtomicInteger();
 		try (GLFWManager glManager = new GLFWManager(); WindowManager windowManager = new WindowManager()) {
 			RayHelper rh = new RayHelper();
 
-			Tickable t = renderGame(window, vpMatrix, cameraAnchorEntity, ortho, rh, keyInput, nkContext);
+			LevelRenderer levelRenderer = new LevelRenderer();
+			Tickable t = levelRenderer.renderGame(this, vpMatrix, cameraAnchorEntity, ortho, rh, keyInput, nkContext);
 
 			//			FrameUtils.addToSetMap(stateRendering, WindowState.Game, t, syncSetSupplier);
 
@@ -133,6 +149,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 				}
 			};
 			gameUIScreen.colour.w = 0f;
+			pauseScreen.colour.w = 0.5f;
 
 			gameRenderScreen.setChild(gameUIScreen);
 
@@ -196,8 +213,10 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 				break;
 			case GamePause:
 				pauseGame();
+				gameUIScreen.setChild(pauseScreen);
 				break;
 			case GameResume:
+				gameUIScreen.clearChild();
 				resumeGame();
 				break;
 			case GameSave:
@@ -205,9 +224,10 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 				break;
 			case GameStart:
 				loadingScreen.setChild(gameRenderScreen);
+				gameUIScreen.clearChild();
 				break;
 			case GoToMainMenu:
-				window.setChild(mainMenuScreen);
+				loadingScreen.setChild(mainMenuScreen);
 				logger.trace("herp, todo");
 				break;
 			case OptionsClose:
@@ -236,132 +256,6 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 				executorService.shutdownNow();
 			}
 		}
-	}
-
-	public WindowState onWindowStateChange(WindowState oldState, WindowState newState) {
-		if (newState == WindowState.Game/*_Pause*/) {
-			placementUI.visible = false;
-			pauseGame();
-		}
-		if (newState == WindowState.Game/*_Running*/) {
-			placementUI.visible = true;
-			resumeGame();
-		}
-		if (newState == WindowState.MainMenu || newState == WindowState.Close) {
-			placementUI.visible = false;
-			quitGame();
-		}
-		return newState;
-
-	}
-
-	public Tickable renderGame(ClientWindow window, VPMatrix vpMatrix, Entity cameraAnchorEntity, ProjectionMatrix ortho, RayHelper rh, KeyInputSystem keyInput, NkContextSingleton nkContext) {
-
-		//		ShaderProgram mainProgram = new ShaderProgram();
-		ShaderProgram program = new ShaderProgram();
-		ShaderProgram uiProgram = new ShaderProgram();
-
-		VPMatrixSystem vpSystem = new VPMatrixSystem();
-		LevelRenderer levelRenderer = new LevelRenderer();
-
-		Wrapper<UniformManager<String[], Integer[]>.Uniform<VPMatrix>> puW = new WrapperImpl<>();
-		Wrapper<UniformManager<String, Integer>.Uniform<ProjectionMatrix>> uipuW = new WrapperImpl<>();
-
-		vpMatrix.proj.getWrapped().window = window;
-		vpMatrix.proj.getWrapped().FOV = 90;
-		vpMatrix.proj.getWrapped().nearPlane = 0.001f;
-		vpMatrix.proj.getWrapped().farPlane = 10000f;
-		vpMatrix.proj.getWrapped().orthoAspect = 10f;
-		vpMatrix.proj.getWrapped().perspectiveOrOrtho = true;
-		vpMatrix.proj.getWrapped().scale = 1f;
-
-		ortho.window = window;
-		ortho.FOV = 90;
-		ortho.nearPlane = 0.001f;
-		ortho.farPlane = 10000f;
-		ortho.orthoAspect = 10f;
-		ortho.perspectiveOrOrtho = false;
-		ortho.scale = 1f;
-		CameraSpringArm arm = vpMatrix.view.getWrapped().springArm;
-		window.events.postCreation.add(() -> {
-
-			puW.setWrapped(levelRenderer.setupWorldProgram(program, vpSystem, vpMatrix));
-			uipuW.setWrapped(levelRenderer.setupUIProgram(uiProgram, vpSystem.projSystem, ortho));
-
-			/*mpuW.setWrapped(levelRenderer.setupMainProgram(mainProgram, vpSystem, vpMatrix));
-			RenderingMain.system.loadVAO(mainProgram, cube);*/
-
-		});
-
-		vpSystem.preMult(vpMatrix);
-		Tickable tick = CameraControlHandler.handlePitchingTick(window, ortho, arm);
-		return (time) -> {
-			vpSystem.preMult(vpMatrix);
-			RenderingMain.system.queueUniformUpload(program, RenderingMain.multiUpload, puW.getWrapped(), vpMatrix);
-			//TODO change line thickness
-			GL46.glLineWidth(3f);
-			GL46.glPointSize(3f);
-			keyInput.tick(window.mousePressTicks, window.mousePressMap, time.nanos);
-			keyInput.tick(window.keyPressTicks, window.keyPressMap, time.nanos);
-			if (level != null) {
-				//TODO better ui testing for mouse controls
-				if (!Nuklear.nk_item_is_any_active(nkContext.context)) {
-					CameraControlHandler.handlePanningTick(window, ortho, vpMatrix.view.getWrapped(), cameraAnchorEntity);
-					tick.apply(time);
-
-					long mouseLeftClick = window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
-					if (mouseLeftClick > 0) {
-						Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, window, vpMatrix.proj.getWrapped(), vpMatrix.view.getWrapped());
-						rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z), new Vector3f(vpMatrix.view.getWrapped().position), this);
-						Tile tile = rh.getCurrentTile();
-						if (tile != null) {
-							tile.type = TileTypes.Other;
-							rh.getCurrentChunk().rebake.set(true);
-						}
-
-						//					Vector3f c = rh.getCurrentTerrainPoint();
-						/*
-																	if (c != null) {
-																	//TODO rendering debug mouse cursor pos
-																	Vector4f colour = new Vector4f(1, 0, 0, 1);
-																	MeshExt m = new MeshExt();
-																	WorldRenderer.setupDiscardMesh3D(m, 1);
-																	
-																	m.positionAttrib.data.add(c.x);
-																	m.positionAttrib.data.add(c.y);
-																	m.positionAttrib.data.add(c.z + 1f);
-																	
-																	m.colourAttrib.data.add(colour.x);
-																	m.colourAttrib.data.add(colour.y);
-																	m.colourAttrib.data.add(colour.z);
-																	m.colourAttrib.data.add(colour.w);
-																	
-																	m.mesh.name = "model";
-																	m.mesh.modelRenderType = GLDrawMode.Points;
-																	m.mesh.singleFrameDiscard = true;
-																	RenderingMain.system.loadVAO(program, m.mesh);
-																	}*/
-
-					}
-
-					//TODO level clear colour
-					window.clearColour.set(0f, 0f, 0f, 0f);
-					levelRenderer.preRender(level, vpMatrix, program);
-					CameraControlHandler.preRenderMouseUI(window, ortho, uiProgram).apply(time);
-
-					//				MeshExt mesh = new MeshExt();
-					//				bakeChunk(level.chunks.get(new Vector2i()), mesh);
-					//				RenderingMain.system.loadVAO(program, mesh.mesh);
-
-				}
-			}
-
-			RenderingMain.system.render(program);
-			RenderingMain.system.render(uiProgram);
-			//this is the cube test rendering program
-			//						RenderingMain.system.render(mainProgram);
-			return false;
-		};
 	}
 
 	Wrapper<Buildings> placement = new WrapperImpl<>();

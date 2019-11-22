@@ -14,17 +14,22 @@ public class RenderingMain {
 	 * Global shader program system
 	 */
 
-	public static ShaderProgramSystem system = new ShaderProgramSystem();
+	public ShaderProgramSystem system = new ShaderProgramSystem();
 
 	/**
 	 * Single upload uniform manager instance
 	 */
-	public static UniformManager<String, Integer> singleUpload = new SingleUniformSystem();
+	public UniformManager<String, Integer> singleUpload = new SingleUniformSystem();
 	/**
 	 * Multiple upload uniform manager instance
 	 */
-	public static UniformManager<String[], Integer[]> multiUpload = new MultiUniformSystem();
-	public static IShaderUniformUploadSystem<Matrix4f, Integer> mat4SingleUploader = (upload, uniformID, stack) -> {
+	public UniformManager<String[], Integer[]> multiUpload = new MultiUniformSystem();
+	public IShaderUniformUploadSystem<Matrix4f, Integer> mat4SingleUploader = (upload, uniformID, stack) -> {
 		GL46.glUniformMatrix4fv(uniformID, false, IShaderUniformUploadSystem.generateMatrix4fBuffer(stack, upload));
 	};
+	public static RenderingMain instance;
+
+	public static void init() {
+		instance = new RenderingMain();
+	}
 }

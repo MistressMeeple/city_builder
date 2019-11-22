@@ -11,26 +11,23 @@ import org.lwjgl.system.MemoryStack;
 import com.meeple.citybuild.client.render.Screen;
 import com.meeple.shared.Delta;
 import com.meeple.shared.frame.nuklear.NkContextSingleton;
-import com.meeple.shared.frame.nuklear.NuklearManager;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 
 public class GameUI extends Screen {
 
-	String string = "";
 
 	public void render(NkContextSingleton context, ClientWindow window, Delta delta) {
+		
 		NkContext ctx = context.context;
 		int width = (int) (window.bounds.width * 0.75f);
-		int height = (int) (window.bounds.height * 0.5f);
+		int height = (int) (window.bounds.height * 0.125f);
 		int x = (int) (window.bounds.width - width) / 2;
 		int y = (int) (window.bounds.height - height);
 
 		try (MemoryStack stack = stackPush()) {
 			NkRect rect = NkRect.mallocStack(stack);
-			if (nk_begin(ctx, "test", nk_rect(x, y, width, height, rect), NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_TITLE | NK_WINDOW_SCALABLE)) {
-				nk_layout_row_dynamic(ctx, 35, 1);
+			if (nk_begin(ctx, "test", nk_rect(x, y, width, height, rect), NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_TITLE )) {
 
-				string = NuklearManager.textArea(ctx, stack, string, 256, NK_EDIT_SIMPLE, Nuklear::nnk_filter_ascii);
 
 				int size = 50;
 				int buttons = 3;

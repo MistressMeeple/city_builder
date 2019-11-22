@@ -90,12 +90,15 @@ public abstract class Screen {
 	}
 
 	public void clearParent() {
-		this.parent.clearChild();
+		if (this.parent != null)
+			this.parent.child = null;
 		this.parent = null;
 	}
 
 	public void clearChild() {
-		this.child.clearParent();
+		if (this.child != null)
+			this.child.parent = null;
+
 		this.child = null;
 	}
 

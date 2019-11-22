@@ -30,7 +30,7 @@ public abstract class GameManager {
 	static final String LevelFolder = "saves/";
 	static final String LevelExt = ".sv";
 	static final long wait = 10l;
-	protected LevelData level;
+	public LevelData level;
 	WorldGenerator worldGen = new WorldGenerator();
 	private Thread levelThread;
 
