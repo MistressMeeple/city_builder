@@ -35,12 +35,16 @@ public class CameraControlHandler {
 	static Vector4f compasLineColour = new Vector4f();
 
 	//---------------------do not change-------------------------
-	static Wrapper<Vector2f> mouseRClick = new WrapperImpl<>();
-	static Wrapper<Vector2f> mouseMClick = new WrapperImpl<>();
-	static Wrapper<Vector2f> mouseLastPos = new WrapperImpl<>();
+	Wrapper<Vector2f> mouseRClick = new WrapperImpl<>();
+	Wrapper<Vector2f> mouseMClick = new WrapperImpl<>();
+	Wrapper<Vector2f> mouseLastPos = new WrapperImpl<>();
 
-	public static CompasState panningState = CompasState.None;
-	public static CompasState pitchingState = CompasState.None;
+	Wrapper<Float> scale = new WrapperImpl<>();
+	Wrapper<Float> pitch = new WrapperImpl<>();
+	Wrapper<Float> yaw = new WrapperImpl<>();
+
+	public CompasState panningState = CompasState.None;
+	public CompasState pitchingState = CompasState.None;
 
 	static enum CompasState {
 		None,
@@ -48,11 +52,11 @@ public class CameraControlHandler {
 		Active
 	}
 
-	private static boolean inDeadzone() {
+	private boolean inDeadzone() {
 		return true;
 	}
 
-	public static Tickable handlePitchingTick(ClientWindow window, ProjectionMatrix proj, CameraSpringArm arm) {
+	public Tickable handlePitchingTick(ClientWindow window, ProjectionMatrix proj, CameraSpringArm arm) {
 		Wrapper<Float> scale = new WrapperImpl<>();
 		Wrapper<Float> pitch = new WrapperImpl<>();
 		Wrapper<Float> yaw = new WrapperImpl<>();
@@ -153,7 +157,7 @@ public class CameraControlHandler {
 		};
 	}
 
-	private static void process(Wrapper<Float> wrapper, float decr) {
+	private void process(Wrapper<Float> wrapper, float decr) {
 
 		wrapper.setWrapped(wrapper.getWrapped() / decr);
 		if (Math.abs(wrapper.getWrapped()) < 1f) {
@@ -161,7 +165,7 @@ public class CameraControlHandler {
 		}
 	}
 
-	public static void handlePanningTick(ClientWindow window, ProjectionMatrix proj, ViewMatrix view, Entity cameraAnchor) {
+	public void handlePanningTick(ClientWindow window, ProjectionMatrix proj, ViewMatrix view, Entity cameraAnchor) {
 
 		Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, window, proj, null);
 		float rotZ = 0;
@@ -324,93 +328,86 @@ public class CameraControlHandler {
 			mesh.mesh.name = "compas";
 		}*/
 
-	public static Tickable preRenderMouseUI(ClientWindow window, ProjectionMatrix proj, ShaderProgram program) {
-		/*	CompasMesh mesh = new CompasMesh();
-			setupMesh(mesh, WorldRenderer.circleSegments * 2);
-			mesh.mesh.renderCount = 1;
-		*/
-		//TODO change from discard meshes
-		return (delta) -> {
-			GL46.glEnable(GL46.GL_DEPTH_TEST);
+	public void preRenderMouseUI(ClientWindow window, ProjectionMatrix proj, ShaderProgram program) {
 
-			if (true) {
+		GL46.glEnable(GL46.GL_DEPTH_TEST);
 
-				if (window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_RIGHT, 0l) > 0) {
-					Vector2f mouseClickedPos = mouseRClick.getWrapped();
+		if (true) {
 
-					//					RenderingMain.system.loadVAO(program, mesh.mesh);
-					//					mesh.mesh.visible = false;
+			if (window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_RIGHT, 0l) > 0) {
+				Vector2f mouseClickedPos = mouseRClick.getWrapped();
 
-					if (mouseClickedPos != null) {
-						{
-							MeshExt m = new MeshExt();
-							Vector2f[] points = WorldRenderer.generateCircle(new Vector2f(mouseClickedPos.x, mouseClickedPos.y), panRadi, WorldRenderer.circleSegments * 2);
-							WorldRenderer.setupDiscardMesh(m, points.length);
-							for (Vector2f v : points) {
-								m.positionAttrib.data.add(v.x);
-								m.positionAttrib.data.add(v.y);
-							}
-							m.mesh.modelRenderType = GLDrawMode.LineLoop;
-							FrameUtils.appendToList(m.colourAttrib.data, new Vector4f(1, 0, 1, 1));
-							m.mesh.name = "compas";
-							m.zIndexAttrib.data.add(-1f);
-							RenderingMain.instance.system.loadVAO(program, m.mesh);
-							/*	mesh.offsetAttrib.data.clear();
-								mesh.offsetAttrib.data.add(mouseClickedPos.x);
-								mesh.offsetAttrib.data.add(mouseClickedPos.y);
-								mesh.offsetAttrib.update.set(true);
-								mesh.mesh.visible = true;*/
+				//					RenderingMain.system.loadVAO(program, mesh.mesh);
+				//					mesh.mesh.visible = false;
+
+				if (mouseClickedPos != null) {
+					{
+						MeshExt m = new MeshExt();
+						Vector2f[] points = WorldRenderer.generateCircle(new Vector2f(mouseClickedPos.x, mouseClickedPos.y), panRadi, WorldRenderer.circleSegments * 2);
+						WorldRenderer.setupDiscardMesh(m, points.length);
+						for (Vector2f v : points) {
+							m.positionAttrib.data.add(v.x);
+							m.positionAttrib.data.add(v.y);
 						}
+						m.mesh.modelRenderType = GLDrawMode.LineLoop;
+						FrameUtils.appendToList(m.colourAttrib.data, new Vector4f(1, 0, 1, 1));
+						m.mesh.name = "compas";
+						m.zIndexAttrib.data.add(-1f);
+						RenderingMain.instance.system.loadVAO(program, m.mesh);
+						/*	mesh.offsetAttrib.data.clear();
+							mesh.offsetAttrib.data.add(mouseClickedPos.x);
+							mesh.offsetAttrib.data.add(mouseClickedPos.y);
+							mesh.offsetAttrib.update.set(true);
+							mesh.mesh.visible = true;*/
+					}
 
-						{
-							MeshExt m = new MeshExt();
+					{
+						MeshExt m = new MeshExt();
 
-							Vector2f mouseDir = new Vector2f();
-							if (true) {
-								Vector3f camPos = new Vector3f();//vpMatrix.view.getWrapped().getPosition(new Vector3f());
+						Vector2f mouseDir = new Vector2f();
+						if (true) {
+							Vector3f camPos = new Vector3f();//vpMatrix.view.getWrapped().getPosition(new Vector3f());
 
-								Vector4f v = CursorHelper.getMouse(SpaceState.Eye_Space, window, proj, null);
-								Vector2f dir = new Vector2f(v.x - camPos.x, v.y - camPos.y);
-								Vector2f pos = new Vector2f(mouseRClick.getWrapped().x, mouseRClick.getWrapped().y);
-								if (pos != null) {
-									mouseDir.x = (float) (pos.x - dir.x);
-									mouseDir.y = (float) (pos.y - dir.y);
-								}
+							Vector4f v = CursorHelper.getMouse(SpaceState.Eye_Space, window, proj, null);
+							Vector2f dir = new Vector2f(v.x - camPos.x, v.y - camPos.y);
+							Vector2f pos = new Vector2f(mouseRClick.getWrapped().x, mouseRClick.getWrapped().y);
+							if (pos != null) {
+								mouseDir.x = (float) (pos.x - dir.x);
+								mouseDir.y = (float) (pos.y - dir.y);
+							}
 
-								//find dead-zone and max length
+							//find dead-zone and max length
 
-								float len = mouseDir.length();
+							float len = mouseDir.length();
 
-								mouseDir.normalize();
-								//								float len = mouseDir.normalize();
-								if (len < panRadi) {
-									len = 0;
-								} else {
-									Vector2f line = new Vector2f(mouseDir.x, mouseDir.y);
-									Vector2f lineStart = line.mul(panRadi, new Vector2f());
-									line = line.mul(len);
-									mouseDir = mouseDir.mul((len));
-									WorldRenderer.setupDiscardMesh(m, 2);
+							mouseDir.normalize();
+							//								float len = mouseDir.normalize();
+							if (len < panRadi) {
+								len = 0;
+							} else {
+								Vector2f line = new Vector2f(mouseDir.x, mouseDir.y);
+								Vector2f lineStart = line.mul(panRadi, new Vector2f());
+								line = line.mul(len);
+								mouseDir = mouseDir.mul((len));
+								WorldRenderer.setupDiscardMesh(m, 2);
 
-									m.positionAttrib.data.add(pos.x - lineStart.x);
-									m.positionAttrib.data.add(pos.y - lineStart.y);
-									m.positionAttrib.data.add(pos.x - line.x);
-									m.positionAttrib.data.add(pos.y - line.y);
-									m.mesh.modelRenderType = GLDrawMode.Line;
-									FrameUtils.appendToList(m.colourAttrib.data, new Vector4f(1, 1, 0, 1));
-									m.mesh.name = "compasLine";
-									m.zIndexAttrib.data.add(-1f);
-									RenderingMain.instance.system.loadVAO(program, m.mesh);
-								}
-
+								m.positionAttrib.data.add(pos.x - lineStart.x);
+								m.positionAttrib.data.add(pos.y - lineStart.y);
+								m.positionAttrib.data.add(pos.x - line.x);
+								m.positionAttrib.data.add(pos.y - line.y);
+								m.mesh.modelRenderType = GLDrawMode.Line;
+								FrameUtils.appendToList(m.colourAttrib.data, new Vector4f(1, 1, 0, 1));
+								m.mesh.name = "compasLine";
+								m.zIndexAttrib.data.add(-1f);
+								RenderingMain.instance.system.loadVAO(program, m.mesh);
 							}
 
 						}
 
 					}
+
 				}
 			}
-			return false;
-		};
+		}
 	}
 }

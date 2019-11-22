@@ -305,7 +305,8 @@ public class LevelRenderer {
 		});
 
 		vpSystem.preMult(vpMatrix);
-		Tickable tick = CameraControlHandler.handlePitchingTick(cityBuilder.window, ortho, arm);
+		CameraControlHandler cameraControl = new CameraControlHandler();
+		Tickable tick = cameraControl.handlePitchingTick(cityBuilder.window, ortho, arm);
 		return (time) -> {
 			vpSystem.preMult(vpMatrix);
 			RenderingMain.instance.system.queueUniformUpload(program, RenderingMain.instance.multiUpload, puW.getWrapped(), vpMatrix);
@@ -317,7 +318,7 @@ public class LevelRenderer {
 			if (cityBuilder.level != null) {
 				//TODO better ui testing for mouse controls
 				if (!Nuklear.nk_item_is_any_active(nkContext.context)) {
-					CameraControlHandler.handlePanningTick(cityBuilder.window, ortho, vpMatrix.view.getWrapped(), cameraAnchorEntity);
+					cameraControl.handlePanningTick(cityBuilder.window, ortho, vpMatrix.view.getWrapped(), cameraAnchorEntity);
 					tick.apply(time);
 
 					long mouseLeftClick = cityBuilder.window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
@@ -358,7 +359,7 @@ public class LevelRenderer {
 					//TODO level clear colour
 					cityBuilder.window.clearColour.set(0f, 0f, 0f, 0f);
 					preRender(cityBuilder.level, vpMatrix, program);
-					CameraControlHandler.preRenderMouseUI(cityBuilder.window, ortho, uiProgram).apply(time);
+					cameraControl.preRenderMouseUI(cityBuilder.window, ortho, uiProgram);
 
 					//				MeshExt mesh = new MeshExt();
 					//				bakeChunk(level.chunks.get(new Vector2i()), mesh);
