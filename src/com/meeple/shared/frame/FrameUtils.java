@@ -12,6 +12,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.apache.log4j.Logger;
+import org.joml.Math;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Vector2f;
@@ -583,6 +584,24 @@ public class FrameUtils {
 
 	public static int getClamped(int min, int curr, int max) {
 		return Math.min(Math.max(min, curr), max);
+	}
+
+	public static void rotateThis(Vector2f vec, float angle) {
+
+		float sin = (float) Math.sin(angle);
+		float cos = (float) Math.cosFromSin(sin, angle);
+		float x = vec.x * cos - vec.y * sin;
+		float y = vec.x * sin + vec.y * cos;
+		vec.set(x, y);
+	}
+
+	public static Vector2f rotateNew(Vector2f vec, float angle) {
+
+		float sin = (float) Math.sin(angle);
+		float cos = (float) Math.cosFromSin(sin, angle);
+		float x = vec.x * cos - vec.y * sin;
+		float y = vec.x * sin + vec.y * cos;
+		return new Vector2f(x, y);
 	}
 
 }
