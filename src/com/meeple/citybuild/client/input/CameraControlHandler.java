@@ -4,28 +4,71 @@ import org.joml.Vector2f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 import org.lwjgl.glfw.GLFW;
+import org.lwjgl.glfw.GLFWMouseButtonCallbackI;
+import org.lwjgl.glfw.GLFWScrollCallbackI;
 import org.lwjgl.opengl.GL46;
 
+import com.meeple.citybuild.client.CityBuilderMain;
 import com.meeple.citybuild.client.render.RenderingMain;
 import com.meeple.citybuild.client.render.WorldRenderer;
 import com.meeple.citybuild.client.render.WorldRenderer.MeshExt;
 import com.meeple.citybuild.server.Entity;
-import com.meeple.shared.Tickable;
 import com.meeple.shared.frame.CursorHelper;
 import com.meeple.shared.frame.CursorHelper.SpaceState;
 import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
+import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraMode;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpringArm;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.ViewMatrix;
+import com.meeple.shared.frame.window.ClientWindowSystem;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
+import com.meeple.shared.frame.window.hints.HasID;
 import com.meeple.shared.frame.wrapper.Wrapper;
 import com.meeple.shared.frame.wrapper.WrapperImpl;
 
 public class CameraControlHandler {
 
+	static enum MouseButton implements HasID<Integer> {
+		LClick(GLFW.GLFW_MOUSE_BUTTON_LEFT), RClick(GLFW.GLFW_MOUSE_BUTTON_RIGHT), MClick(GLFW.GLFW_MOUSE_BUTTON_MIDDLE);
+		int id;
+
+		private MouseButton(int id) {
+			this.id = id;
+		}
+
+		@Override
+		public Integer getID() {
+			return id;
+		}
+
+	}
+
+	static enum PanningType {
+		/**
+		 * Sim-city style. the difference between the press and current location. constant 
+		 */
+		Difference,
+		/**
+		 * hold and drag. not constant. mouse "locks" to world position and movement of mouse moves the world
+		 */
+		Drag,
+		/**
+		 * This is the easiest way to control with controller. same as difference but from the middle of the screen
+		 */
+		FromCenter
+	}
+
+	static enum CompasState {
+		None,
+		Visible,
+		Active
+	}
+
+	//TODO move to game-options
+	//---------------------settings -------------------------
 	static boolean invertMouse = true;
 	static boolean invertZoom = false;
 	static float zoomMult = 2f;
@@ -34,140 +77,207 @@ public class CameraControlHandler {
 	static Vector4f compasColour = new Vector4f();
 	static Vector4f compasLineColour = new Vector4f();
 
-	//---------------------do not change-------------------------
+	/*//---------------------do not change-------------------------
 	Wrapper<Vector2f> mouseRClick = new WrapperImpl<>();
 	Wrapper<Vector2f> mouseMClick = new WrapperImpl<>();
-	Wrapper<Vector2f> mouseLastPos = new WrapperImpl<>();
+	Wrapper<Vector2f> mouseLastPos = new WrapperImpl<>();*/
+	ClientWindow window;
+	VPMatrix vpMatrix;
+
+	ProjectionMatrix orthoProjection;
+
+	Vector2f panningButtonPos = null;
+	Vector2f rotatingButtonPos = null;
 
 	Wrapper<Float> scale = new WrapperImpl<>();
 	Wrapper<Float> pitch = new WrapperImpl<>();
 	Wrapper<Float> yaw = new WrapperImpl<>();
 
 	public CompasState panningState = CompasState.None;
-	public CompasState pitchingState = CompasState.None;
+	public CompasState rotatingState = CompasState.None;
 
-	static enum CompasState {
-		None,
-		Visible,
-		Active
+	/**
+	 * This is the mouse button that pans the camera
+	 */
+	MouseButton panningButton = MouseButton.RClick;
+	/**
+	 * this is the mouse button that rotates the camera
+	 */
+	MouseButton rotateButton = MouseButton.MClick;
+	/**
+	 * This is the mouse button that opens the menu and cancels current action
+	 */
+	MouseButton menuButton = MouseButton.RClick;
+	/**
+	 * This is the panning style
+	 */
+	PanningType panningType = PanningType.Difference;
+	/**
+	 * this is the rotation style.
+	 */
+	PanningType rotationType = PanningType.Difference;
+
+	private GLFWMouseButtonCallbackI mouseButtonCallback = new GLFWMouseButtonCallbackI() {
+
+		@Override
+		public void invoke(long windowID, int button, int action, int mods) {
+			if (button == panningButton.getID()) {
+				if (action == GLFW.GLFW_PRESS) {
+					if (panningType == PanningType.Difference) {
+						Vector4f mouse = CursorHelper.getMouse(SpaceState.Eye_Space, window, orthoProjection, null);
+						panningButtonPos = new Vector2f(mouse.x, mouse.y);
+					} else if (panningType == PanningType.FromCenter) {
+						panningButtonPos = new Vector2f(0, 0);
+					}
+				} else if (action == GLFW.GLFW_RELEASE) {
+					panningButtonPos = null;
+				}
+			}
+			if (button == rotateButton.getID()) {
+				if (action == GLFW.GLFW_PRESS) {
+					if (rotationType == PanningType.Difference) {
+						Vector4f mouse = CursorHelper.getMouse(SpaceState.Eye_Space, window, orthoProjection, null);
+						rotatingButtonPos = new Vector2f(mouse.x, mouse.y);
+					} else if (rotationType == PanningType.FromCenter) {
+						rotatingButtonPos = new Vector2f(0, 0);
+					}
+				} else if (action == GLFW.GLFW_RELEASE) {
+					rotatingButtonPos = null;
+				}
+			}
+			if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
+				if (action == GLFW.GLFW_PRESS) {
+
+				} else if (action == GLFW.GLFW_RELEASE) {
+
+				}
+			}
+		}
+	};
+	private GLFWScrollCallbackI scrollCallback = new GLFWScrollCallbackI() {
+
+		@Override
+		public void invoke(long windowID, double xoffset, double yoffset) {
+			scale.setWrapped((float) yoffset + scale.getWrappedOrDefault(0f));
+
+		}
+	};
+
+	private Vector2f difference(Vector2f start, Vector2f current) {
+		try {
+			return new Vector2f(start).sub(current);
+		} catch (NullPointerException e) {
+			return null;
+		}
 	}
 
-	private boolean inDeadzone() {
-		return true;
+	public void init(ClientWindow window, VPMatrix vpMatrix, ProjectionMatrix orthoProj) {
+		this.window = window;
+		this.vpMatrix = vpMatrix;
+		this.orthoProjection = orthoProj;
+		window.callbacks.scrollCallbackSet.add(scrollCallback);
+		window.callbacks.mouseButtonCallbackSet.add(mouseButtonCallback);
 	}
 
-	public Tickable handlePitchingTick(ClientWindow window, ProjectionMatrix proj, CameraSpringArm arm) {
-		Wrapper<Float> scale = new WrapperImpl<>();
-		Wrapper<Float> pitch = new WrapperImpl<>();
-		Wrapper<Float> yaw = new WrapperImpl<>();
-		window.callbacks.scrollCallbackSet
-			.add(
-				(windowID, xpos, ypos) -> {
-					scale.setWrapped((float) ypos + scale.getWrappedOrDefault(0f));
-				});
+	public void handlePitchingTick(ClientWindow window, ProjectionMatrix proj, CameraSpringArm arm) {
 
-		return (delta) -> {
-			Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, window, proj, null);
-			Vector2f dir = new Vector2f(mousePos.x, mousePos.y);
-			{
-				long mTicks = window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_MIDDLE, 0l);
-				if (mTicks < 5) {
-					mouseMClick.setWrapped(dir);
-					pitchingState = CompasState.None;
-				} else if (mTicks > 5) {
+		Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, window, proj, null);
+		Vector2f dir = new Vector2f(mousePos.x, mousePos.y);
+		{
+			long mTicks = window.mousePressTicks.getOrDefault(rotateButton.getID(), 0l);
 
-					Vector2f mouseDir = new Vector2f();
-					Vector2f pos = mouseMClick.getWrapped();
-					if (pos != null) {
-						mouseDir.x = (float) (pos.x - dir.x);
-						mouseDir.y = (float) (pos.y - dir.y);
-						if (invertMouse) {
-							mouseDir.x = -mouseDir.x;
-							mouseDir.y = -mouseDir.y;
-						}
+			if (mTicks > 0 && rotatingButtonPos != null) {
+
+				Vector2f mouseDir = difference(rotatingButtonPos, dir);
+				if (mouseDir != null) {
+
+					if (invertMouse) {
+						mouseDir.x = -mouseDir.x;
+						mouseDir.y = -mouseDir.y;
 					}
 					//find dead-zone
 					float len = mouseDir.length();
 					mouseDir.normalize();
-					if (len < panRadi) {
-						pitchingState = CompasState.Visible;
-						len = 0;
-					} else if (mouseDir.isFinite()) {
+					if (mouseDir.isFinite()) {
 						mouseDir = mouseDir.mul((len) * 0.1f);
-						//						arm.addPitch(-mouseDir.y);
-						//						arm.yaw += mouseDir.x;
-						//					((Entity) view.anchor.anchorObject).rotation.add(-mouseDir.y * 0.1f, mouseDir.x * 0.1f, 0);
 						yaw.setWrapped(yaw.getWrappedOrDefault(0f) + mouseDir.x);
 						pitch.setWrapped(pitch.getWrappedOrDefault(0f) + mouseDir.y);
-						pitchingState = CompasState.Active;
-					}
-
-				}
-
-			}
-
-			if (pitchingState == CompasState.None) {
-				float angle = 0;
-				if (window.keyPressTicks.getOrDefault(GLFW.GLFW_KEY_E, 0l) > 0) {
-					angle = 1f;
-				}
-				if (window.keyPressTicks.getOrDefault(GLFW.GLFW_KEY_Q, 0l) > 0) {
-					angle = -1f;
-				}
-				if (angle != 0) {
-					angle = angle * 2f;
-					//					arm.yaw += angle;
-					yaw.setWrapped(yaw.getWrappedOrDefault(0f) + angle);
-				}
-			}
-			{
-				Float s = scale.getWrapped();
-				if (s != null) {
-
-					float nd = (float) (s * zoomMult);
-					if (invertZoom) {
-						arm.addDistance(nd);
-					} else {
-						arm.addDistance(-nd);
-					}
-					scale.setWrapped(s / 1.1f);
-					if (Math.abs(scale.getWrapped()) < 1f) {
-						scale.setWrapped(0f);
+						rotatingState = CompasState.Active;
 					}
 				}
+
 			}
 
-			{
-				Float s = pitch.getWrapped();
-				if (s != null) {
+		}
 
-					arm.addPitch(-s);
-					process(pitch, 1.5f);
-				}
+		if (rotatingState == CompasState.None) {
+			float angle = 0;
+			if (window.keyPressTicks.getOrDefault(GLFW.GLFW_KEY_E, 0l) > 0) {
+				angle = 1f;
 			}
+			if (window.keyPressTicks.getOrDefault(GLFW.GLFW_KEY_Q, 0l) > 0) {
+				angle = -1f;
+			}
+			if (angle != 0) {
+				angle = angle * 2f;
+				//					arm.yaw += angle;
+				yaw.setWrapped(yaw.getWrappedOrDefault(0f) + angle);
+			}
+		}
 
-			{
-				Float s = yaw.getWrapped();
-				if (s != null) {
-					arm.yaw += s;
-					process(yaw, 1.5f);
-				}
+		//handles the smooth pitch
+		{
+			Float s = pitch.getWrapped();
+			if (s != null) {
+
+				arm.addPitch(-s);
+				process(pitch, s);
 			}
-			return false;
-		};
+		}
+		//handles the smooth yaw
+
+		{
+			Float s = yaw.getWrapped();
+			if (s != null) {
+				arm.yaw += s;
+				process(yaw, s);
+			}
+		}
 	}
 
 	private void process(Wrapper<Float> wrapper, float decr) {
 
-		wrapper.setWrapped(wrapper.getWrapped() / decr);
+		wrapper.setWrapped(wrapper.getWrapped() - decr);
 		if (Math.abs(wrapper.getWrapped()) < 1f) {
 			wrapper.setWrapped(0f);
 		}
 	}
 
-	public void handlePanningTick(ClientWindow window, ProjectionMatrix proj, ViewMatrix view, Entity cameraAnchor) {
+	public void handleScrollingTick(CameraSpringArm arm) {
 
-		Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, window, proj, null);
+		//handle smooth scale
+
+		Float s = scale.getWrapped();
+		if (s != null) {
+
+			float nd = (float) (s * zoomMult);
+			if (invertZoom) {
+				arm.addDistance(nd);
+			} else {
+				arm.addDistance(-nd);
+			}
+			//roughly 10% less each tick
+			scale.setWrapped(s - (s * 0.15f));
+			if (Math.abs(scale.getWrapped()) < 1f) {
+				scale.setWrapped(0f);
+			}
+
+		}
+	}
+
+	public void handlePanningTick(ClientWindow window, ProjectionMatrix orthoProjection, ViewMatrix view, Entity cameraAnchor) {
+
+		Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, window, orthoProjection, null);
 		float rotZ = 0;
 		switch (view.cameraMode) {
 			case LookAt:
@@ -184,40 +294,36 @@ public class CameraControlHandler {
 		Vector2f dir = new Vector2f(mousePos.x, mousePos.y);
 		{
 			long rTicks = window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_RIGHT, 0l);
-
-			if (rTicks < 5) {
-				mouseRClick.setWrapped(dir);
-				panningState = CompasState.None;
-			} else if (rTicks > 5) {
-				Vector3f mouseDir = new Vector3f();
-				Vector2f pos = mouseRClick.getWrapped();
-				if (pos != null) {
-					mouseDir.x = (float) (pos.x - dir.x);
-					mouseDir.y = (float) (pos.y - dir.y);
+			
+			if (rTicks > 0 && panningButtonPos != null) {
+				Vector2f mouseDir = difference(panningButtonPos, dir);
+				if (mouseDir != null) {
 					if (invertMouse) {
 						mouseDir.x = -mouseDir.x;
 						mouseDir.y = -mouseDir.y;
 					}
-				}
-				mouseDir = mouseDir.rotateZ(-(float) Math.toRadians(rotZ));
-				//find dead-zone
-				float len = mouseDir.length();
-				mouseDir.normalize();
-				if (len < panRadi) {
-					panningState = CompasState.Visible;
-					len = 0;
-				} else if (mouseDir.isFinite()) {
-					mouseDir = mouseDir.mul((len) * 0.1f * 0.1f);
-					float scale = 1f;
-					//almost always
-					if (view.cameraMode == CameraMode.LookAt) {
-						scale = view.springArm.getDistance();
-					} else {
-						scale = view.position.z;
+
+					FrameUtils.rotateThis(mouseDir, -(float) Math.toRadians(rotZ));
+
+					//find dead-zone
+					float len = mouseDir.length();
+					mouseDir.normalize();
+					if (len < panRadi) {
+						panningState = CompasState.Visible;
+						len = 0;
+					} else if (mouseDir.isFinite()) {
+						mouseDir = mouseDir.mul((len) * 0.1f * 0.1f);
+						float scale = 1f;
+						//almost always
+						if (view.cameraMode == CameraMode.LookAt) {
+							scale = view.springArm.getDistance();
+						} else {
+							scale = view.position.z;
+						}
+						mouseDir = mouseDir.mul(scale);
+						cameraAnchor.position.add(mouseDir.x, mouseDir.y, 0);
+						panningState = CompasState.Active;
 					}
-					mouseDir = mouseDir.mul(scale);
-					cameraAnchor.position.add(mouseDir.x, mouseDir.y, 0);
-					panningState = CompasState.Active;
 				}
 			}
 
@@ -263,12 +369,13 @@ public class CameraControlHandler {
 		if (true) {
 
 			if (window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_RIGHT, 0l) > 0) {
-				Vector2f mouseClickedPos = mouseRClick.getWrapped();
 
-				//					RenderingMain.system.loadVAO(program, mesh.mesh);
-				//					mesh.mesh.visible = false;
+				if (panningButtonPos != null) {
+					Vector2f mouseClickedPos = new Vector2f(panningButtonPos);
 
-				if (mouseClickedPos != null) {
+					//					RenderingMain.system.loadVAO(program, mesh.mesh);
+					//					mesh.mesh.visible = false;
+
 					{
 						MeshExt m = new MeshExt();
 						Vector2f[] points = WorldRenderer.generateCircle(new Vector2f(mouseClickedPos.x, mouseClickedPos.y), panRadi, WorldRenderer.circleSegments * 2);
@@ -298,7 +405,7 @@ public class CameraControlHandler {
 
 							Vector4f v = CursorHelper.getMouse(SpaceState.Eye_Space, window, proj, null);
 							Vector2f dir = new Vector2f(v.x - camPos.x, v.y - camPos.y);
-							Vector2f pos = new Vector2f(mouseRClick.getWrapped().x, mouseRClick.getWrapped().y);
+							Vector2f pos = new Vector2f(mouseClickedPos);
 							if (pos != null) {
 								mouseDir.x = (float) (pos.x - dir.x);
 								mouseDir.y = (float) (pos.y - dir.y);

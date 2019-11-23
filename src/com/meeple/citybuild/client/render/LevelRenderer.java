@@ -4,10 +4,12 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Supplier;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.joml.FrustumIntersection;
+import org.joml.Vector2f;
 import org.joml.Vector2i;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
@@ -306,7 +308,8 @@ public class LevelRenderer {
 
 		vpSystem.preMult(vpMatrix);
 		CameraControlHandler cameraControl = new CameraControlHandler();
-		Tickable tick = cameraControl.handlePitchingTick(cityBuilder.window, ortho, arm);
+
+		cameraControl.init(cityBuilder.window, vpMatrix, ortho);
 		return (time) -> {
 			vpSystem.preMult(vpMatrix);
 			RenderingMain.instance.system.queueUniformUpload(program, RenderingMain.instance.multiUpload, puW.getWrapped(), vpMatrix);
@@ -316,11 +319,11 @@ public class LevelRenderer {
 			keyInput.tick(cityBuilder.window.mousePressTicks, cityBuilder.window.mousePressMap, time.nanos);
 			keyInput.tick(cityBuilder.window.keyPressTicks, cityBuilder.window.keyPressMap, time.nanos);
 			if (cityBuilder.level != null) {
-				//TODO better ui testing for mouse controls
+				//TODO better testing for if mouse controls should be enabled. eg when over a gui
 				if (!Nuklear.nk_item_is_any_active(nkContext.context)) {
 					cameraControl.handlePanningTick(cityBuilder.window, ortho, vpMatrix.view.getWrapped(), cameraAnchorEntity);
-					tick.apply(time);
-
+					cameraControl.handlePitchingTick(cityBuilder.window, ortho, arm);
+					cameraControl.handleScrollingTick(arm);
 					long mouseLeftClick = cityBuilder.window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
 					if (mouseLeftClick > 0) {
 						Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, cityBuilder.window, vpMatrix.proj.getWrapped(), vpMatrix.view.getWrapped());
