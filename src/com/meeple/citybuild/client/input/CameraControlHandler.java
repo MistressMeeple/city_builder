@@ -8,7 +8,6 @@ import org.lwjgl.glfw.GLFWMouseButtonCallbackI;
 import org.lwjgl.glfw.GLFWScrollCallbackI;
 import org.lwjgl.opengl.GL46;
 
-import com.meeple.citybuild.client.CityBuilderMain;
 import com.meeple.citybuild.client.render.RenderingMain;
 import com.meeple.citybuild.client.render.WorldRenderer;
 import com.meeple.citybuild.client.render.WorldRenderer.MeshExt;
@@ -23,7 +22,6 @@ import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraMode;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpringArm;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.ViewMatrix;
-import com.meeple.shared.frame.window.ClientWindowSystem;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 import com.meeple.shared.frame.window.hints.HasID;
 import com.meeple.shared.frame.wrapper.Wrapper;
