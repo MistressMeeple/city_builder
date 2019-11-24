@@ -5,13 +5,12 @@ import org.joml.Math;
 import com.meeple.citybuild.client.render.Screen;
 import com.meeple.shared.Delta;
 import com.meeple.shared.frame.FrameUtils;
-import com.meeple.shared.frame.nuklear.NkContextSingleton;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 
 public class LoadingScreen extends Screen {
 
 	@Override
-	public void render(NkContextSingleton nkContext, ClientWindow window, Delta delta) {
+	public void render( ClientWindow window, Delta delta) {
 
 		double menuSeconds = FrameUtils.nanosToSecondsInacurate(delta.totalNanos);
 

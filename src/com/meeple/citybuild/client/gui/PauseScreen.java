@@ -10,7 +10,6 @@ import org.lwjgl.system.MemoryStack;
 
 import com.meeple.citybuild.client.render.Screen;
 import com.meeple.shared.Delta;
-import com.meeple.shared.frame.nuklear.NkContextSingleton;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 import com.meeple.shared.frame.window.ClientWindowSystem.WindowEvent;
 
@@ -19,8 +18,9 @@ public class PauseScreen extends Screen {
 	public static Logger logger = Logger.getLogger(PauseScreen.class);
 
 	@Override
-	public void render(NkContextSingleton nkContext, ClientWindow window, Delta delta) {
-		NkContext ctx = nkContext.context;
+	public void render(ClientWindow window, Delta delta) {
+
+		NkContext ctx = window.nkContext.context;
 
 		try (MemoryStack stack = stackPush()) {
 			int width = (int) (window.bounds.width * 0.25f);

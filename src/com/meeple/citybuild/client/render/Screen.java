@@ -3,7 +3,6 @@ package com.meeple.citybuild.client.render;
 import org.joml.Vector4f;
 
 import com.meeple.shared.Delta;
-import com.meeple.shared.frame.nuklear.NkContextSingleton;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 
 public abstract class Screen {
@@ -71,22 +70,22 @@ public abstract class Screen {
 	 * Renders the entire tree using {@link #renderUp()}.<br>
 	 * This can be called from any Renderable that is part of this rendering tree
 	 */
-	public void renderTree(NkContextSingleton nkContext, ClientWindow window, Delta delta) {
+	public void renderTree(ClientWindow window, Delta delta) {
 		Screen child = getRootChild();
-		child.renderUp(nkContext, window, delta);
+		child.renderUp(window, delta);
 	}
 
 	/**
 	 * recursive render call for whole tree
 	 */
-	private void renderUp(NkContextSingleton nkContext, ClientWindow window, Delta delta) {
+	private void renderUp(ClientWindow window, Delta delta) {
 		if (this.isTransparent()) {
 			Screen parent = getParent();
 			if (parent != null) {
-				parent.renderUp(nkContext, window, delta);
+				parent.renderUp(window, delta);
 			}
 		}
-		this.render(nkContext, window, delta);
+		this.render(window, delta);
 	}
 
 	public void clearParent() {
@@ -102,6 +101,6 @@ public abstract class Screen {
 		this.child = null;
 	}
 
-	public abstract void render(NkContextSingleton nkContext, ClientWindow window, Delta delta);
+	public abstract void render(ClientWindow window, Delta delta);
 
 }

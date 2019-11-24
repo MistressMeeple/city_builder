@@ -78,12 +78,11 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 		logger.info("Starting City builder client");
 		KeyInputSystem keyInput = new KeyInputSystem();
-		NkContextSingleton nkContext = new NkContextSingleton();
 		ClientOptionSystem optionsSystem = new ClientOptionSystem();
-		
+
 		RenderingMain.init();
 
-		ClientWindowSystem.setupWindow(window, keyInput, nkContext, optionsSystem);
+		ClientWindowSystem.setupWindow(window, keyInput, window.nkContext, optionsSystem);
 		//		Map<WindowState, Set<Tickable>> stateRendering = new HashMap<>();
 
 		VPMatrix vpMatrix = new VPMatrix();
@@ -125,14 +124,14 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 			RayHelper rh = new RayHelper();
 
 			LevelRenderer levelRenderer = new LevelRenderer();
-			Tickable t = levelRenderer.renderGame(this, vpMatrix, cameraAnchorEntity, ortho, rh, keyInput, nkContext);
+			Tickable t = levelRenderer.renderGame(this, vpMatrix, cameraAnchorEntity, ortho, rh, keyInput, window.nkContext);
 
 			//			FrameUtils.addToSetMap(stateRendering, WindowState.Game, t, syncSetSupplier);
 
 			gameRenderScreen = new Screen() {
 
 				@Override
-				public void render(NkContextSingleton nkContext, ClientWindow window, Delta delta) {
+				public void render(ClientWindow window, Delta delta) {
 					t.apply(delta);
 				}
 			};
@@ -143,9 +142,9 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 			clientQuitCounter.incrementAndGet();
 			NuklearMenuSystem menuSystem = new NuklearMenuSystem();
-			menuSystem.create(nkContext, window, window.registeredNuklear);
+			menuSystem.create(window, window.registeredNuklear);
 			window.eventListeners.add(this::handleWindowEvent);
-			window.setChild(loadingScreen);
+			window.render.setChild(loadingScreen);
 			loadingScreen.setChild(mainMenuScreen);
 
 			window.events.render.add(0, (delta) -> {
@@ -154,12 +153,12 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 					//						logger.trace(window.state.getWrapped() + " " + ((NuklearUIComponent) window.currentFocus).title);
 				}
 
-				window.renderTree(nkContext, window, delta);
+				window.render.renderTree(window, delta);
 
 				return false;
 
 			});
-			ClientWindowSystem.start(windowManager, window, nkContext, clientQuitCounter, executorService);
+			ClientWindowSystem.start(windowManager, window, clientQuitCounter, executorService);
 
 		}
 		shutdownService(executorService);

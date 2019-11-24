@@ -52,6 +52,7 @@ import org.lwjgl.system.Platform;
 
 import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.window.ActiveWindowsComponent;
+import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 import com.meeple.shared.frame.window.MirroredWindowCallbacks;
 import com.meeple.shared.frame.window.Window;
 import com.meeple.shared.frame.wrapper.Wrapper;
@@ -143,9 +144,9 @@ public class NuklearManager {
 		window.currentFocus = o;
 	}
 
-	public void create(NkContextSingleton context, Window window, Map<String, NuklearUIComponent> windows) {
+	public void create(ClientWindow window, Map<String, NuklearUIComponent> windows) {
 
-		addWindowCallbacks(context, window);
+		addWindowCallbacks(window.nkContext, window);
 
 		window.events.postCreation.add(new Runnable() {
 
@@ -153,8 +154,8 @@ public class NuklearManager {
 			public void run() {
 
 				//assume we have context from manager
-				setupContext(context);
-				setupFont(context);
+				setupContext(window.nkContext);
+				setupFont(window.nkContext);
 			}
 		});
 
@@ -174,7 +175,7 @@ public class NuklearManager {
 					boolean depth = glGetBoolean(GL_DEPTH_TEST);
 					boolean scissor = glGetBoolean(GL_SCISSOR_TEST);
 
-					render(context, window, NK_ANTI_ALIASING_ON, NkContextSingleton.MAX_VERTEX_BUFFER, NkContextSingleton.MAX_ELEMENT_BUFFER);
+					render(window.nkContext, window, NK_ANTI_ALIASING_ON, NkContextSingleton.MAX_VERTEX_BUFFER, NkContextSingleton.MAX_ELEMENT_BUFFER);
 
 					if (blend) {
 						glEnable(GL_BLEND);
@@ -204,7 +205,7 @@ public class NuklearManager {
 
 			@Override
 			public void run() {
-				shutdown(context);
+				shutdown(window.nkContext);
 			}
 		});
 		//		window.properties.put("isNuklearWindow", true);

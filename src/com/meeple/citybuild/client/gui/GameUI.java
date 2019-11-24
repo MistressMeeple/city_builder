@@ -10,15 +10,14 @@ import org.lwjgl.system.MemoryStack;
 
 import com.meeple.citybuild.client.render.Screen;
 import com.meeple.shared.Delta;
-import com.meeple.shared.frame.nuklear.NkContextSingleton;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 
 public class GameUI extends Screen {
 
-
-	public void render(NkContextSingleton context, ClientWindow window, Delta delta) {
+@Override
+	public void render( ClientWindow window, Delta delta) {
 		
-		NkContext ctx = context.context;
+		NkContext ctx = window.nkContext.context;
 		int width = (int) (window.bounds.width * 0.75f);
 		int height = (int) (window.bounds.height * 0.125f);
 		int x = (int) (window.bounds.width - width) / 2;

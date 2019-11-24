@@ -13,7 +13,6 @@ import org.lwjgl.system.MemoryStack;
 import com.meeple.citybuild.client.render.Screen;
 import com.meeple.shared.Delta;
 import com.meeple.shared.frame.FrameUtils;
-import com.meeple.shared.frame.nuklear.NkContextSingleton;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 import com.meeple.shared.frame.window.ClientWindowSystem.WindowEvent;
 
@@ -21,7 +20,7 @@ public class MainMenuScreen extends Screen {
 	public static Logger logger = Logger.getLogger(MainMenuScreen.class);
 
 	@Override
-	public void render(NkContextSingleton nkContext, ClientWindow window, Delta delta) {
+	public void render(ClientWindow window, Delta delta) {
 
 		double menuSeconds = FrameUtils.nanosToSecondsInacurate(delta.totalNanos);
 
@@ -32,7 +31,8 @@ public class MainMenuScreen extends Screen {
 		window.clearColour.set(r, g, b, 1f);
 
 		try (MemoryStack stack = stackPush()) {
-			NkContext ctx = nkContext.context;
+
+			NkContext ctx = window.nkContext.context;
 			Long width = (long) (window.bounds.width * 0.25f) - 5;
 			Long height = (long) (window.bounds.height * 0.4f);
 			long x = (long) (window.bounds.width / 2 - width) / 2;

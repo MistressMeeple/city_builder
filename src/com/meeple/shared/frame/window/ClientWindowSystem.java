@@ -41,8 +41,10 @@ import org.lwjgl.openal.ALC11;
 import org.lwjgl.openal.ALCCapabilities;
 import org.lwjgl.system.MemoryStack;
 
+import com.meeple.citybuild.client.render.Screen;
 import com.meeple.shared.ClientOptionSystem;
 import com.meeple.shared.ClientOptions;
+import com.meeple.shared.Delta;
 import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.GLFWThread;
 import com.meeple.shared.frame.OAL.AudioData;
@@ -131,6 +133,13 @@ public interface ClientWindowSystem {
 		public List<NuklearUIComponent> menuQueue = Collections.synchronizedList(new ArrayList<>());
 		public final FrameTimeManager eventTimeManager = new FrameTimeManager();
 		public final FrameTimeManager renderTimeManager = new FrameTimeManager();
+		public final NkContextSingleton nkContext = new NkContextSingleton();
+		public final Screen render = new Screen() {
+			@Override
+			public void render(ClientWindow window, Delta delta) {
+				
+			}
+		};
 
 		public final ClientOptions clientOptions = new ClientOptions();
 
@@ -383,7 +392,7 @@ public interface ClientWindowSystem {
 	 * @param quitCountdown
 	 * @param service
 	 */
-	public static void start(WindowManager windowManager, ClientWindow window, NkContextSingleton nkContext, AtomicInteger quitCountdown, ExecutorService service) {
+	public static void start(WindowManager windowManager, ClientWindow window, AtomicInteger quitCountdown, ExecutorService service) {
 		/*
 				setupAudioSystem(window);
 				closeAudioSystem(window);*/
@@ -456,7 +465,7 @@ public interface ClientWindowSystem {
 		});
 
 		windowManager.create(window);
-		Builder t = windowManager.generateManagerRunnable(quitCountdown, NuklearManager.globalEventsHandler(nkContext, windowManager.getActiveWindows()), window.eventTimeManager, window);
+		Builder t = windowManager.generateManagerRunnable(quitCountdown, NuklearManager.globalEventsHandler(window.nkContext, windowManager.getActiveWindows()), window.eventTimeManager, window);
 		service.execute(() -> window.loopThread.start());
 		t.build().run();
 		//		service.execute(t.build());
