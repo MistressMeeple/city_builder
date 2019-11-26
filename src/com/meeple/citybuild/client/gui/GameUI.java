@@ -14,9 +14,9 @@ import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 
 public class GameUI extends Screen {
 
-@Override
-	public void render( ClientWindow window, Delta delta) {
-		
+	@Override
+	public void render(ClientWindow window, Delta delta) {
+
 		NkContext ctx = window.nkContext.context;
 		int width = (int) (window.bounds.width * 0.75f);
 		int height = (int) (window.bounds.height * 0.125f);
@@ -25,8 +25,7 @@ public class GameUI extends Screen {
 
 		try (MemoryStack stack = stackPush()) {
 			NkRect rect = NkRect.mallocStack(stack);
-			if (nk_begin(ctx, "test", nk_rect(x, y, width, height, rect), NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_TITLE )) {
-
+			if (nk_begin(ctx, "test", nk_rect(x, y, width, height, rect), NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_TITLE)) {
 
 				int size = 50;
 				int buttons = 3;
