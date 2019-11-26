@@ -2,6 +2,8 @@ package com.meeple.shared.frame;
 
 import java.nio.FloatBuffer;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +35,15 @@ public class FrameUtils {
 	private static Logger logger = Logger.getLogger(FrameUtils.class);
 
 	public static float TWOPI = (float) (Math.PI * 2f);
+
+	public static final class SyncSetSupplier<T> implements Supplier<Set<T>> {
+
+		@Override
+		public Set<T> get() {
+			return Collections.synchronizedSet(new HashSet<>());
+		}
+
+	}
 
 	public static void iterateRunnable(Collection<Runnable> set, boolean remove) {
 

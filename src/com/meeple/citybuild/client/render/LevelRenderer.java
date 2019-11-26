@@ -12,12 +12,10 @@ import org.joml.Vector2i;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 import org.lwjgl.glfw.GLFW;
-import org.lwjgl.nuklear.Nuklear;
 import org.lwjgl.opengl.GL46;
 
 import com.meeple.citybuild.RayHelper;
 import com.meeple.citybuild.client.CityBuilderMain;
-import com.meeple.citybuild.client.input.CameraControlHandler;
 import com.meeple.citybuild.client.render.WorldRenderer.MeshExt;
 import com.meeple.citybuild.server.Entity;
 import com.meeple.citybuild.server.LevelData;
@@ -134,6 +132,13 @@ public class LevelRenderer {
 	}
 
 	Map<Chunk, MeshExt> baked = new HashMap<>();
+	Map<TileTypes, Map<String, MeshExt>> tileMeshes = new HashMap<>();
+
+	private void bakeTile(Tile tile) {
+		switch (tile.type) {
+
+		}
+	}
 
 	private MeshExt bakeChunk(Vector3f chunkPos, Chunk chunk) {
 		MeshExt m = new MeshExt();
@@ -178,15 +183,7 @@ public class LevelRenderer {
 						m.colourAttrib.data.add(colour.w);
 						m.mesh.renderCount += 1;
 						break;
-					case Other:
-						colour = new Vector4f(0f, 0f, 1f, 1f);
-						FrameUtils.appendToList(m.offsetAttrib.data, tilePos);
-						m.colourAttrib.data.add(colour.x);
-						m.colourAttrib.data.add(colour.y);
-						m.colourAttrib.data.add(colour.z);
-						m.colourAttrib.data.add(colour.w);
-						m.mesh.renderCount += 1;
-						break;
+
 				}
 
 			}
@@ -305,9 +302,8 @@ public class LevelRenderer {
 		});
 
 		vpSystem.preMult(vpMatrix);
-		CameraControlHandler cameraControl = new CameraControlHandler();
 
-		cameraControl.init(cityBuilder.window, vpMatrix, ortho);
+		cityBuilder.gameUI.init(cityBuilder.window, vpMatrix, ortho,rh);
 		return (time) -> {
 			vpSystem.preMult(vpMatrix);
 			RenderingMain.instance.system.queueUniformUpload(program, RenderingMain.instance.multiUpload, puW.getWrapped(), vpMatrix);
@@ -318,55 +314,29 @@ public class LevelRenderer {
 			keyInput.tick(cityBuilder.window.keyPressTicks, cityBuilder.window.keyPressMap, time.nanos);
 			if (cityBuilder.level != null) {
 				//TODO better testing for if mouse controls should be enabled. eg when over a gui
-				if (!Nuklear.nk_item_is_any_active(nkContext.context)) {
-					cameraControl.handlePanningTick(cityBuilder.window, ortho, vpMatrix.view.getWrapped(), cameraAnchorEntity);
-					cameraControl.handlePitchingTick(cityBuilder.window, ortho, arm);
-					cameraControl.handleScrollingTick(arm);
-					long mouseLeftClick = cityBuilder.window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
-					if (mouseLeftClick > 0) {
-						Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, cityBuilder.window, vpMatrix.proj.getWrapped(), vpMatrix.view.getWrapped());
-						rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z), new Vector3f(vpMatrix.view.getWrapped().position), cityBuilder);
-						Tile tile = rh.getCurrentTile();
-						if (tile != null) {
-							tile.type = TileTypes.Other;
-							rh.getCurrentChunk().rebake.set(true);
-						}
 
-						//					Vector3f c = rh.getCurrentTerrainPoint();
-						/*
-																	if (c != null) {
-																	//TODO rendering debug mouse cursor pos
-																	Vector4f colour = new Vector4f(1, 0, 0, 1);
-																	MeshExt m = new MeshExt();
-																	WorldRenderer.setupDiscardMesh3D(m, 1);
-																	
-																	m.positionAttrib.data.add(c.x);
-																	m.positionAttrib.data.add(c.y);
-																	m.positionAttrib.data.add(c.z + 1f);
-																	
-																	m.colourAttrib.data.add(colour.x);
-																	m.colourAttrib.data.add(colour.y);
-																	m.colourAttrib.data.add(colour.z);
-																	m.colourAttrib.data.add(colour.w);
-																	
-																	m.mesh.name = "model";
-																	m.mesh.modelRenderType = GLDrawMode.Points;
-																	m.mesh.singleFrameDiscard = true;
-																	RenderingMain.instance.system.loadVAO(program, m.mesh);
-																	}*/
+				cityBuilder.gameUI.handlePanningTick(cityBuilder.window, ortho, vpMatrix.view.getWrapped(), cameraAnchorEntity);
+				cityBuilder.gameUI.handlePitchingTick(cityBuilder.window, ortho, arm);
+				cityBuilder.gameUI.handleScrollingTick(arm);
+				long mouseLeftClick = cityBuilder.window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
+				if (mouseLeftClick > 0) {
+					Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, cityBuilder.window, vpMatrix.proj.getWrapped(), vpMatrix.view.getWrapped());
+					rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z), new Vector3f(vpMatrix.view.getWrapped().position), cityBuilder);
+					
 
-					}
-
-					//TODO level clear colour
-					cityBuilder.window.clearColour.set(0f, 0f, 0f, 0f);
-					preRender(cityBuilder.level, vpMatrix, program);
-					cameraControl.preRenderMouseUI(cityBuilder.window, ortho, uiProgram);
-
-					//				MeshExt mesh = new MeshExt();
-					//				bakeChunk(level.chunks.get(new Vector2i()), mesh);
-					//				RenderingMain.instance.system.loadVAO(program, mesh.mesh);
+				
 
 				}
+
+				//TODO level clear colour
+				cityBuilder.window.clearColour.set(0f, 0f, 0f, 0f);
+				preRender(cityBuilder.level, vpMatrix, program);
+				cityBuilder.gameUI.preRenderMouseUI(cityBuilder.window, ortho, uiProgram);
+
+				//				MeshExt mesh = new MeshExt();
+				//				bakeChunk(level.chunks.get(new Vector2i()), mesh);
+				//				RenderingMain.instance.system.loadVAO(program, mesh.mesh);
+
 			}
 
 			RenderingMain.instance.system.render(program);

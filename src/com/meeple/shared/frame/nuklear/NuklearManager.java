@@ -109,7 +109,7 @@ public class NuklearManager {
 
 	}
 
-	public void renderGUIs(NkContextSingleton context, Window window, Collection<NuklearUIComponent> uis) {
+	private void renderGUIs(NkContextSingleton context, Window window, Collection<NuklearUIComponent> uis) {
 		Object o = null;
 		if (uis != null && !uis.isEmpty()) {
 			synchronized (uis) {

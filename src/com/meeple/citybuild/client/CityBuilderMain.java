@@ -48,7 +48,7 @@ import com.meeple.shared.frame.wrapper.WrapperImpl;
 public class CityBuilderMain extends GameManager implements Consumer<ExecutorService> {
 
 	public static Logger logger = Logger.getLogger(CityBuilderMain.class);
-	private static String debugLayout = "[%r - %d{HH:mm:ss:SSS}][%t][%p] (%F:%L) %m%n";
+	private static String debugLayout = "[%r][%d{HH:mm:ss:SSS}][%t][%p] (%F:%L) %m%n";
 	static String LevelFolder = "saves/";
 	static String LevelExt = ".sv";
 	//	private static String normalLayout = "[%d{HH:mm:ss:SSS}][%r]][%t][%p][%c] %m%n";
@@ -134,10 +134,10 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 					t.apply(delta);
 				}
 			};
-			gameUIScreen.colour.w = 0f;
+			gameUI.colour.w = 0f;
 			pauseScreen.colour.w = 0.5f;
 
-			gameRenderScreen.setChild(gameUIScreen);
+			gameRenderScreen.setChild(gameUI);
 
 			clientQuitCounter.incrementAndGet();
 			NuklearMenuSystem menuSystem = new NuklearMenuSystem();
@@ -167,7 +167,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 	Screen gameRenderScreen;
 	LoadingScreen loadingScreen = new LoadingScreen();
-	GameUI gameUIScreen = new GameUI();
+	public GameUI gameUI = new GameUI();
 	MainMenuScreen mainMenuScreen = new MainMenuScreen();
 	PauseScreen pauseScreen = new PauseScreen();
 
@@ -199,10 +199,10 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 				break;
 			case GamePause:
 				pauseGame();
-				gameUIScreen.setChild(pauseScreen);
+				gameUI.setChild(pauseScreen);
 				break;
 			case GameResume:
-				gameUIScreen.clearChild();
+				gameUI.clearChild();
 				resumeGame();
 				break;
 			case GameSave:
@@ -210,7 +210,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 				break;
 			case GameStart:
 				loadingScreen.setChild(gameRenderScreen);
-				gameUIScreen.clearChild();
+				gameUI.clearChild();
 				break;
 			case GoToMainMenu:
 				loadingScreen.setChild(mainMenuScreen);

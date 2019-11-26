@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.joml.Vector2i;
 
 import com.meeple.citybuild.server.Buildings.BuildingInstance;
-import com.meeple.citybuild.server.WorldGenerator.TileTypes;
+import com.meeple.citybuild.server.WorldGenerator.Tiles;
 import com.meeple.shared.frame.component.FrameTimeManager;
 
 public class LevelData implements Serializable {
@@ -25,7 +25,7 @@ public class LevelData implements Serializable {
 	public long activeTime = 0;
 
 	public static final int chunkSize = 16;
-	public static final float tileSize = 2;
+	public static final float tileSize = 4;
 	public static final float fullChunkSize = chunkSize * tileSize;
 
 	/**
@@ -95,7 +95,7 @@ public class LevelData implements Serializable {
 			 * 
 			 */
 			private static final long serialVersionUID = 4696596418608513610L;
-			public TileTypes type;
+			public Tiles type;
 			public byte UUID = -1;
 		}
 

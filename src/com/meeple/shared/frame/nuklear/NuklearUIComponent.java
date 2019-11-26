@@ -48,20 +48,20 @@ public class NuklearUIComponent implements HasBounds2D {
 	public boolean isVisible() {
 		return visible;
 	}
-
-	public void render(NkContextSingleton context) {
-
-		if (visible) {
-			try (MemoryStack stack = stackPush()) {
-				NkRect rect = NkRect.mallocStack(stack);
-				nk_rect(bounds.posX, bounds.posY, bounds.width, bounds.height, rect);
-				if (nk_begin(context.context, "title", rect, NkWindowProperties.flags(properties))) {
-					render.accept(context.context, stack);
+	/*
+		public void render(NkContextSingleton context) {
+	
+			if (visible) {
+				try (MemoryStack stack = stackPush()) {
+					NkRect rect = NkRect.mallocStack(stack);
+					nk_rect(bounds.posX, bounds.posY, bounds.width, bounds.height, rect);
+					if (nk_begin(context.context, "title", rect, NkWindowProperties.flags(properties))) {
+						render.accept(context.context, stack);
+					}
+					hasFocus = nk_window_has_focus(context.context);
+					nk_end(context.context);
 				}
-				hasFocus = nk_window_has_focus(context.context);
-				nk_end(context.context);
+	
 			}
-
-		}
-	}
+		}*/
 }

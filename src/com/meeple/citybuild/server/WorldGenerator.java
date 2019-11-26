@@ -1,13 +1,74 @@
 package com.meeple.citybuild.server;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
 import org.joml.Vector2i;
 
 import com.meeple.citybuild.server.LevelData.Chunk;
+import com.meeple.shared.frame.FrameUtils;
+import com.meeple.shared.frame.FrameUtils.SyncSetSupplier;
 
 public class WorldGenerator {
 
 	public static enum TileTypes {
-		Hole, Ground, Other;
+		//		Hole, Ground, Other, Housing, FoodProduction, WaterProduction;
+		Terrain,
+		Stockpile,
+		Housing,
+		Food,
+		Power,
+		Resources;
+
+	}
+
+	public static enum TileSize {
+		Small,
+		Medium,
+		Large;
+	}
+
+	private static Map<TileTypes, Set<Tiles>> typesByTypes = new HashMap<>();
+
+	//TODO allow small kitchens to be put into buildings eg houses/factories
+	public static enum Tiles {
+		/*
+		 * 
+		 */
+		Hole(TileTypes.Terrain),
+		Ground(TileTypes.Terrain),
+		Water(TileTypes.Terrain),
+		/*
+		 * 
+		 */
+		Tent(TileTypes.Housing),
+		House(TileTypes.Housing),
+		/*
+		 * 
+		 */
+		CropFarm(TileTypes.Food),
+		MeatFarm(TileTypes.Food),
+		Kitchens(TileTypes.Food),
+		/*
+		 * 
+		 */
+		WaterWheel(TileTypes.Power),
+		/*
+		 * 
+		 */
+		TreeFarm(TileTypes.Resources),
+		StoneMine(TileTypes.Resources),
+		NormalMetalMine(TileTypes.Resources),
+		SpecialMetalMine(TileTypes.Resources);
+
+		TileTypes type;
+
+		private Tiles(TileTypes type) {
+			this.type = type;
+			FrameUtils.addToSetMap(typesByTypes, type, this, new SyncSetSupplier<>());
+		}
+
 	}
 
 	public void create(LevelData level, long seed) {
@@ -19,9 +80,9 @@ public class WorldGenerator {
 					for (int ty = 0; ty < mainChunk.tiles[tx].length; ty++) {
 
 						if (tx == 0 || ty == 0 || tx == mainChunk.tiles.length - 1 || ty == mainChunk.tiles[0].length - 1) {
-							mainChunk.tiles[tx][ty].type = TileTypes.Hole;
+							mainChunk.tiles[tx][ty].type = Tiles.Hole;
 						} else {
-							mainChunk.tiles[tx][ty].type = TileTypes.Ground;
+							mainChunk.tiles[tx][ty].type = Tiles.Ground;
 						}
 					}
 				}
