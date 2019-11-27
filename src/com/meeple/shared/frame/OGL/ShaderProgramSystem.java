@@ -27,6 +27,7 @@ import java.util.Set;
 import javax.activation.UnsupportedDataTypeException;
 
 import org.apache.log4j.Logger;
+import org.joml.Matrix4f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL46;
 import org.lwjgl.system.MemoryStack;
@@ -40,7 +41,7 @@ import com.meeple.shared.frame.OGL.ShaderProgram.VBO;
 
 public class ShaderProgramSystem {
 
-	public static Logger logger = Logger.getLogger(ShaderProgramSystem.class);
+	private static Logger logger = Logger.getLogger(ShaderProgramSystem.class);
 
 	public static class SingleUniformSystem extends UniformManager<String, Integer> {
 
@@ -63,6 +64,21 @@ public class ShaderProgramSystem {
 	}
 
 	/**
+	 * Single upload uniform manager instance
+	 */
+	public static UniformManager<String, Integer> singleUpload = new SingleUniformSystem();
+	/**
+	 * Multiple upload uniform manager instance
+	 */
+	public static UniformManager<String[], Integer[]> multiUpload = new MultiUniformSystem();
+	/**
+	 * Single matrix uploading system
+	 */
+	public IShaderUniformUploadSystem<Matrix4f, Integer> mat4SingleUploader = (upload, uniformID, stack) -> {
+		GL46.glUniformMatrix4fv(uniformID, false, IShaderUniformUploadSystem.generateMatrix4fBuffer(stack, upload));
+	};
+
+	/**
 	 * Sets up the program by<br>
 	 * <ol>
 	 * <li>Generating and setting program ID ({@link  GL46#glCreateProgram()})</li>
@@ -76,7 +92,7 @@ public class ShaderProgramSystem {
 	 * </ol>
 	 * @param program Shader program to create/setup
 	 */
-	public void create(ShaderProgram program) {
+	public static void create(ShaderProgram program) {
 		program.programID = GL46.glCreateProgram();
 		logger.trace("Creating new Shader program with ID: " + program.programID);
 		Map<GLShaderType, Integer> shaderIDs = compileShaders(program.shaderSources);
@@ -92,7 +108,7 @@ public class ShaderProgramSystem {
 		bindUniformLocations(program.programID, program.uniformSystems);
 	}
 
-	private void programErrorCheck(int program, int query) {
+	private static void programErrorCheck(int program, int query) {
 		int linkStatus = glGetProgrami(program, query);
 		String programLog = glGetProgramInfoLog(program);
 		if (programLog.trim().length() > 0) {
@@ -104,12 +120,12 @@ public class ShaderProgramSystem {
 		}
 	}
 
-	private boolean shaderCompileCheck(int shader) {
+	private static boolean shaderCompileCheck(int shader) {
 		int linkStatus = glGetShaderi(shader, GL46.GL_COMPILE_STATUS);
 		return linkStatus == 0;
 	}
 
-	public void merge(Map<GLShaderType, Integer> mergeFrom, Map<GLShaderType, Integer> mergeTo) {
+	public static void merge(Map<GLShaderType, Integer> mergeFrom, Map<GLShaderType, Integer> mergeTo) {
 		Set<Entry<GLShaderType, Integer>> set = mergeFrom.entrySet();
 		for (Iterator<Entry<GLShaderType, Integer>> iterator = set.iterator(); iterator.hasNext();) {
 			Entry<GLShaderType, Integer> entry = iterator.next();
@@ -127,7 +143,7 @@ public class ShaderProgramSystem {
 	 * @param shaderMap map of shaders to compile
 	 * @return shader type - shader ID map
 	 */
-	public Map<GLShaderType, Integer> compileShaders(Map<GLShaderType, String> shaderMap) {
+	public static Map<GLShaderType, Integer> compileShaders(Map<GLShaderType, String> shaderMap) {
 		Set<Entry<GLShaderType, String>> sources = shaderMap.entrySet();
 		Map<GLShaderType, Integer> shaderIDs = Collections.synchronizedMap(new HashMap<>());
 		synchronized (shaderMap) {
@@ -147,7 +163,7 @@ public class ShaderProgramSystem {
 	 * @param makeQuadProgram ID to bind to 
 	 * @param shaderMap map of shader type-ID's to bind
 	 */
-	private void bindShaders(int programID, Collection<Integer> shaderMapSet) {
+	private static void bindShaders(int programID, Collection<Integer> shaderMapSet) {
 
 		synchronized (shaderMapSet) {
 			Iterator<Integer> i = shaderMapSet.iterator();
@@ -164,7 +180,7 @@ public class ShaderProgramSystem {
 	 * @param programID
 	 * @param uniformSystems
 	 */
-	private void bindUniformLocations(int programID, Map<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>> uniformSystems) {
+	private static void bindUniformLocations(int programID, Map<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>> uniformSystems) {
 
 		synchronized (uniformSystems) {
 			Iterator<Entry<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>>> i = uniformSystems.entrySet().iterator();
@@ -183,7 +199,7 @@ public class ShaderProgramSystem {
 	 * @param type shader type of shader to compile
 	 * @return generated ID of shader
 	 */
-	public int compileShader(String source, int type) {
+	public static int compileShader(String source, int type) {
 		int shaderID = GL46.glCreateShader(type);
 		GL46.glShaderSource(shaderID, source);
 		GL46.glCompileShader(shaderID);
@@ -207,7 +223,7 @@ public class ShaderProgramSystem {
 	 * @return String contents of file
 	 */
 	@Deprecated
-	public String loadShaderSourceFromFile(File file) {
+	public static String loadShaderSourceFromFile(File file) {
 		StringBuilder shaderSource = new StringBuilder();
 		if (!file.exists()) {
 
@@ -235,7 +251,7 @@ public class ShaderProgramSystem {
 	 * @return string of loaded shader
 	 * @see FileLoader#loadFile(String) 
 	 */
-	public String loadShaderSourceFromFile(String name) {
+	public static String loadShaderSourceFromFile(String name) {
 		Reader stream = FileLoader.loadFile(name);
 		StringBuilder shaderSource = new StringBuilder();
 		try (BufferedReader reader = new BufferedReader(stream)) {
@@ -258,7 +274,7 @@ public class ShaderProgramSystem {
 	 * @param vao to setup
 	 * @see #bindBuffer(ShaderProgram, VBO)
 	 */
-	public void loadVAO(ShaderProgram program, VAO vao) {
+	public static void loadVAO(ShaderProgram program, VAO vao) {
 		if (program.programID == 0) {
 			logger.warn("Shader program has not been initialized. Do that first before loading any VAOs");
 		}
@@ -289,7 +305,7 @@ public class ShaderProgramSystem {
 	 * @param vbo
 	 * @see #bindAttribute(int, Attribute)
 	 */
-	private void bindBuffer(ShaderProgram program, VBO vbo) {
+	private static void bindBuffer(ShaderProgram program, VBO vbo) {
 		int vboID = GL46.glGenBuffers();
 		GL46.glBindBuffer(vbo.bufferType.getGLID(), vboID);
 		vbo.VBOID = vboID;
@@ -306,7 +322,7 @@ public class ShaderProgramSystem {
 	 * Writes the VBO data into the VBO buffer and then sends the buffer off to OGL
 	 * @param vbo to write data to OGL 
 	 */
-	public void writeDataToBuffer(VBO vbo) {
+	public static void writeDataToBuffer(VBO vbo) {
 
 		int arraySize = vbo.data.size();
 
@@ -386,7 +402,7 @@ public class ShaderProgramSystem {
 		}
 	}
 
-	private int currentDiff(int index, int dataLength) {
+	private static int currentDiff(int index, int dataLength) {
 		int mod = dataLength % ShaderProgram.maxAttribDataSize;
 		return (index * ShaderProgram.maxAttribDataSize <= dataLength ? ShaderProgram.maxAttribDataSize : mod);
 	}
@@ -400,7 +416,7 @@ public class ShaderProgramSystem {
 	 * @param shaderProgramID
 	 * @param attrib
 	 */
-	private void bindAttribute(int shaderProgramID, Attribute attrib) {
+	private static void bindAttribute(int shaderProgramID, Attribute attrib) {
 		attrib.index = GL46.glGetAttribLocation(shaderProgramID, attrib.name);
 		if (attrib.index == -1) {
 			logger.warn("[Aborting Attribute Binding] Attribute '" + attrib.name + "' could not be found in the source for program with ID " + shaderProgramID);
@@ -441,7 +457,7 @@ public class ShaderProgramSystem {
 		//GL46.glBindBuffer(attrib.target, 0);
 	}
 
-	public <Name, ID> void addUniform(ShaderProgram program, UniformManager<Name, ID> system, UniformManager<Name, ID>.Uniform<?> uniform) {
+	public static <Name, ID> void addUniform(ShaderProgram program, UniformManager<Name, ID> system, UniformManager<Name, ID>.Uniform<?> uniform) {
 
 		Map<UniformManager<?, ?>.Uniform<?>, List<?>> uniformList = program.uniformSystems.get(system);
 
@@ -454,14 +470,14 @@ public class ShaderProgramSystem {
 	}
 
 	@Deprecated
-	public <Name, ID> void addUniformSystem(ShaderProgram program, UniformManager<Name, ID> system) {
+	public static <Name, ID> void addUniformSystem(ShaderProgram program, UniformManager<Name, ID> system) {
 		Map<UniformManager<?, ?>.Uniform<?>, List<?>> set = program.uniformSystems.get(system);
 		if (set == null) {
 			program.uniformSystems.put(system, new HashMap<>());
 		}
 	}
 
-	public <Name, ID, T> void queueUniformUpload(ShaderProgram program, UniformManager<Name, ID> manager, UniformManager<Name, ID>.Uniform<T> uniform, T object) {
+	public static <Name, ID, T> void queueUniformUpload(ShaderProgram program, UniformManager<Name, ID> manager, UniformManager<Name, ID>.Uniform<T> uniform, T object) {
 		Map<UniformManager<?, ?>.Uniform<?>, List<?>> uniforms = program.uniformSystems.get(manager);
 		if (uniforms != null && !uniforms.isEmpty()) {
 			List<?> queueBase = uniforms.getOrDefault(uniforms, new ArrayList<T>());
@@ -484,7 +500,7 @@ public class ShaderProgramSystem {
 	 * Iterates all the queued uniforms for upload and uploads them. 
 	 * @param program shader program to iterate all uniforms and upload
 	 */
-	private void uploadUniforms(ShaderProgram program) {
+	private static void uploadUniforms(ShaderProgram program) {
 		synchronized (program.uniformSystems) {
 			try (MemoryStack stack = stackPush()) {
 				for (Iterator<Entry<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>>> i = program.uniformSystems.entrySet().iterator(); i.hasNext();) {
@@ -499,7 +515,7 @@ public class ShaderProgramSystem {
 	}
 
 	//----------------------------------------------- RENDER METHODS -----------------------------------//TODO 
-	public void render(ShaderProgram program) {
+	public static void render(ShaderProgram program) {
 
 		//bind shader program
 		GL46.glUseProgram(program.programID);
@@ -604,7 +620,7 @@ public class ShaderProgramSystem {
 
 	//----------------------------------------------- CLOSE METHODS -----------------------------------//TODO 
 
-	public void deleteModel(VAO model) {
+	public static void deleteModel(VAO model) {
 		if (model != null) {
 			GL46.glDeleteVertexArrays(model.VAOID);
 			Collection<VBO> vbos = model.VBOs;
@@ -623,7 +639,7 @@ public class ShaderProgramSystem {
 	 * Detaches and deletes all shader's for this program, then deletes the program from memory 
 	 * @param program program to detach and delete
 	 */
-	public void detatchAndDeleteShaders(ShaderProgram program) {
+	public static void detatchAndDeleteShaders(ShaderProgram program) {
 
 		GL46.glUseProgram(0);
 		Set<Entry<GLShaderType, Integer>> set = program.shaderIDs.entrySet();
@@ -641,7 +657,7 @@ public class ShaderProgramSystem {
 		GL46.glDeleteProgram(program.programID);
 	}
 
-	public void close(ShaderProgram program) {
+	public static void close(ShaderProgram program) {
 		detatchAndDeleteShaders(program);
 	}
 

@@ -10,7 +10,6 @@ import org.lwjgl.glfw.GLFWScrollCallbackI;
 import org.lwjgl.nuklear.Nuklear;
 import org.lwjgl.opengl.GL46;
 
-import com.meeple.citybuild.client.render.RenderingMain;
 import com.meeple.citybuild.client.render.WorldRenderer;
 import com.meeple.citybuild.client.render.WorldRenderer.MeshExt;
 import com.meeple.citybuild.server.Entity;
@@ -19,6 +18,7 @@ import com.meeple.shared.frame.CursorHelper.SpaceState;
 import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
+import com.meeple.shared.frame.OGL.ShaderProgramSystem;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraMode;
@@ -445,7 +445,7 @@ public class CameraControlHandler {
 								FrameUtils.appendToList(mcompas.colourAttrib.data, new Vector4f(1, 0, 1, 1));
 								mcompas.mesh.name = "compas";
 								mcompas.zIndexAttrib.data.add(-1f);
-								RenderingMain.instance.system.loadVAO(program, mcompas.mesh);
+								ShaderProgramSystem.loadVAO(program, mcompas.mesh);
 							}
 							Vector2f line = new Vector2f(mouseDir.x, mouseDir.y);
 							Vector2f lineStart = line.mul(panRadi, new Vector2f());
@@ -461,7 +461,7 @@ public class CameraControlHandler {
 							FrameUtils.appendToList(m.colourAttrib.data, new Vector4f(1, 1, 0, 1));
 							m.mesh.name = "compasLine";
 							m.zIndexAttrib.data.add(-1f);
-							RenderingMain.instance.system.loadVAO(program, m.mesh);
+							ShaderProgramSystem.loadVAO(program, m.mesh);
 						}
 
 					}

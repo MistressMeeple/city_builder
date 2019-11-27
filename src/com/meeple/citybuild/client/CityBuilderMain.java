@@ -23,7 +23,6 @@ import com.meeple.citybuild.client.gui.LoadingScreen;
 import com.meeple.citybuild.client.gui.MainMenuScreen;
 import com.meeple.citybuild.client.gui.PauseScreen;
 import com.meeple.citybuild.client.render.LevelRenderer;
-import com.meeple.citybuild.client.render.RenderingMain;
 import com.meeple.citybuild.client.render.Screen;
 import com.meeple.citybuild.server.Buildings;
 import com.meeple.citybuild.server.Entity;
@@ -79,7 +78,6 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		KeyInputSystem keyInput = new KeyInputSystem();
 		ClientOptionSystem optionsSystem = new ClientOptionSystem();
 
-		RenderingMain.init();
 
 		ClientWindowSystem.setupWindow(window, keyInput, window.nkContext, optionsSystem);
 		//		Map<WindowState, Set<Tickable>> stateRendering = new HashMap<>();

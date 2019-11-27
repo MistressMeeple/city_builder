@@ -22,12 +22,14 @@ import com.meeple.citybuild.server.LevelData;
 import com.meeple.citybuild.server.LevelData.Chunk;
 import com.meeple.citybuild.server.LevelData.Chunk.Tile;
 import com.meeple.citybuild.server.WorldGenerator.TileTypes;
+import com.meeple.citybuild.server.WorldGenerator.Tiles;
 import com.meeple.shared.Tickable;
 import com.meeple.shared.frame.CursorHelper;
 import com.meeple.shared.frame.CursorHelper.SpaceState;
 import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.OGL.KeyInputSystem;
 import com.meeple.shared.frame.OGL.ShaderProgram;
+import com.meeple.shared.frame.OGL.ShaderProgramSystem;
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
@@ -52,42 +54,42 @@ public class LevelRenderer {
 	public static boolean disableAlphaTest = false;
 
 	public UniformManager<String[], Integer[]>.Uniform<VPMatrix> setupWorldProgram(ShaderProgram program, VPMatrixSystem VPMatrixSystem, VPMatrix vpMatrix) {
-		UniformManager<String[], Integer[]>.Uniform<VPMatrix> u = RenderingMain.instance.multiUpload.register(new String[] { "vpMatrix", "projectionMatrix", "viewMatrix" }, VPMatrixSystem);
+		UniformManager<String[], Integer[]>.Uniform<VPMatrix> u = ShaderProgramSystem.multiUpload.register(new String[] { "vpMatrix", "projectionMatrix", "viewMatrix" }, VPMatrixSystem);
 
-		RenderingMain.instance.system.addUniform(program, RenderingMain.instance.multiUpload, u);
-		RenderingMain.instance.system.queueUniformUpload(program, RenderingMain.instance.multiUpload, u, vpMatrix);
+		ShaderProgramSystem.addUniform(program, ShaderProgramSystem.multiUpload, u);
+		ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.multiUpload, u, vpMatrix);
 
-		program.shaderSources.put(GLShaderType.VertexShader, RenderingMain.instance.system.loadShaderSourceFromFile(("resources/shaders/line3D.vert")));
-		program.shaderSources.put(GLShaderType.FragmentShader, RenderingMain.instance.system.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
+		program.shaderSources.put(GLShaderType.VertexShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/line3D.vert")));
+		program.shaderSources.put(GLShaderType.FragmentShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
 
-		RenderingMain.instance.system.create(program);
+		ShaderProgramSystem.create(program);
 		return u;
 	}
 
 	public UniformManager<String, Integer>.Uniform<ProjectionMatrix> setupUIProgram(ShaderProgram program, ProjectionMatrixSystem pSystem, ProjectionMatrix pMatrix) {
 
-		UniformManager<String, Integer>.Uniform<ProjectionMatrix> u = RenderingMain.instance.singleUpload.register("projectionMatrix", pSystem);
-		RenderingMain.instance.system.addUniform(program, RenderingMain.instance.singleUpload, u);
-		RenderingMain.instance.system.queueUniformUpload(program, RenderingMain.instance.singleUpload, u, pMatrix);
+		UniformManager<String, Integer>.Uniform<ProjectionMatrix> u = ShaderProgramSystem.singleUpload.register("projectionMatrix", pSystem);
+		ShaderProgramSystem.addUniform(program, ShaderProgramSystem.singleUpload, u);
+		ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.singleUpload, u, pMatrix);
 
-		program.shaderSources.put(GLShaderType.VertexShader, RenderingMain.instance.system.loadShaderSourceFromFile(("resources/shaders/line2D-UI.vert")));
-		program.shaderSources.put(GLShaderType.FragmentShader, RenderingMain.instance.system.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
+		program.shaderSources.put(GLShaderType.VertexShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/line2D-UI.vert")));
+		program.shaderSources.put(GLShaderType.FragmentShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
 
-		RenderingMain.instance.system.create(program);
+		ShaderProgramSystem.create(program);
 		return u;
 
 	}
 
 	public UniformManager<String[], Integer[]>.Uniform<VPMatrix> setupMainProgram(ShaderProgram program, VPMatrixSystem VPMatrixSystem, VPMatrix vpMatrix) {
-		UniformManager<String[], Integer[]>.Uniform<VPMatrix> u = RenderingMain.instance.multiUpload.register(new String[] { "vpMatrix", "projectionMatrix", "viewMatrix" }, VPMatrixSystem);
+		UniformManager<String[], Integer[]>.Uniform<VPMatrix> u = ShaderProgramSystem.multiUpload.register(new String[] { "vpMatrix", "projectionMatrix", "viewMatrix" }, VPMatrixSystem);
 
-		RenderingMain.instance.system.addUniform(program, RenderingMain.instance.multiUpload, u);
-		RenderingMain.instance.system.queueUniformUpload(program, RenderingMain.instance.multiUpload, u, vpMatrix);
+		ShaderProgramSystem.addUniform(program, ShaderProgramSystem.multiUpload, u);
+		ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.multiUpload, u, vpMatrix);
 
-		program.shaderSources.put(GLShaderType.VertexShader, RenderingMain.instance.system.loadShaderSourceFromFile(("resources/shaders/3D-unlit.vert")));
-		program.shaderSources.put(GLShaderType.FragmentShader, RenderingMain.instance.system.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
+		program.shaderSources.put(GLShaderType.VertexShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/3D-unlit.vert")));
+		program.shaderSources.put(GLShaderType.FragmentShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
 
-		RenderingMain.instance.system.create(program);
+		ShaderProgramSystem.create(program);
 		return u;
 	}
 
@@ -107,7 +109,7 @@ public class LevelRenderer {
 						m.mesh.singleFrameDiscard = true;
 					}
 					m = bakeChunk(chunkPos, chunk);
-					RenderingMain.instance.system.loadVAO(program, m.mesh);
+					ShaderProgramSystem.loadVAO(program, m.mesh);
 					m.mesh.visible = false;
 					baked.put(chunk, m);
 				}
@@ -169,7 +171,16 @@ public class LevelRenderer {
 			for (int y = 0; y < chunk.tiles[x].length; y++) {
 				Vector3f tilePos = chunkPos.add(x * LevelData.tileSize, y * LevelData.tileSize, 0, new Vector3f());
 				Vector4f colour = new Vector4f();
-				switch (chunk.tiles[x][y].type) {
+				Tile tile = chunk.tiles[x][y];
+				if (tile == null) {
+					chunk.tiles[x][y] = chunk.new Tile();
+					tile = chunk.tiles[x][y];
+				}
+				if (tile.type == null) {
+					tile.type = Tiles.Hole;
+				}
+
+				switch (tile.type) {
 					case Hole:
 
 						break;
@@ -214,7 +225,7 @@ public class LevelRenderer {
 			FrameUtils.appendToList(m.offsetAttrib.data, new Vector3f());
 			m.mesh.name = "modelr";
 			m.mesh.modelRenderType = GLDrawMode.Line;
-			RenderingMain.instance.system.loadVAO(program, m.mesh);
+			ShaderProgramSystem.loadVAO(program, m.mesh);
 		}
 		{
 
@@ -237,7 +248,7 @@ public class LevelRenderer {
 			FrameUtils.appendToList(m.offsetAttrib.data, new Vector3f());
 			m.mesh.name = "modelg";
 			m.mesh.modelRenderType = GLDrawMode.Line;
-			RenderingMain.instance.system.loadVAO(program, m.mesh);
+			ShaderProgramSystem.loadVAO(program, m.mesh);
 		}
 		{
 
@@ -260,7 +271,7 @@ public class LevelRenderer {
 			FrameUtils.appendToList(m.offsetAttrib.data, new Vector3f());
 			m.mesh.name = "modelb";
 			m.mesh.modelRenderType = GLDrawMode.Line;
-			RenderingMain.instance.system.loadVAO(program, m.mesh);
+			ShaderProgramSystem.loadVAO(program, m.mesh);
 		}
 	}
 
@@ -297,16 +308,16 @@ public class LevelRenderer {
 			uipuW.setWrapped(setupUIProgram(uiProgram, vpSystem.projSystem, ortho));
 
 			/*mpuW.setWrapped(levelRenderer.setupMainProgram(mainProgram, vpSystem, vpMatrix));
-			RenderingMain.instance.system.loadVAO(mainProgram, cube);*/
+			ShaderProgramSystem.loadVAO(mainProgram, cube);*/
 
 		});
 
 		vpSystem.preMult(vpMatrix);
 
-		cityBuilder.gameUI.init(cityBuilder.window, vpMatrix, ortho,rh);
+		cityBuilder.gameUI.init(cityBuilder.window, vpMatrix, ortho, rh);
 		return (time) -> {
 			vpSystem.preMult(vpMatrix);
-			RenderingMain.instance.system.queueUniformUpload(program, RenderingMain.instance.multiUpload, puW.getWrapped(), vpMatrix);
+			ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.multiUpload, puW.getWrapped(), vpMatrix);
 			//TODO change line thickness
 			GL46.glLineWidth(3f);
 			GL46.glPointSize(3f);
@@ -322,9 +333,6 @@ public class LevelRenderer {
 				if (mouseLeftClick > 0) {
 					Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, cityBuilder.window, vpMatrix.proj.getWrapped(), vpMatrix.view.getWrapped());
 					rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z), new Vector3f(vpMatrix.view.getWrapped().position), cityBuilder);
-					
-
-				
 
 				}
 
@@ -335,14 +343,14 @@ public class LevelRenderer {
 
 				//				MeshExt mesh = new MeshExt();
 				//				bakeChunk(level.chunks.get(new Vector2i()), mesh);
-				//				RenderingMain.instance.system.loadVAO(program, mesh.mesh);
+				//				ShaderProgramSystem.loadVAO(program, mesh.mesh);
 
 			}
 
-			RenderingMain.instance.system.render(program);
-			RenderingMain.instance.system.render(uiProgram);
+			ShaderProgramSystem.render(program);
+			ShaderProgramSystem.render(uiProgram);
 			//this is the cube test rendering program
-			//						RenderingMain.instance.system.render(mainProgram);
+			//						ShaderProgramSystem.render(mainProgram);
 			return false;
 		};
 	}
