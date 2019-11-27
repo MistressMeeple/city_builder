@@ -1,5 +1,6 @@
 package com.meeple.citybuild;
 
+import org.joml.Vector2i;
 import org.joml.Vector3f;
 
 import com.meeple.citybuild.server.GameManager;
@@ -15,9 +16,14 @@ public class RayHelper {
 
 	private Chunk chunk;
 	private Tile tile;
+	private Vector2i tileIndex;
 
 	public Vector3f getCurrentTerrainPoint() {
 		return currentTerrainPoint;
+	}
+
+	public Vector2i getCurrentTileIndex() {
+		return tileIndex;
 	}
 
 	public Tile getCurrentTile() {
@@ -51,13 +57,18 @@ public class RayHelper {
 			Vector3f endPoint = getPointOnRay(ray, half, camPos);
 
 			Tile tile = null;
+			Vector2i index = null;
 			Chunk c = game.getChunk(endPoint);
 			if (c != null) {
 				chunk = c;
-				tile = game.getTile(c, endPoint);
-				if (tile != null) {
-					this.tile = tile;
-					return endPoint;
+				index = game.getTileIndex(c, endPoint);
+				if (index != null) {
+					this.tileIndex = index;
+					tile = game.getTile(c, index);
+					if (tile != null) {
+						this.tile = tile;
+						return endPoint;
+					}
 				}
 			}
 			return null;
