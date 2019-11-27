@@ -3,6 +3,8 @@ package com.meeple.citybuild.client.gui;
 import static org.lwjgl.nuklear.Nuklear.*;
 import static org.lwjgl.system.MemoryStack.*;
 
+import java.util.HashSet;
+
 import org.apache.log4j.Logger;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
@@ -23,8 +25,10 @@ import com.meeple.citybuild.client.render.Screen;
 import com.meeple.citybuild.client.render.WorldRenderer;
 import com.meeple.citybuild.client.render.WorldRenderer.MeshExt;
 import com.meeple.citybuild.server.Entity;
+import com.meeple.citybuild.server.LevelData.Chunk.Tile;
 import com.meeple.citybuild.server.WorldGenerator;
 import com.meeple.citybuild.server.WorldGenerator.TileTypes;
+import com.meeple.citybuild.server.WorldGenerator.Tiles;
 import com.meeple.shared.Delta;
 import com.meeple.shared.frame.CursorHelper;
 import com.meeple.shared.frame.CursorHelper.SpaceState;
@@ -122,7 +126,7 @@ public class GameUI extends Screen {
 	 */
 	RayHelper rayHelper;
 	TileTypes currentSubMenu = null;
-	Object currentAction = null;
+	Tiles currentAction = null;
 	/**
 	 * This is the mouse button that pans the camera
 	 */
@@ -179,8 +183,14 @@ public class GameUI extends Screen {
 					if (action == GLFW.GLFW_PRESS) {
 
 					} else if (action == GLFW.GLFW_RELEASE) {
+
 						if (panningState != CompasState.Active) {
-							cancelAction();
+							if (currentAction != null) {
+
+								currentAction = null;
+							} else if (currentSubMenu != null) {
+								currentSubMenu = null;
+							}
 
 						}
 					}
@@ -208,12 +218,6 @@ public class GameUI extends Screen {
 			scale.setWrapped((float) yoffset + scale.getWrappedOrDefault(0f));
 		}
 	};
-
-	private void cancelAction() {
-		currentAction = null;
-		currentSubMenu = null;
-		logger.trace("cancelling menu");
-	}
 
 	private Vector2f difference(Vector2f start, Vector2f current) {
 		try {
@@ -424,6 +428,15 @@ public class GameUI extends Screen {
 		GL46.glEnable(GL46.GL_DEPTH_TEST);
 
 		if (true) {
+			if (currentAction != null) {
+				Tile t = rayHelper.getCurrentTile();
+				if (t != null) {
+					t.type = currentAction;
+					rayHelper.getCurrentChunk().rebake.set(true);
+				}
+			}
+		}
+		if (true) {
 
 			if (panningButtonPos != null) {
 				Vector2f mouseClickedPos = new Vector2f(panningButtonPos);
@@ -521,7 +534,10 @@ public class GameUI extends Screen {
 						nk_layout_space_push(ctx, nk_rect((btnWidth + btnSpacing) * i++, 0, btnWidth, btnHeight, NkRect.create()));
 						if (currentSubMenu != null && currentSubMenu == type) {
 							NuklearManager.styledButton(ctx, NuklearMenuSystem.getDisabled(ctx, stack), () -> {
-								nk_button_text(ctx, type.toString());
+								if (nk_button_text(ctx, type.toString())) {
+									currentSubMenu = null;
+									currentAction = null;
+								}
 							});
 						} else {
 							if (nk_button_text(ctx, type.toString())) {
@@ -539,6 +555,39 @@ public class GameUI extends Screen {
 			}
 			nk_end(ctx);
 
+			if (currentSubMenu != null) {
+
+				if (nk_begin(ctx, "BuildingSubMenu", nk_rect(x, y - height, width, height, rect), NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_TITLE)) {
+
+					nk_layout_row_dynamic(ctx, btnWidth + 25, 1);
+
+					if (nk_group_begin(ctx, "", 0)) {
+						nk_layout_space_begin(ctx, Nuklear.NK_STATIC, btnHeight, WorldGenerator.TileTypes.values().length);
+						int i = 0;
+
+						for (Tiles t : WorldGenerator.typesByTypes.getOrDefault(currentSubMenu, new HashSet<>())) {
+
+							nk_layout_space_push(ctx, nk_rect((btnWidth + btnSpacing) * i++, 0, btnWidth, btnHeight, NkRect.create()));
+							if (currentAction != null && currentAction == t) {
+								NuklearManager.styledButton(ctx, NuklearMenuSystem.getDisabled(ctx, stack), () -> {
+									nk_button_text(ctx, t.toString());
+								});
+							} else {
+								if (nk_button_text(ctx, t.toString())) {
+									logger.trace(t.toString() + " has been clicked");
+									currentAction = t;
+								}
+							}
+
+						}
+
+						nk_layout_space_end(ctx);
+						nk_group_end(ctx);
+					}
+
+				}
+				nk_end(ctx);
+			}
 		}
 	}
 
