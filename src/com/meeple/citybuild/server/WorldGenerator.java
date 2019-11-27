@@ -29,7 +29,7 @@ public class WorldGenerator {
 		Large;
 	}
 
-	private static Map<TileTypes, Set<Tiles>> typesByTypes = new HashMap<>();
+	public static Map<TileTypes, Set<Tiles>> typesByTypes = new HashMap<>();
 
 	//TODO allow small kitchens to be put into buildings eg houses/factories
 	public static enum Tiles {
