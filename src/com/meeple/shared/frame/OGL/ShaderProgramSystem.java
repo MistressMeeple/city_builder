@@ -183,7 +183,7 @@ public class ShaderProgramSystem {
 	 * @param type shader type of shader to compile
 	 * @return generated ID of shader
 	 */
-	private int compileShader(String source, int type) {
+	public int compileShader(String source, int type) {
 		int shaderID = GL46.glCreateShader(type);
 		GL46.glShaderSource(shaderID, source);
 		GL46.glCompileShader(shaderID);
