@@ -214,13 +214,20 @@ public abstract class GameManager {
 		return result;
 	}
 
-	public Tile getTile(Chunk c, Vector3f worldCoords) {
+	public Tile getTile(Chunk c, Vector2i index) {
 		Tile result = null;
-		if (c != null) {
-			Vector2i index = new Vector2i(tileIndex(worldCoords.x), tileIndex(worldCoords.y));
+		if (index != null) {
 			result = c.tiles[index.x][index.y];
 		}
 		return result;
+	}
+
+	public Vector2i getTileIndex(Chunk c, Vector3f worldCoords) {
+		Vector2i index = null;
+		if (c != null) {
+			index = new Vector2i(tileIndex(worldCoords.x), tileIndex(worldCoords.y));
+		}
+		return index;
 	}
 
 	/**
