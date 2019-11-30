@@ -117,7 +117,7 @@ public interface ClientWindowSystem {
 
 	}
 
-	public class ClientWindow extends Window {
+	public static class ClientWindow extends Window {
 
 		public final Map<Integer, Boolean> keyPressMap = new CollectionSuppliers.MapSupplier<Integer, Boolean>().get();
 		public final Map<Integer, Long> keyPressTicks = new CollectionSuppliers.MapSupplier<Integer, Long>().get();
