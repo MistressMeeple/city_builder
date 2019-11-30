@@ -23,6 +23,10 @@ import org.lwjgl.opengl.GL42;
 import org.lwjgl.opengl.GL43;
 import org.lwjgl.opengl.GL46;
 
+import com.meeple.citybuild.server.WorldGenerator.TileTypes;
+import com.meeple.citybuild.server.WorldGenerator.Tiles;
+import com.meeple.shared.CollectionSuppliers;
+
 public class ShaderProgram {
 
 	protected static final int maxAttribDataSize = 4;
@@ -209,56 +213,10 @@ public class ShaderProgram {
 			return GLID;
 		}
 	}
-	/*
-		public static class ShaderProgramByteInstanceData extends ShaderProgramInstanceData {
-			public ByteBuffer buffer;
-			public byte[] data;
-		}
-	
-		public static class ShaderProgramShortInstanceData extends ShaderProgramInstanceData {
-			public ShortBuffer buffer;
-			public short[] data;
-		}
-	
-		public static class ShaderProgramIntInstanceData extends ShaderProgramInstanceData {
-			public IntBuffer buffer;
-			public int[] data;
-		}
-	
-		public static class ShaderProgramLongInstanceData extends ShaderProgramInstanceData {
-			public LongBuffer buffer;
-			public long[] data;
-		}
-	
-		public static class ShaderProgramFloatInstanceData extends ShaderProgramInstanceData {
-			public FloatBuffer buffer;
-			public float[] data;
-		}
-	
-		public static class ShaderProgramDoubleInstanceData extends ShaderProgramInstanceData {
-			public DoubleBuffer buffer;
-			public double[] data;
-	
-		}
-	
-		public static abstract class ShaderProgramInstanceData extends VBO {
-	
-			protected static final int defaultMaxInstances = 1000 * 1000;//1m
-			public int instanceStride;
-			public int target;
-			public int dataType;
-			public boolean normalised;
-			protected int currentWritePointer = 0;
-	
-			public int maxInstances = defaultMaxInstances;
-			public int instanceDataLength;
-			public final Set<WeakReference<Attribute>> shaderAttributes = Collections.synchronizedSet(new HashSet<>());
-	
-		}*/
 
 	public static class VAO {
 		public int VAOID = NULL;
-		public Set<VBO> VBOs = Collections.synchronizedSet(new HashSet<>());
+		public Set<VBO> VBOs = new CollectionSuppliers.SetSupplier<VBO>().get();
 		public boolean singleFrameDiscard = false;
 	}
 
@@ -280,7 +238,7 @@ public class ShaderProgram {
 		public GLDataType dataType;
 		public final AtomicBoolean update = new AtomicBoolean(true);
 		//		public final AtomicBoolean uploadBuffer = new AtomicBoolean(false);
-		public List<Number> data = new ArrayList<>();
+		public List<Number> data = new CollectionSuppliers.ListSupplier<Number>().get();
 		public Buffer buffer;
 	}
 
@@ -292,7 +250,7 @@ public class ShaderProgram {
 		/**
 		 * Stored as: instance stride - buffer ID
 		 */
-		public Map<Integer, Set<WeakReference<VBO>>> instanceAttributes = Collections.synchronizedMap(new HashMap<>());
+		public Map<Integer, Set<WeakReference<VBO>>> instanceAttributes = new CollectionSuppliers.MapSupplier<Integer, Set<WeakReference<VBO>>>().get();
 		public int renderCount = 1;
 		public boolean visible = true;
 	}
@@ -324,12 +282,12 @@ public class ShaderProgram {
 	/**
 	 * Once the program has been created, shader sources can only be obtained through the origianl method of getting it or by using {@link GL46#glGetShaderSource(int)}
 	 */
-	public final Map<GLShaderType, String> shaderSources = Collections.synchronizedMap(new HashMap<>());
-	public final Map<GLShaderType, Integer> shaderIDs = Collections.synchronizedMap(new HashMap<>());
+	public final Map<GLShaderType, String> shaderSources = new CollectionSuppliers.MapSupplier<GLShaderType, String>().get();
+	public final Map<GLShaderType, Integer> shaderIDs = new CollectionSuppliers.MapSupplier<GLShaderType, Integer>().get();
 
-	//	public final Map<Integer, ShaderProgramInstanceData> instances = Collections.synchronizedMap(new HashMap<>());
-	public final Set<VAO> VAOs = Collections.synchronizedSet(new HashSet<>());
-	//	protected final Set<BaseUniform<?, ?, ?>> uniforms = Collections.synchronizedSet(new HashSet<>());
-	public final Map<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>> uniformSystems = Collections.synchronizedMap(new HashMap<>());
+	public final Set<VAO> VAOs = new CollectionSuppliers.SetSupplier<VAO>().get();
+
+	public final Map<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>> uniformSystems =
+		new CollectionSuppliers.MapSupplier<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>>().get();
 
 }

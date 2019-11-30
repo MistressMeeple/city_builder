@@ -1,14 +1,13 @@
 package com.meeple.citybuild.server;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 import org.joml.Vector2i;
 
 import com.meeple.citybuild.server.LevelData.Chunk;
+import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.frame.FrameUtils;
-import com.meeple.shared.frame.FrameUtils.SyncSetSupplier;
 
 public class WorldGenerator {
 
@@ -29,7 +28,7 @@ public class WorldGenerator {
 		Large;
 	}
 
-	public static Map<TileTypes, Set<Tiles>> typesByTypes = new HashMap<>();
+	public static Map<TileTypes, Set<Tiles>> typesByTypes = new CollectionSuppliers.MapSupplier<TileTypes, Set<Tiles>>().get();
 
 	//TODO allow small kitchens to be put into buildings eg houses/factories
 	public static enum Tiles {
@@ -66,7 +65,7 @@ public class WorldGenerator {
 
 		private Tiles(TileTypes type) {
 			this.type = type;
-			FrameUtils.addToSetMap(typesByTypes, type, this, new SyncSetSupplier<>());
+			FrameUtils.addToSetMap(typesByTypes, type, this, new CollectionSuppliers.SetSupplier<>());
 		}
 
 	}

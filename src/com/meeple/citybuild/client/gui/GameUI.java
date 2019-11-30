@@ -4,6 +4,8 @@ import static org.lwjgl.nuklear.Nuklear.*;
 import static org.lwjgl.system.MemoryStack.*;
 
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.joml.Vector2f;
@@ -564,21 +566,24 @@ public class GameUI extends Screen {
 					if (nk_group_begin(ctx, "", 0)) {
 						nk_layout_space_begin(ctx, Nuklear.NK_STATIC, btnHeight, WorldGenerator.TileTypes.values().length);
 						int i = 0;
-
-						for (Tiles t : WorldGenerator.typesByTypes.getOrDefault(currentSubMenu, new HashSet<>())) {
-
-							nk_layout_space_push(ctx, nk_rect((btnWidth + btnSpacing) * i++, 0, btnWidth, btnHeight, NkRect.create()));
-							if (currentAction != null && currentAction == t) {
-								NuklearManager.styledButton(ctx, NuklearMenuSystem.getDisabled(ctx, stack), () -> {
-									nk_button_text(ctx, t.toString());
-								});
-							} else {
-								if (nk_button_text(ctx, t.toString())) {
-									logger.trace(t.toString() + " has been clicked");
-									currentAction = t;
+						Set<Tiles> tileSet = WorldGenerator.typesByTypes.get(currentSubMenu);
+						if (tileSet != null) {
+							synchronized (tileSet) {
+								for (Iterator<Tiles> it = tileSet.iterator(); it.hasNext();) {
+									Tiles t = it.next();
+									nk_layout_space_push(ctx, nk_rect((btnWidth + btnSpacing) * i++, 0, btnWidth, btnHeight, NkRect.create()));
+									if (currentAction != null && currentAction == t) {
+										NuklearManager.styledButton(ctx, NuklearMenuSystem.getDisabled(ctx, stack), () -> {
+											nk_button_text(ctx, t.toString());
+										});
+									} else {
+										if (nk_button_text(ctx, t.toString())) {
+											logger.trace(t.toString() + " has been clicked");
+											currentAction = t;
+										}
+									}
 								}
 							}
-
 						}
 
 						nk_layout_space_end(ctx);

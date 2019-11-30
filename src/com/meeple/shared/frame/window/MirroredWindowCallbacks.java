@@ -1,7 +1,5 @@
 package com.meeple.shared.frame.window;
 
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -24,6 +22,8 @@ import org.lwjgl.glfw.GLFWWindowRefreshCallbackI;
 import org.lwjgl.glfw.GLFWWindowSizeCallbackI;
 import org.lwjgl.opengl.GLDebugMessageCallbackI;
 
+import com.meeple.shared.CollectionSuppliers;
+
 public class MirroredWindowCallbacks {
 
 	protected GLFWCharCallbackI charCallback;
@@ -45,24 +45,24 @@ public class MirroredWindowCallbacks {
 	protected GLFWWindowSizeCallbackI windowSizeCallback;
 	protected GLDebugMessageCallbackI debugMessageCallback;
 
-	public Set<GLFWCharCallbackI> charCallbackSet = Collections.synchronizedSet(new HashSet<>());
-	public Set<GLFWCharModsCallbackI> charModsCallbackSet = Collections.synchronizedSet(new HashSet<>());
-	public Set<GLFWCursorEnterCallbackI> cursorEnterCallbackSet = Collections.synchronizedSet(new HashSet<>());
-	public Set<GLFWCursorPosCallbackI> cursorPosCallbackSet = Collections.synchronizedSet(new HashSet<>());
-	public Set<GLFWDropCallbackI> dropCallbackSet = Collections.synchronizedSet(new HashSet<>());
-	public Set<GLFWFramebufferSizeCallbackI> frameBufferSizeCallbackSet = Collections.synchronizedSet(new HashSet<>());
-	public Set<GLFWKeyCallbackI> keyCallbackSet = Collections.synchronizedSet(new HashSet<>());
-	public Set<GLFWMouseButtonCallbackI> mouseButtonCallbackSet = Collections.synchronizedSet(new HashSet<>());
-	public Set<GLFWScrollCallbackI> scrollCallbackSet = Collections.synchronizedSet(new HashSet<>());
-	public Set<GLFWWindowCloseCallbackI> windowCloseCallbackSet = Collections.synchronizedSet(new HashSet<>());
-	public Set<GLFWWindowContentScaleCallbackI> windowContentScaleCallbackSet = Collections.synchronizedSet(new HashSet<>());
-	public Set<GLFWWindowFocusCallbackI> windowFocusCallbackSet = Collections.synchronizedSet(new HashSet<>());
-	public Set<GLFWWindowIconifyCallbackI> windowIconifyCallbackSet = Collections.synchronizedSet(new HashSet<>());
-	public Set<GLFWWindowMaximizeCallbackI> windowMaximizeCallbackSet = Collections.synchronizedSet(new HashSet<>());
-	public Set<GLFWWindowPosCallbackI> windowPosCallbackSet = Collections.synchronizedSet(new HashSet<>());
-	public Set<GLFWWindowRefreshCallbackI> windowRefreshCallbackSet = Collections.synchronizedSet(new HashSet<>());
-	public Set<GLFWWindowSizeCallbackI> windowSizeCallbackSet = Collections.synchronizedSet(new HashSet<>());
-	public Set<GLDebugMessageCallbackI> debugMessageCallbackSet = Collections.synchronizedSet(new HashSet<>());
+	public Set<GLFWCharCallbackI> charCallbackSet = new CollectionSuppliers.SetSupplier<GLFWCharCallbackI>().get();
+	public Set<GLFWCharModsCallbackI> charModsCallbackSet = new CollectionSuppliers.SetSupplier<GLFWCharModsCallbackI>().get();
+	public Set<GLFWCursorEnterCallbackI> cursorEnterCallbackSet = new CollectionSuppliers.SetSupplier<GLFWCursorEnterCallbackI>().get();
+	public Set<GLFWCursorPosCallbackI> cursorPosCallbackSet = new CollectionSuppliers.SetSupplier<GLFWCursorPosCallbackI>().get();
+	public Set<GLFWDropCallbackI> dropCallbackSet = new CollectionSuppliers.SetSupplier<GLFWDropCallbackI>().get();
+	public Set<GLFWFramebufferSizeCallbackI> frameBufferSizeCallbackSet = new CollectionSuppliers.SetSupplier<GLFWFramebufferSizeCallbackI>().get();
+	public Set<GLFWKeyCallbackI> keyCallbackSet = new CollectionSuppliers.SetSupplier<GLFWKeyCallbackI>().get();
+	public Set<GLFWMouseButtonCallbackI> mouseButtonCallbackSet = new CollectionSuppliers.SetSupplier<GLFWMouseButtonCallbackI>().get();
+	public Set<GLFWScrollCallbackI> scrollCallbackSet = new CollectionSuppliers.SetSupplier<GLFWScrollCallbackI>().get();
+	public Set<GLFWWindowCloseCallbackI> windowCloseCallbackSet = new CollectionSuppliers.SetSupplier<GLFWWindowCloseCallbackI>().get();
+	public Set<GLFWWindowContentScaleCallbackI> windowContentScaleCallbackSet = new CollectionSuppliers.SetSupplier<GLFWWindowContentScaleCallbackI>().get();
+	public Set<GLFWWindowFocusCallbackI> windowFocusCallbackSet = new CollectionSuppliers.SetSupplier<GLFWWindowFocusCallbackI>().get();
+	public Set<GLFWWindowIconifyCallbackI> windowIconifyCallbackSet = new CollectionSuppliers.SetSupplier<GLFWWindowIconifyCallbackI>().get();
+	public Set<GLFWWindowMaximizeCallbackI> windowMaximizeCallbackSet = new CollectionSuppliers.SetSupplier<GLFWWindowMaximizeCallbackI>().get();
+	public Set<GLFWWindowPosCallbackI> windowPosCallbackSet = new CollectionSuppliers.SetSupplier<GLFWWindowPosCallbackI>().get();
+	public Set<GLFWWindowRefreshCallbackI> windowRefreshCallbackSet = new CollectionSuppliers.SetSupplier<GLFWWindowRefreshCallbackI>().get();
+	public Set<GLFWWindowSizeCallbackI> windowSizeCallbackSet = new CollectionSuppliers.SetSupplier<GLFWWindowSizeCallbackI>().get();
+	public Set<GLDebugMessageCallbackI> debugMessageCallbackSet = new CollectionSuppliers.SetSupplier<GLDebugMessageCallbackI>().get();
 
 	public MirroredWindowCallbacks() {
 

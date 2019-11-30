@@ -109,41 +109,42 @@ public class NuklearManager {
 
 	}
 
-	private void renderGUIs(NkContextSingleton context, Window window, Collection<NuklearUIComponent> uis) {
-		Object o = null;
-		if (uis != null && !uis.isEmpty()) {
-			synchronized (uis) {
-				Iterator<NuklearUIComponent> i = uis.iterator();
-				while (i.hasNext()) {
-					NuklearUIComponent ui = i.next();
-					if (ui.visible) {
-						try (MemoryStack stack = stackPush()) {
-							BiConsumer<NkContext, MemoryStack> r = ui.preRender;
-							if (r != null) {
-								r.accept(context.context, stack);
+	/*
+		private void renderGUIs(NkContextSingleton context, Window window, Collection<NuklearUIComponent> uis) {
+			Object o = null;
+			if (uis != null && !uis.isEmpty()) {
+				synchronized (uis) {
+					Iterator<NuklearUIComponent> i = uis.iterator();
+					while (i.hasNext()) {
+						NuklearUIComponent ui = i.next();
+						if (ui.visible) {
+							try (MemoryStack stack = stackPush()) {
+								BiConsumer<NkContext, MemoryStack> r = ui.preRender;
+								if (r != null) {
+									r.accept(context.context, stack);
+								}
+								NkRect rect = NkRect.mallocStack(stack);
+	
+								if (nk_begin(
+									context.context,
+									ui.title,
+									nk_rect(ui.bounds.posX, ui.bounds.posY, ui.bounds.width, ui.bounds.height, rect),
+									NkWindowProperties.flags(ui.properties))) {
+									ui.render.accept(context.context, stack);
+								}
+								if (nk_window_has_focus(context.context)) {
+									o = ui;
+								}
+								nk_end(context.context);
 							}
-							NkRect rect = NkRect.mallocStack(stack);
-
-							if (nk_begin(
-								context.context,
-								ui.title,
-								nk_rect(ui.bounds.posX, ui.bounds.posY, ui.bounds.width, ui.bounds.height, rect),
-								NkWindowProperties.flags(ui.properties))) {
-								ui.render.accept(context.context, stack);
-							}
-							if (nk_window_has_focus(context.context)) {
-								o = ui;
-							}
-							nk_end(context.context);
+	
 						}
-
 					}
 				}
 			}
+			window.currentFocus = o;
 		}
-		window.currentFocus = o;
-	}
-
+	*/
 	public void create(ClientWindow window, Map<String, NuklearUIComponent> windows) {
 
 		addWindowCallbacks(window.nkContext, window);

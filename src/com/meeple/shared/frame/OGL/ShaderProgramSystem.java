@@ -32,6 +32,7 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL46;
 import org.lwjgl.system.MemoryStack;
 
+import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.FileLoader;
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
@@ -145,7 +146,7 @@ public class ShaderProgramSystem {
 	 */
 	public static Map<GLShaderType, Integer> compileShaders(Map<GLShaderType, String> shaderMap) {
 		Set<Entry<GLShaderType, String>> sources = shaderMap.entrySet();
-		Map<GLShaderType, Integer> shaderIDs = Collections.synchronizedMap(new HashMap<>());
+		Map<GLShaderType, Integer> shaderIDs = new CollectionSuppliers.MapSupplier<GLShaderType, Integer>().get();
 		synchronized (shaderMap) {
 			Iterator<Entry<GLShaderType, String>> i = sources.iterator();
 			while (i.hasNext()) {
@@ -462,20 +463,13 @@ public class ShaderProgramSystem {
 		Map<UniformManager<?, ?>.Uniform<?>, List<?>> uniformList = program.uniformSystems.get(system);
 
 		if (uniformList == null) {
-			uniformList = new HashMap<>();
+			uniformList = new CollectionSuppliers.MapSupplier<UniformManager<?, ?>.Uniform<?>, List<?>>().get();
 		}
 		List<?> queue = uniformList.getOrDefault(uniform, new ArrayList<>());
 		uniformList.put(uniform, queue);
 		program.uniformSystems.put(system, uniformList);
 	}
 
-	@Deprecated
-	public static <Name, ID> void addUniformSystem(ShaderProgram program, UniformManager<Name, ID> system) {
-		Map<UniformManager<?, ?>.Uniform<?>, List<?>> set = program.uniformSystems.get(system);
-		if (set == null) {
-			program.uniformSystems.put(system, new HashMap<>());
-		}
-	}
 
 	public static <Name, ID, T> void queueUniformUpload(ShaderProgram program, UniformManager<Name, ID> manager, UniformManager<Name, ID>.Uniform<T> uniform, T object) {
 		Map<UniformManager<?, ?>.Uniform<?>, List<?>> uniforms = program.uniformSystems.get(manager);

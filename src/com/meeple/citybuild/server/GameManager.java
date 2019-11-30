@@ -19,6 +19,7 @@ import org.joml.Vector3f;
 
 import com.meeple.citybuild.server.LevelData.Chunk;
 import com.meeple.citybuild.server.LevelData.Chunk.Tile;
+import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.Delta;
 import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.wrapper.Wrapper;
@@ -238,7 +239,7 @@ public abstract class GameManager {
 	 * @return set of entities found
 	 */
 	public Set<Entity> getEntities(Vector3f worldCoords, float radius) {
-		Set<Entity> result = new HashSet<>();
+		Set<Entity> result = new CollectionSuppliers.SetSupplier<Entity>().get();
 		for (Entity e : level.entities) {
 			if (e.position.distance(worldCoords) <= radius) {
 				result.add(e);

@@ -44,6 +44,7 @@ import org.lwjgl.system.MemoryStack;
 import com.meeple.citybuild.client.render.Screen;
 import com.meeple.shared.ClientOptionSystem;
 import com.meeple.shared.ClientOptions;
+import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.Delta;
 import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.GLFWThread;
@@ -122,22 +123,22 @@ public interface ClientWindowSystem {
 
 	public class ClientWindow extends Window {
 
-		public final Map<Integer, Boolean> keyPressMap = new HashMap<>();
-		public final Map<Integer, Long> keyPressTicks = new HashMap<>();
-		public final Map<Integer, Boolean> mousePressMap = new HashMap<>();
-		public final Map<Integer, Long> mousePressTicks = new HashMap<>();
+		public final Map<Integer, Boolean> keyPressMap = new CollectionSuppliers.MapSupplier<Integer, Boolean>().get();
+		public final Map<Integer, Long> keyPressTicks = new CollectionSuppliers.MapSupplier<Integer, Long>().get();
+		public final Map<Integer, Boolean> mousePressMap = new CollectionSuppliers.MapSupplier<Integer, Boolean>().get();
+		public final Map<Integer, Long> mousePressTicks = new CollectionSuppliers.MapSupplier<Integer, Long>().get();
 		//		KeyInputSystem keyInput = new KeyInputSystem();
 		//		NkContextSingleton nkContext = new NkContextSingleton();
 		//		CustomMenuSystem menuSystem = new CustomMenuSystem();
-		public Map<String, NuklearUIComponent> registeredNuklear = Collections.synchronizedMap(new HashMap<>());
-		public List<NuklearUIComponent> menuQueue = Collections.synchronizedList(new ArrayList<>());
+		public Map<String, NuklearUIComponent> registeredNuklear = new CollectionSuppliers.MapSupplier<String, NuklearUIComponent>().get();
+		public List<NuklearUIComponent> menuQueue = new CollectionSuppliers.ListSupplier<NuklearUIComponent>().get();
 		public final FrameTimeManager eventTimeManager = new FrameTimeManager();
 		public final FrameTimeManager renderTimeManager = new FrameTimeManager();
 		public final NkContextSingleton nkContext = new NkContextSingleton();
 		public final Screen render = new Screen() {
 			@Override
 			public void render(ClientWindow window, Delta delta) {
-				
+
 			}
 		};
 
@@ -150,7 +151,7 @@ public interface ClientWindowSystem {
 			this.queueChangeCursorType.setWrapped(cursor);
 		}
 
-		public Set<BiConsumer<WindowEvent, Object>> eventListeners = Collections.synchronizedSet(new HashSet<>());
+		public Set<BiConsumer<WindowEvent, Object>> eventListeners = new CollectionSuppliers.SetSupplier<BiConsumer<WindowEvent, Object>>().get();
 
 		public void sendEvent(WindowEvent eventType) {
 			sendEvent(eventType, null);
@@ -163,7 +164,7 @@ public interface ClientWindowSystem {
 
 		public boolean hasAudio = false;
 		public long audioDevice;
-		public final Set<Integer> audioSources = new HashSet<>();
+		public final Set<Integer> audioSources = new CollectionSuppliers.SetSupplier<Integer>().get();
 
 	}
 

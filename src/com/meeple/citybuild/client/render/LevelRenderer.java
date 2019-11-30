@@ -23,6 +23,7 @@ import com.meeple.citybuild.server.LevelData.Chunk;
 import com.meeple.citybuild.server.LevelData.Chunk.Tile;
 import com.meeple.citybuild.server.WorldGenerator.TileTypes;
 import com.meeple.citybuild.server.WorldGenerator.Tiles;
+import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.Tickable;
 import com.meeple.shared.frame.CursorHelper;
 import com.meeple.shared.frame.CursorHelper.SpaceState;
@@ -133,8 +134,8 @@ public class LevelRenderer {
 
 	}
 
-	Map<Chunk, MeshExt> baked = new HashMap<>();
-	Map<TileTypes, Map<String, MeshExt>> tileMeshes = new HashMap<>();
+	Map<Chunk, MeshExt> baked = new CollectionSuppliers.MapSupplier<Chunk, MeshExt>().get();
+	Map<TileTypes, Map<String, MeshExt>> tileMeshes = new CollectionSuppliers.MapSupplier<TileTypes, Map<String, MeshExt>>().get();
 
 	private void bakeTile(Tile tile) {
 		switch (tile.type) {

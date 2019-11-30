@@ -1,6 +1,5 @@
 package com.meeple.shared;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import com.meeple.shared.ClientOptionSystem.Delimeter;
@@ -30,11 +29,11 @@ public class ClientOptions {
 
 	}
 
-	protected Map<Delimeter, Map<String, Object>> options = new HashMap<>();
+	protected Map<Delimeter, Map<String, Object>> options = new CollectionSuppliers.MapSupplier<Delimeter, Map<String, Object>>().get();
 
 	public ClientOptions() {
 		for (Delimeter d : Delimeter.values()) {
-			options.put(d, new HashMap<>());
+			options.put(d, new CollectionSuppliers.MapSupplier<String, Object>().get());
 		}
 
 	}

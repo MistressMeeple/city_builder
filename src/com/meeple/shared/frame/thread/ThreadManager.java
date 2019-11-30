@@ -1,11 +1,11 @@
 package com.meeple.shared.frame.thread;
 
 import java.lang.Thread.UncaughtExceptionHandler;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
+import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.wrapper.Wrapper;
 import com.meeple.shared.frame.wrapper.WrapperImpl;
@@ -14,8 +14,8 @@ public class ThreadManager {
 	public static class Builder {
 		ThreadCloseManager quit;
 		UncaughtExceptionHandler exceptionHandler;
-		Set<BiConsumer<Long, Float>> timedConsumers = new HashSet<>();
-		Set<Runnable> untimedConsumers = new HashSet<>();
+		Set<BiConsumer<Long, Float>> timedConsumers = new CollectionSuppliers.SetSupplier<BiConsumer<Long, Float>>().get();
+		Set<Runnable> untimedConsumers = new CollectionSuppliers.SetSupplier<Runnable>().get();
 
 		public Builder() {
 

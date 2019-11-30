@@ -12,7 +12,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.joml.Vector2i;
 
 import com.meeple.citybuild.server.Buildings.BuildingInstance;
+import com.meeple.citybuild.server.LevelData.Chunk.Tile;
 import com.meeple.citybuild.server.WorldGenerator.Tiles;
+import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.frame.component.FrameTimeManager;
 
 public class LevelData implements Serializable {
@@ -39,24 +41,24 @@ public class LevelData implements Serializable {
 	/**
 	 * Chunk storage
 	 */
-	public Map<Vector2i, Chunk> chunks = Collections.synchronizedMap(new HashMap<>());
+	public Map<Vector2i, Chunk> chunks = new CollectionSuppliers.MapSupplier<Vector2i,Chunk>().get();
 	/**
 	 * Holds the "dictionary" of all the tile types. <br>
 	 * This is usually populated at the world generation and never touched.
 	 */
-	public Map<Byte, Object> tileTypes = Collections.synchronizedMap(new HashMap<>());
+	public Map<Byte, Object> tileTypes = new CollectionSuppliers.MapSupplier<Byte,Object>().get();
 	/**
 	 * ID indexed map of all the unique buildings. <br>
 	 * This is added to as soon as a new building is placed. 
 	 */
-	public Map<Byte, BuildingInstance> buildings = Collections.synchronizedMap(new HashMap<>());
+	public Map<Byte, BuildingInstance> buildings = new CollectionSuppliers.MapSupplier<Byte,BuildingInstance>().get();
 	/**
 	 * All the entities 
 	 */
-	public Set<Entity> entities = Collections.synchronizedSet(new HashSet<>());
+	public Set<Entity> entities = new CollectionSuppliers.SetSupplier<Entity>().get();
 
 	public class PlayerData {
-		Map<Buildings, Boolean> unlocked = Collections.synchronizedMap(new HashMap<>());
+		Map<Buildings, Boolean> unlocked = new CollectionSuppliers.MapSupplier<Buildings,Boolean>().get();
 	}
 
 	/**

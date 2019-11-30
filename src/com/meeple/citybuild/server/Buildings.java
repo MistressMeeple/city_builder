@@ -9,6 +9,7 @@ import org.joml.Vector2f;
 import org.joml.Vector2i;
 
 import com.meeple.citybuild.server.LevelData.Chunk.Tile;
+import com.meeple.shared.CollectionSuppliers;
 
 public class Buildings {
 
@@ -166,7 +167,7 @@ public class Buildings {
 		private static final long serialVersionUID = -2650642460711317618L;
 		public int currentPeople = 0;
 		//dont save as these are soft references
-		transient public Set<Tile> tiles = new HashSet<>();
+		transient public Set<Tile> tiles = new CollectionSuppliers.SetSupplier<Tile>().get();
 
 	}
 

@@ -47,6 +47,7 @@ import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.Callback;
 import org.lwjgl.system.MemoryStack;
 
+import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem;
@@ -453,9 +454,9 @@ public class ModelLoader {
 			}
 			if (false) {
 				AINode root = scene.mRootNode();
-				Set<Model> models = new HashSet<>();
-				recursivelyReadNode(root, models, meshes, 0);
-				logger.trace(meshes.size());
+				Set<Model> models;
+				//				recursivelyReadNode(root, models, meshes, 0);
+				//				logger.trace(meshes.size());
 			}
 		}
 
@@ -543,7 +544,7 @@ public class ModelLoader {
 			/**key: Mesh index <br>
 			 * value: material index<br>
 			 */
-			Set<Integer> meshMaterials = new HashSet<>();
+			Set<Integer> meshMaterials = new CollectionSuppliers.SetSupplier<Integer>().get();
 			Matrix4f modelTranslation = new Matrix4f();
 			String name;
 

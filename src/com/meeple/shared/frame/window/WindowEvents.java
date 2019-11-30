@@ -1,32 +1,30 @@
 package com.meeple.shared.frame.window;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.Tickable;
 
 public class WindowEvents {
 
-	public Set<Runnable> frameStart = Collections.synchronizedSet(new HashSet<>());
-	public Set<Runnable> preClear = Collections.synchronizedSet(new HashSet<>());
-	public List<Tickable> render = Collections.synchronizedList(new ArrayList<>());
-	public List<Tickable> postRender = Collections.synchronizedList(new ArrayList<>());
-	public Set<Runnable> frameEnd = Collections.synchronizedSet(new HashSet<>());
+	public Set<Runnable> frameStart = new CollectionSuppliers.SetSupplier<Runnable>().get();
+	public Set<Runnable> preClear = new CollectionSuppliers.SetSupplier<Runnable>().get();
+	public List<Tickable> render = new CollectionSuppliers.ListSupplier<Tickable>().get();
+	public List<Tickable> postRender = new CollectionSuppliers.ListSupplier<Tickable>().get();
+	public Set<Runnable> frameEnd = new CollectionSuppliers.SetSupplier<Runnable>().get();
 
-	public Set<Runnable> preCreation = Collections.synchronizedSet(new HashSet<>());
-	public Set<Runnable> postCreation = Collections.synchronizedSet(new HashSet<>());
+	public Set<Runnable> preCreation = new CollectionSuppliers.SetSupplier<Runnable>().get();
+	public Set<Runnable> postCreation = new CollectionSuppliers.SetSupplier<Runnable>().get();
 
-	public Set<Runnable> preCleanup = Collections.synchronizedSet(new HashSet<>());
-	public Set<Runnable> postCleanup = Collections.synchronizedSet(new HashSet<>());
+	public Set<Runnable> preCleanup = new CollectionSuppliers.SetSupplier<Runnable>().get();
+	public Set<Runnable> postCleanup = new CollectionSuppliers.SetSupplier<Runnable>().get();
 
-	public Set<Runnable> preThreadStart = Collections.synchronizedSet(new HashSet<>());
+	public Set<Runnable> preThreadStart = new CollectionSuppliers.SetSupplier<Runnable>().get();
 	/**
 	 * called AFTER capabilities have been set
 	 */
-	public Set<Runnable> postThreadStart = Collections.synchronizedSet(new HashSet<>());
-	public Set<Runnable> threadEnd = Collections.synchronizedSet(new HashSet<>());
+	public Set<Runnable> postThreadStart = new CollectionSuppliers.SetSupplier<Runnable>().get();
+	public Set<Runnable> threadEnd = new CollectionSuppliers.SetSupplier<Runnable>().get();
 
 }

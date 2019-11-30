@@ -36,7 +36,7 @@ public class Window  implements HasBounds2D, NamedComponent, IDComponent<Long> {
 	 * Normally which nuklear window has focus 
 	 */
 	public transient Object currentFocus = null;
-	//	public final Map<String, Object> properties = new HashMap<>();
+
 
 	@Override
 	public Bounds2DComponent getBounds2DComponent() {

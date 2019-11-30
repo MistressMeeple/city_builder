@@ -36,15 +36,6 @@ public class FrameUtils {
 
 	public static float TWOPI = (float) (Math.PI * 2f);
 
-	public static final class SyncSetSupplier<T> implements Supplier<Set<T>> {
-
-		@Override
-		public Set<T> get() {
-			return Collections.synchronizedSet(new HashSet<>());
-		}
-
-	}
-
 	public static void iterateRunnable(Collection<Runnable> set, boolean remove) {
 
 		if (set != null && !set.isEmpty()) {

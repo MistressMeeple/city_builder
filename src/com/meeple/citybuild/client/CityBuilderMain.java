@@ -80,7 +80,6 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 
 		ClientWindowSystem.setupWindow(window, keyInput, window.nkContext, optionsSystem);
-		//		Map<WindowState, Set<Tickable>> stateRendering = new HashMap<>();
 
 		VPMatrix vpMatrix = new VPMatrix();
 		CameraSpringArm arm = vpMatrix.view.getWrapped().springArm;

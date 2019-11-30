@@ -6,7 +6,6 @@ import static org.lwjgl.opengl.GL11.glClearColor;
 import static org.lwjgl.opengl.GL11C.glViewport;
 import static org.lwjgl.system.MemoryStack.*;
 
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -18,6 +17,7 @@ import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.Callback;
 import org.lwjgl.system.MemoryStack;
 
+import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.Delta;
 import com.meeple.shared.frame.component.FrameTimeManager;
 import com.meeple.shared.frame.window.Window;
@@ -31,7 +31,7 @@ public class GLFWThread extends Thread {
 	AtomicInteger quit;
 	FrameTimeManager frameTimeManager;
 	Callback debugProc;
-	Set<Runnable> runnables = new HashSet<>();
+	Set<Runnable> runnables = new CollectionSuppliers.SetSupplier<Runnable>().get();
 
 	public GLFWThread(Window window, AtomicInteger quit, FrameTimeManager frameTimeManager, boolean enableDebug, Runnable... runnables) {
 		this.window = window;

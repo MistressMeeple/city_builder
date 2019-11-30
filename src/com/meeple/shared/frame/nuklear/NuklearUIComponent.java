@@ -1,19 +1,14 @@
 package com.meeple.shared.frame.nuklear;
 
-import static org.lwjgl.nuklear.Nuklear.*;
-import static org.lwjgl.system.MemoryStack.*;
-
-import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import org.lwjgl.nuklear.NkContext;
-import org.lwjgl.nuklear.NkRect;
 import org.lwjgl.system.MemoryStack;
 
+import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.frame.component.Bounds2DComponent;
 import com.meeple.shared.frame.component.HasBounds2D;
 
@@ -34,10 +29,9 @@ public class NuklearUIComponent implements HasBounds2D {
 	 * Whether or not the component is a menu or a game element
 	 */
 	public boolean isMenuElement = true;
-	//	public final Map<String, Object> additionalProperties = new HashMap<>();
 
-	public Set<Runnable> open = Collections.synchronizedSet(new HashSet<>());
-	public Set<Consumer<NuklearUIComponent>> close = Collections.synchronizedSet(new HashSet<>());
+	public Set<Runnable> open = new CollectionSuppliers.SetSupplier<Runnable>().get();
+	public Set<Consumer<NuklearUIComponent>> close = new CollectionSuppliers.SetSupplier<Consumer<NuklearUIComponent>>().get();
 	public boolean hasFocus = false;
 
 	@Override
