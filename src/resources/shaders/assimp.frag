@@ -11,6 +11,7 @@ uniform vec3 uSpecularColor;
 
 in vec3 vPosition;
 in vec3 vNormal;
+in int vMaterialIndex;
 out lowp vec4 outColour;
 
 void main() {

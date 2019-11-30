@@ -64,7 +64,7 @@ public class ModelLoader {
 
 	private static String debugLayout = "[%r][%d{HH:mm:ss:SSS}][%t][%p] (%F:%L) %m%n";
 
-	public static void main(String[] args) {
+	public static void main(String[] args)  {
 		Logger.getRootLogger().setLevel(org.apache.log4j.Level.ALL);
 		Appender a = new ConsoleAppender(new PatternLayout(debugLayout));
 		BasicConfigurator.configure(a);
@@ -85,6 +85,7 @@ public class ModelLoader {
 	int vertexAttribute;
 	int normalAttribute;
 	int modelMatrixUniform;
+//	int materialIndexAttrib;
 	//vertex shader uniforms
 	int viewProjectionMatrixUniform;
 	int normalMatrixUniform;
@@ -118,6 +119,36 @@ public class ModelLoader {
 	GLFWCursorPosCallback cpCallback;
 	GLFWScrollCallback sCallback;
 	Callback debugProc;
+
+	void loop() {
+		while (!glfwWindowShouldClose(window)) {
+			glfwPollEvents();
+			glViewport(0, 0, fbWidth, fbHeight);
+			update();
+			render();
+			glfwSwapBuffers(window);
+		}
+	}
+
+	void run() {
+		try {
+			init();
+			loop();
+			scene.free();
+			if (debugProc != null) {
+				debugProc.free();
+			}
+			cpCallback.free();
+			keyCallback.free();
+			fbCallback.free();
+			wsCallback.free();
+			glfwDestroyWindow(window);
+		} catch (Throwable t) {
+			t.printStackTrace();
+		} finally {
+			glfwTerminate();
+		}
+	}
 
 	void init() throws IOException {
 
@@ -260,8 +291,12 @@ public class ModelLoader {
 		glUseProgramObjectARB(program.programID);
 		vertexAttribute = glGetAttribLocationARB(program.programID, "vertex");
 		glEnableVertexAttribArrayARB(vertexAttribute);
+
 		normalAttribute = glGetAttribLocationARB(program.programID, "normal");
 		glEnableVertexAttribArrayARB(normalAttribute);
+
+//		materialIndexAttrib = glGetAttribLocationARB(program.programID, "materialIndex");
+//		glEnableVertexAttribArrayARB(materialIndexAttrib);
 
 		modelMatrixUniform = glGetUniformLocationARB(program.programID, "modelMatrix");
 
@@ -333,6 +368,10 @@ public class ModelLoader {
 			glBindBufferARB(GL_ARRAY_BUFFER_ARB, mesh.normalArrayBuffer);
 			glVertexAttribPointerARB(normalAttribute, 3, GL_FLOAT, false, 0, 0);
 
+//			glBindBufferARB(GL_ARRAY_BUFFER_ARB, mesh.materialIndexBuffer);
+//			glVertexAttribPointerARB(materialIndexAttrib, 1, GL_INT, false, 0, 0);
+//			glBufferDataARB(GL_ARRAY_BUFFER_ARB, new int[] { mesh.materialIndexBuffer }, GL_STATIC_DRAW_ARB);
+
 			glUniformMatrix4fvARB(modelMatrixUniform, false, modelMatrix.get(modelMatrixBuffer));
 
 			glUniformMatrix4fvARB(viewProjectionMatrixUniform, false, viewProjectionMatrix.get(viewProjectionMatrixBuffer));
@@ -393,36 +432,6 @@ public class ModelLoader {
 		data[(index * 4) + 9] = specular.g();
 		data[(index * 4) + 10] = specular.b();
 		data[(index * 4) + 11] = specular.a();
-	}
-
-	void loop() {
-		while (!glfwWindowShouldClose(window)) {
-			glfwPollEvents();
-			glViewport(0, 0, fbWidth, fbHeight);
-			update();
-			render();
-			glfwSwapBuffers(window);
-		}
-	}
-
-	void run() {
-		try {
-			init();
-			loop();
-			scene.free();
-			if (debugProc != null) {
-				debugProc.free();
-			}
-			cpCallback.free();
-			keyCallback.free();
-			fbCallback.free();
-			wsCallback.free();
-			glfwDestroyWindow(window);
-		} catch (Throwable t) {
-			t.printStackTrace();
-		} finally {
-			glfwTerminate();
-		}
 	}
 
 	static class Scene {
@@ -552,6 +561,7 @@ public class ModelLoader {
 		public static class Mesh {
 
 			public long mesh;
+			public int materialIndexBuffer;
 			public int vertexArrayBuffer;
 			public int normalArrayBuffer;
 			public int elementArrayBuffer;
@@ -559,6 +569,13 @@ public class ModelLoader {
 
 			public Mesh(AIMesh mesh) {
 				this.mesh = mesh.address();
+
+				//TODO IMPLIMENT MATERIAL INDEX BUFFER
+
+				materialIndexBuffer = glGenBuffersARB();
+				glBindBufferARB(GL_ARRAY_BUFFER_ARB, materialIndexBuffer);
+				int matIndex = mesh.mMaterialIndex();
+				glBufferDataARB(GL_ARRAY_BUFFER_ARB, new int[] { matIndex }, GL_STATIC_DRAW_ARB);
 
 				vertexArrayBuffer = glGenBuffersARB();
 				glBindBufferARB(GL_ARRAY_BUFFER_ARB, vertexArrayBuffer);
