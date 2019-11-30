@@ -16,7 +16,7 @@ uniform highp mat4 viewMatrix;
 uniform highp mat4 vpMatrix;
 
 void main(void){
-	vec4 worldPos = vec4(position + offset, 1);
+	vec4 worldPos = vec4(position + offset	, 1);
 	vec4 pos =  vpMatrix * worldPos;
 	gl_Position =  pos;
 	passColour = colour;
