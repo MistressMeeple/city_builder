@@ -1,9 +1,6 @@
 package com.meeple.citybuild.server;
 
 import java.io.Serializable;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -12,7 +9,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.joml.Vector2i;
 
 import com.meeple.citybuild.server.Buildings.BuildingInstance;
-import com.meeple.citybuild.server.LevelData.Chunk.Tile;
 import com.meeple.citybuild.server.WorldGenerator.Tiles;
 import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.frame.component.FrameTimeManager;

@@ -3,10 +3,6 @@ package com.meeple.shared.frame.OGL;
 import java.lang.ref.WeakReference;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,8 +19,6 @@ import org.lwjgl.opengl.GL42;
 import org.lwjgl.opengl.GL43;
 import org.lwjgl.opengl.GL46;
 
-import com.meeple.citybuild.server.WorldGenerator.TileTypes;
-import com.meeple.citybuild.server.WorldGenerator.Tiles;
 import com.meeple.shared.CollectionSuppliers;
 
 public class ShaderProgram {

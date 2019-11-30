@@ -2,7 +2,6 @@ package com.meeple.citybuild.server;
 
 import java.io.Serializable;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.Set;
 
 import org.joml.Vector2f;

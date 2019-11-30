@@ -1,6 +1,5 @@
 package com.meeple.citybuild.client.render;
 
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -30,10 +29,10 @@ import com.meeple.shared.frame.CursorHelper.SpaceState;
 import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.OGL.KeyInputSystem;
 import com.meeple.shared.frame.OGL.ShaderProgram;
-import com.meeple.shared.frame.OGL.ShaderProgramSystem;
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
+import com.meeple.shared.frame.OGL.ShaderProgramSystem;
 import com.meeple.shared.frame.OGL.UniformManager;
 import com.meeple.shared.frame.camera.VPMatrixSystem;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem;

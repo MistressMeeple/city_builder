@@ -3,7 +3,6 @@ package com.meeple.citybuild.client.gui;
 import static org.lwjgl.nuklear.Nuklear.*;
 import static org.lwjgl.system.MemoryStack.*;
 
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
