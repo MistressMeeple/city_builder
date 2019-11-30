@@ -73,14 +73,14 @@ public class GLFWThread extends Thread {
 		Delta delta = new Delta();
 		while (quit.get() > 0 && !window.shouldClose && !Thread.currentThread().isInterrupted() && !window.hasClosed && !GLFW.glfwWindowShouldClose(window.getID())) {
 			///Time management
-			long curr = System.nanoTime();
+			if (true) {
+				long curr = System.nanoTime();
+				delta.nanos = curr - prev.getWrappedOrDefault(curr);
+				delta.seconds = FrameUtils.nanosToSeconds(delta.nanos);
+				delta.totalNanos += delta.nanos;
 
-			delta.nanos = curr - prev.getWrappedOrDefault(curr);
-			delta.seconds = FrameUtils.nanosToSeconds(delta.nanos);
-			delta.totalNanos += delta.nanos;
-
-			prev.setWrapped(curr);
-
+				prev.setWrapped(curr);
+			}
 			FrameUtils.iterateRunnable(window.events.frameStart, false);
 			glClearColor(window.clearColour.x, window.clearColour.y, window.clearColour.z, window.clearColour.w);
 			FrameUtils.iterateRunnable(window.events.preClear, false);
