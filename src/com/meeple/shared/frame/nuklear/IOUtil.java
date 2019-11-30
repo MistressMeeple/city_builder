@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
@@ -33,7 +34,13 @@ public final class IOUtil {
 		}
 	}
 
-	private static ByteBuffer resizeBuffer(ByteBuffer buffer, int newCapacity) {
+	public static IntBuffer resizeBuffer(IntBuffer buffer, int newCapacity) {
+		IntBuffer newBuffer = BufferUtils.createIntBuffer(newCapacity);
+		buffer.flip();
+		newBuffer.put(buffer);
+		return newBuffer;
+	}
+	public static ByteBuffer resizeBuffer(ByteBuffer buffer, int newCapacity) {
 		ByteBuffer newBuffer = BufferUtils.createByteBuffer(newCapacity);
 		buffer.flip();
 		newBuffer.put(buffer);
