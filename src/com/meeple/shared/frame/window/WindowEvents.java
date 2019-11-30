@@ -12,7 +12,6 @@ public class WindowEvents {
 	public Set<Runnable> frameStart = new CollectionSuppliers.SetSupplier<Runnable>().get();
 	public Set<Runnable> preClear = new CollectionSuppliers.SetSupplier<Runnable>().get();
 	public List<Tickable> render = new CollectionSuppliers.ListSupplier<Tickable>().get();
-	public List<Tickable> postRender = new CollectionSuppliers.ListSupplier<Tickable>().get();
 	public Set<Runnable> frameEnd = new CollectionSuppliers.SetSupplier<Runnable>().get();
 
 	//creation events

@@ -87,7 +87,6 @@ public class GLFWThread extends Thread {
 			glClear(window.clearType);
 
 			FrameUtils.iterateTickable(window.events.render, delta);
-			FrameUtils.iterateTickable(window.events.postRender, delta);
 			try (MemoryStack stack = stackPush()) {
 				glViewport(0, 0, window.frameBufferSizeX, window.frameBufferSizeY);
 			}
@@ -99,13 +98,9 @@ public class GLFWThread extends Thread {
 			if (runnables != null) {
 				FrameUtils.iterateRunnable(runnables, false);
 			}
-			//			GLFW.glfwPollEvents();
+
 		}
 
-		/*
-					while (quit.get() > 0 && !window.shouldClose && !Thread.currentThread().isInterrupted()) {
-					frameTimeManager.timeManagement.run();
-					}*/
 		logger.debug("Closing thread with name '" + Thread.currentThread().getName() + "'");
 
 		FrameUtils.iterateRunnable(window.events.preCleanup, false);
