@@ -1,20 +1,22 @@
-/*
- * Copyright LWJGL. All rights reserved.
- * License terms: https://www.lwjgl.org/license
- */
-#version 110
+#version 460 core
 
-attribute vec4 aVertex;
-attribute vec3 aNormal;
-uniform mat4 uModelMatrix;
-uniform mat4 uViewProjectionMatrix;
-uniform mat3 uNormalMatrix;
-varying vec3 vPosition;
-varying vec3 vNormal;
+layout(location = 1) in  vec4 vertex;
+layout(location = 2) in vec3 normal;
+//instanced
+uniform mat4 modelMatrix;
+
+uniform mat4 projectionMatrix;
+uniform mat4 viewMatrix;
+uniform mat4 vpMatrix;
+
+uniform mat3 normalMatrix;
+
+out vec3 vPosition;
+out vec3 vNormal;
 
 void main() {
-    vec4 modelPosition = uModelMatrix * aVertex;
-    gl_Position = uViewProjectionMatrix * modelPosition;
-    vPosition = modelPosition.xyz;
-    vNormal = uNormalMatrix * aNormal;
+    vec4 position = modelMatrix * vertex;
+    gl_Position = vpMatrix * position;
+    vPosition = position.xyz;
+    vNormal = normalMatrix * normal;
 }
