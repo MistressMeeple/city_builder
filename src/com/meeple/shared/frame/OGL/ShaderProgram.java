@@ -253,10 +253,8 @@ public class ShaderProgram {
 		public int vertexCount;
 		public GLDrawMode modelRenderType = GLDrawMode.Triangles;
 		public WeakReference<VBO> index;
-		/**
-		 * Stored as: instance stride - buffer ID
-		 */
-		public Map<Integer, Set<WeakReference<VBO>>> instanceAttributes = new CollectionSuppliers.MapSupplier<Integer, Set<WeakReference<VBO>>>().get();
+		public Map<String, WeakReference<Attribute>> instanceAttributes = new CollectionSuppliers.MapSupplier<String, WeakReference<Attribute>>().get();
+
 		public int renderCount = 1;
 		public boolean visible = true;
 	}
