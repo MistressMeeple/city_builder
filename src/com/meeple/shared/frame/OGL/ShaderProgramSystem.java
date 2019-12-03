@@ -4,6 +4,7 @@ import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.system.MemoryStack.*;
 
 import java.io.BufferedReader;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -468,7 +469,6 @@ public class ShaderProgramSystem {
 		program.uniformSystems.put(system, uniformList);
 	}
 
-
 	public static <Name, ID, T> void queueUniformUpload(ShaderProgram program, UniformManager<Name, ID> manager, UniformManager<Name, ID>.Uniform<T> uniform, T object) {
 		Map<UniformManager<?, ?>.Uniform<?>, List<?>> uniforms = program.uniformSystems.get(manager);
 		if (uniforms != null && !uniforms.isEmpty()) {
@@ -492,7 +492,7 @@ public class ShaderProgramSystem {
 	 * Iterates all the queued uniforms for upload and uploads them. 
 	 * @param program shader program to iterate all uniforms and upload
 	 */
-	private static void uploadUniforms(ShaderProgram program) {
+	public static void uploadUniforms(ShaderProgram program) {
 		synchronized (program.uniformSystems) {
 			try (MemoryStack stack = stackPush()) {
 				for (Iterator<Entry<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>>> i = program.uniformSystems.entrySet().iterator(); i.hasNext();) {
@@ -504,6 +504,210 @@ public class ShaderProgramSystem {
 			}
 
 		}
+	}
+
+	public static interface ShaderClosable extends Closeable {
+		@Override
+		public abstract void close();
+
+	}
+
+	public static ShaderClosable useProgram(ShaderProgram program) {
+
+		GL46.glUseProgram(program.programID);
+		return new ShaderClosable() {
+
+			@Override
+			public void close() {
+				GL46.glUseProgram(0);
+			}
+		};
+	}
+
+	public static ShaderClosable useModel(Mesh model) {
+		GL46.glBindVertexArray(model.VAOID);
+		return new ShaderClosable() {
+			@Override
+			public void close() {
+				//unbind vertex array
+				GL46.glBindVertexArray(0);
+			}
+		};
+	}
+
+	public static ShaderClosable useVBO(VBO vbo) {
+
+		GL46.glBindBuffer(vbo.bufferType.getGLID(), vbo.VBOID);
+		return new ShaderClosable() {
+
+			@Override
+			public void close() {
+				GL46.glBindBuffer(vbo.bufferType.getGLID(), 0);
+			}
+		};
+	}
+
+	public static void enableAttribute(Attribute attribute) {
+		//enables all the vertex attrib indexes
+		int index = 0;
+		int id = attribute.index;
+		if (id != -1) {
+			for (int i = 0; i < attribute.dataSize; i += ShaderProgram.maxAttribDataSize) {
+				GL46.glEnableVertexAttribArray(id + index);
+				index++;
+			}
+
+		}
+	}
+
+	public static void disableAttribute(Attribute attribute) {
+		//enables all the vertex attrib indexes
+		int index = 0;
+		int id = attribute.index;
+		if (id != -1) {
+			for (int i = 0; i < attribute.dataSize; i += ShaderProgram.maxAttribDataSize) {
+				GL46.glEnableVertexAttribArray(id + index);
+				index++;
+			}
+
+		}
+	}
+
+	public static void renderMesh(Mesh mesh) {
+
+		//check for index buffer
+		WeakReference<VBO> indexVboRef = mesh.index;
+		VBO indexVBO = null;
+
+		if (indexVboRef != null) {
+			indexVBO = indexVboRef.get();
+		}
+
+		if (indexVBO != null) {
+			//if any index buffer then bind 
+			GL46.glBindBuffer(indexVBO.bufferType.getGLID(), indexVBO.VBOID);
+			//render count more than one = instanced
+			if (mesh.renderCount > 1) {
+				GL46.glDrawElementsInstanced(mesh.modelRenderType.drawType, mesh.vertexCount, indexVBO.dataType.getGLID(), 0, mesh.renderCount);
+			} else if (mesh.renderCount == 1) {
+				GL46.glDrawElements(mesh.modelRenderType.drawType, mesh.vertexCount, indexVBO.dataType.getGLID(), 0);
+			}
+		} else {
+			//render count more than one = instanced
+			if (mesh.renderCount > 1) {
+				GL46.glDrawArraysInstanced(mesh.modelRenderType.drawType, 0, mesh.vertexCount, mesh.renderCount);
+			} else if (mesh.renderCount == 1) {
+				GL46.glDrawArrays(mesh.modelRenderType.drawType, 0, mesh.vertexCount);
+			}
+
+		}
+	}
+
+	public static void tryRender(ShaderProgram program, Collection<Mesh> meshes) {
+		try (ShaderClosable cl = useProgram(program)) {
+
+			//sync - important
+			synchronized (program.VAOs) {
+
+				for (Iterator<Mesh> meshI = meshes.iterator(); meshI.hasNext();) {
+					Mesh mesh = meshI.next();
+
+					try (ShaderClosable vaoc = useModel(mesh)) {
+						Collection<VBO> vboSet = mesh.VBOs;
+						for (Iterator<VBO> iterator = vboSet.iterator(); iterator.hasNext();) {
+							VBO vbo = iterator.next();
+							//check if need to write to the buffer data to OGL
+							boolean write = vbo.update.compareAndSet(true, false);
+							if (write) {
+								try (ShaderClosable vboc = useVBO(vbo)) {
+									writeDataToBuffer(vbo);
+								}
+							}
+							if (vbo instanceof Attribute) {
+								Attribute att = (Attribute) vbo;
+								if (att.enabled) {
+									enableAttribute(att);
+								}
+							}
+						}
+						renderMesh(mesh);
+
+						for (Iterator<VBO> iterator = vboSet.iterator(); iterator.hasNext();) {
+							VBO vbo = (VBO) iterator.next();
+							if (vbo instanceof Attribute) {
+								Attribute attribute = (Attribute) vbo;
+								disableAttribute(attribute);
+							}
+
+						}
+					}
+
+					//only discard if actually rendered
+					if (mesh.singleFrameDiscard) {
+						deleteMesh(mesh);
+						meshI.remove();
+					}
+				}
+
+			}
+		}
+
+	}
+
+	public static void tryRender(ShaderProgram program) {
+		try (ShaderClosable cl = useProgram(program)) {
+
+			//sync - important
+			synchronized (program.VAOs) {
+
+				for (Iterator<VAO> vaoI = program.VAOs.iterator(); vaoI.hasNext();) {
+					VAO vao = vaoI.next();
+					if (vao instanceof Mesh) {
+						Mesh mesh = (Mesh) vao;
+
+						//only render if visible
+						if (mesh.visible) {
+							try (ShaderClosable vaoc = useModel(mesh)) {
+								Collection<VBO> vboSet = mesh.VBOs;
+								for (Iterator<VBO> iterator = vboSet.iterator(); iterator.hasNext();) {
+									VBO vbo = iterator.next();
+									//check if need to write to the buffer data to OGL
+									boolean write = vbo.update.compareAndSet(true, false);
+									if (write) {
+										try (ShaderClosable vboc = useVBO(vbo)) {
+											writeDataToBuffer(vbo);
+										}
+									}
+									if (vbo instanceof Attribute) {
+										Attribute att = (Attribute) vbo;
+										if (att.enabled) {
+											enableAttribute(att);
+										}
+									}
+								}
+								renderMesh(mesh);
+
+								for (Iterator<VBO> iterator = vboSet.iterator(); iterator.hasNext();) {
+									VBO vbo = (VBO) iterator.next();
+									if (vbo instanceof Attribute) {
+										Attribute attribute = (Attribute) vbo;
+										disableAttribute(attribute);
+									}
+
+								}
+							}
+
+							//only discard if actually rendered
+							if (vao.singleFrameDiscard) {
+								deleteMesh(vao);
+								vaoI.remove();
+							}
+						}
+					}
+				}
+			}
+		}
+
 	}
 
 	//----------------------------------------------- RENDER METHODS -----------------------------------//TODO 
@@ -598,7 +802,7 @@ public class ShaderProgramSystem {
 					}
 					//only discard if actually rendered
 					if (vao.singleFrameDiscard) {
-						deleteModel(vao);
+						deleteMesh(vao);
 						vaoI.remove();
 					}
 				}
@@ -612,7 +816,7 @@ public class ShaderProgramSystem {
 
 	//----------------------------------------------- CLOSE METHODS -----------------------------------//TODO 
 
-	public static void deleteModel(VAO model) {
+	public static void deleteMesh(VAO model) {
 		if (model != null) {
 			GL46.glDeleteVertexArrays(model.VAOID);
 			Collection<VBO> vbos = model.VBOs;
