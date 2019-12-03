@@ -397,9 +397,10 @@ public class ShaderProgramSystem {
 						doubleBuffer.flip();
 						break;
 					}
-					case Fixed:
+					case Fixed: {
 						System.out.println("Sorry I have no idea how to represent fixed in java... ");
 						throw new RuntimeException(new UnsupportedDataTypeException());
+					}
 				}
 
 			case Buffer:
