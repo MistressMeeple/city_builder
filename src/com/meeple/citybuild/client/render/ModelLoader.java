@@ -8,6 +8,7 @@ import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
@@ -57,6 +58,7 @@ import com.meeple.shared.frame.OGL.ShaderProgram.GLDataType;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
 import com.meeple.shared.frame.OGL.ShaderProgram.VBO;
+import com.meeple.shared.frame.OGL.ShaderProgram.VBOBufferType;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem.ShaderClosable;
 import com.meeple.shared.frame.OGL.UniformManager;
@@ -157,6 +159,9 @@ public class ModelLoader {
 			fbCallback.free();
 			wsCallback.free();
 			glfwDestroyWindow(window);
+
+			ShaderProgramSystem.close(program);
+
 		} catch (Throwable t) {
 			t.printStackTrace();
 		} finally {
@@ -304,6 +309,10 @@ public class ModelLoader {
 		storeMaterialBuffer(scene);
 		this.scene = new Scene(scene);
 
+		for (Scene.Mesh mesh : this.scene.meshes) {
+			ShaderProgramSystem.loadVAO(program, setupDiscard(mesh));
+		}
+
 	}
 
 	void createProgram() throws IOException {
@@ -381,22 +390,13 @@ public class ModelLoader {
 		positionAttrib.bufferUsage = BufferUsage.StreamDraw;
 		positionAttrib.dataSize = 3;
 		positionAttrib.normalised = false;
+
+		AIVector3D.Buffer vertices = aim.mVertices();
+		positionAttrib.bufferAddress = vertices.address();
+		positionAttrib.bufferLen = (long) (AIVector3D.SIZEOF * vertices.remaining());
+		positionAttrib.bufferResourceType = VBOBufferType.Address;
+
 		mesh.VBOs.add(positionAttrib);
-		{
-
-			AIVector3D.Buffer vertices = aim.mVertices();
-			vertices.forEach(new Consumer<AIVector3D>() {
-
-				@Override
-				public void accept(AIVector3D t) {
-					positionAttrib.data.add(t.x());
-					positionAttrib.data.add(t.y());
-					positionAttrib.data.add(t.z());
-
-				}
-			});
-
-		}
 
 		normalAttrib.name = "normal";
 		normalAttrib.bufferType = BufferType.ArrayBuffer;
@@ -405,46 +405,33 @@ public class ModelLoader {
 		normalAttrib.dataSize = 3;
 		normalAttrib.normalised = false;
 		normalAttrib.instanced = false;
+		AIVector3D.Buffer normals = aim.mNormals();
+		normalAttrib.bufferAddress = normals.address();
+		normalAttrib.bufferLen = (long) (AIVector3D.SIZEOF * normals.remaining());
+		normalAttrib.bufferResourceType = VBOBufferType.Address;
 		mesh.VBOs.add(normalAttrib);
-		{
-			AIVector3D.Buffer normals = aim.mNormals();
-			normals.forEach(new Consumer<AIVector3D>() {
-
-				@Override
-				public void accept(AIVector3D t) {
-					normalAttrib.data.add(t.x());
-					normalAttrib.data.add(t.y());
-					normalAttrib.data.add(t.z());
-
-				}
-			});
-		}
 
 		elementAttrib.bufferType = BufferType.ElementArrayBuffer;
-		elementAttrib.dataType = GLDataType.UnsignedInt;
 		elementAttrib.bufferUsage = BufferUsage.StaticDraw;
-		elementAttrib.dataSize = 3;
+		elementAttrib.dataType = GLDataType.UnsignedInt;
+		//		elementAttrib.dataSize = 3;
 		mesh.VBOs.add(elementAttrib);
-		{
+		elementAttrib.bufferResourceType = VBOBufferType.Buffer;
+		int elementCount;
+		int faceCount = aim.mNumFaces();
+		elementCount = faceCount * 3;
+		IntBuffer elementArrayBufferData = BufferUtils.createIntBuffer(elementCount);
+		AIFace.Buffer facesBuffer = aim.mFaces();
+		for (int i = 0; i < faceCount; ++i) {
+			AIFace face = facesBuffer.get(i);
+			if (face.mNumIndices() != 3) {
 
-			aim.mFaces().forEach(new Consumer<AIFace>() {
-
-				@Override
-				public void accept(AIFace t) {
-					if (t.mNumIndices() != 3) {
-						//						logger.warn("AIFace.mNumIndices() != 3, actually has " + t.mNumIndices());
-						//						logger.warn("wont use this face");
-					} else {
-						int[] indicies = new int[3];
-						t.mIndices().get(indicies);
-						for (int i : indicies) {
-							elementAttrib.data.add(i);
-						}
-					}
-				}
-			});
-
+			} else {
+				elementArrayBufferData.put(face.mIndices());
+			}
 		}
+		elementArrayBufferData.flip();
+		elementAttrib.buffer = elementArrayBufferData;
 
 		matIndexAttrib.name = "materialIndex";
 		matIndexAttrib.bufferType = BufferType.ArrayBuffer;
@@ -457,9 +444,9 @@ public class ModelLoader {
 		mesh.VBOs.add(matIndexAttrib);
 		matIndexAttrib.data.add(meshData.materialIndex);
 
-		mesh.vertexCount = elementAttrib.data.size() / 3;
+		mesh.vertexCount = elementCount;
 		mesh.modelRenderType = GLDrawMode.Triangles;
-		mesh.singleFrameDiscard = true;
+		mesh.index = new WeakReference<ShaderProgram.VBO>(elementAttrib);
 
 		return mesh;
 
@@ -471,19 +458,19 @@ public class ModelLoader {
 		glUseProgram(program.programID);
 
 		for (Scene.Mesh mesh : scene.meshes) {
-			glBindBuffer(GL_ARRAY_BUFFER, mesh.vertexArrayBuffer);
-			glVertexAttribPointer(vertexAttribute, 3, GL_FLOAT, false, 0, 0);
-			glBindBuffer(GL_ARRAY_BUFFER, mesh.normalArrayBuffer);
-			glVertexAttribPointer(normalAttribute, 3, GL_FLOAT, false, 0, 0);
-			glBindBuffer(GL_ARRAY_BUFFER, mesh.materialIndexBuffer);
-			glVertexAttribPointer(materialIndexAttrib, 1, GL_FLOAT, false, 0, 0);
-
-			IntBuffer buffer = BufferUtils.createIntBuffer(1);
-			buffer.put(mesh.materialIndex);
-			buffer.flip();
-			glBufferData(GL_ARRAY_BUFFER, buffer, ShaderProgram.BufferUsage.StreamDraw.getGLID());
-
-			GL46.glVertexAttribDivisor(materialIndexAttrib, 1);
+			/*	glBindBuffer(GL_ARRAY_BUFFER, mesh.vertexArrayBuffer);
+				glVertexAttribPointer(vertexAttribute, 3, GL_FLOAT, false, 0, 0);
+				glBindBuffer(GL_ARRAY_BUFFER, mesh.normalArrayBuffer);
+				glVertexAttribPointer(normalAttribute, 3, GL_FLOAT, false, 0, 0);
+				glBindBuffer(GL_ARRAY_BUFFER, mesh.materialIndexBuffer);
+				glVertexAttribPointer(materialIndexAttrib, 1, GL_FLOAT, false, 0, 0);
+			
+				IntBuffer buffer = BufferUtils.createIntBuffer(1);
+				buffer.put(mesh.materialIndex);
+				buffer.flip();
+				glBufferData(GL_ARRAY_BUFFER, buffer, ShaderProgram.BufferUsage.StreamDraw.getGLID());
+			
+				GL46.glVertexAttribDivisor(materialIndexAttrib, 1);*/
 
 			glUniformMatrix4fv(modelMatrixUniform, false, modelMatrix.get(modelMatrixBuffer));
 
@@ -492,12 +479,13 @@ public class ModelLoader {
 			glUniformMatrix3fv(normalMatrixUniform, false, normalMatrix.get(normalMatrixBuffer));
 			glUniform3fv(lightPositionUniform, lightPosition.get(lightPositionBuffer));
 			glUniform3fv(viewPositionUniform, viewPosition.get(viewPositionBuffer));
-
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.elementArrayBuffer);
-			glDrawElements(GL_TRIANGLES, mesh.elementCount, GL_UNSIGNED_INT, 0);
+			/*
+						glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.elementArrayBuffer);
+						glDrawElements(GL_TRIANGLES, mesh.elementCount, GL_UNSIGNED_INT, 0);*/
 		}
 
 		//				ShaderProgramSystem.render(program);
+		ShaderProgramSystem.tryRender(program);
 	}
 
 	private void storeMaterialBuffer(AIScene scene) {
