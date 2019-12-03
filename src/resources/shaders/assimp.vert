@@ -21,7 +21,6 @@ void main() {
     gl_Position = vpMatrix * position;
     vPosition = position.xyz;
     vNormal = normalMatrix * normal;
-	if(materialIndex ==0){
+	vMaterialIndex = materialIndex ;
 	
-	}
 }
