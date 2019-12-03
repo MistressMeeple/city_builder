@@ -524,22 +524,29 @@ public class ModelLoader {
 
 		PointerBuffer mats = scene.mMaterials();
 		int i = 0;
+
+		float[] data = new float[Material.sizeOf()];
+		Material m = new Material();
+		m.diffuse.set(1, 0, 0);
+		m.ambient.set(0, 1, 0);
+		m.specular.set(0, 0, 1);
 		{
-			float[] data = new float[Material.sizeOf()];
-			createMaterial(new Vector3f(0, 0, 0), new Vector3f(1, 0, 0), new Vector3f(0, 0, 0), data);
-			GL46.glUniformMatrix3fv(materialsUniformBlock[i++], false, data);
+
+			m.diffuseStrength = 0.5f;
+			m.toArray(data);
+			GL46.glUniformMatrix4fv(materialsUniformBlock[i++], false, data);
 			Material.toString(data);
 		}
 		{
-			float[] data = new float[Material.sizeOf()];
-			createMaterial(new Vector3f(0, 0, 0), new Vector3f(1, 1, 1), new Vector3f(0, 0, 0), data);
-			GL46.glUniformMatrix3fv(materialsUniformBlock[i++], false, data);
+			m.diffuseStrength = 0f;
+			m.toArray(data);
+			GL46.glUniformMatrix4fv(materialsUniformBlock[i++], false, data);
 			Material.toString(data);
 		}
 		{
-			float[] data = new float[Material.sizeOf()];
-			createMaterial(new Vector3f(0, 0, 0), new Vector3f(0, 0, 1), new Vector3f(0, 0, 0), data);
-			GL46.glUniformMatrix3fv(materialsUniformBlock[i++], false, data);
+			m.diffuseStrength = 1f;
+			m.toArray(data);
+			GL46.glUniformMatrix4fv(materialsUniformBlock[i++], false, data);
 			Material.toString(data);
 		}
 		//		glUniformMatrix3x4fv(materialsUniformBlock[i++], false, data);
@@ -549,7 +556,7 @@ public class ModelLoader {
 			if (material != null) {
 				float[] materialDataBuffer = new float[4 * 3];
 				createMaterial(material, materialDataBuffer);
-				GL46.glUniformMatrix3fv(materialsUniformBlock[i++], false, materialDataBuffer);
+				GL46.glUniformMatrix4fv(materialsUniformBlock[i++], false, materialDataBuffer);
 				Material.toString(materialDataBuffer);
 			}
 		}
@@ -559,63 +566,37 @@ public class ModelLoader {
 		material.specular.set(0, 0, 1);
 		float[] d = material.toArray();
 
-		GL46.glUniformMatrix3fv(materialsUniformBlock[i++], false, d);
+		GL46.glUniformMatrix4fv(materialsUniformBlock[i++], false, d);
 		Material.toString(d);
 
 	}
 
 	static class Material {
-		Vector3f ambient = new Vector3f(), diffuse = new Vector3f(), specular = new Vector3f();/*
-																								float ambientStrength = 0.5f, diffuseStrength = 0.5f, specularStrength = 0.5f;
-																								float shininess = 4f;*/
-
-		public Material() {
-
-		}
-
-		public Material(float[] arr) {
-
-			int i = 0;
-			ambient.x = arr[i++];
-			ambient.y = arr[i++];
-			ambient.z = arr[i++];
-//			ambientStrength = arr[i++];
-
-			diffuse.x = arr[i++];
-			diffuse.y = arr[i++];
-			diffuse.z = arr[i++];
-//			diffuseStrength = arr[i++];
-
-			specular.x = arr[i++];
-			specular.y = arr[i++];
-			specular.z = arr[i++];
-//			specularStrength = arr[i++];
-
-//			shininess = arr[i++];
-
-		}
+		Vector3f ambient = new Vector3f(), diffuse = new Vector3f(), specular = new Vector3f();
+		float ambientStrength = 0.5f, diffuseStrength = 0.5f, specularStrength = 0.5f;
+		float shininess = 4f;
 
 		public float[] toArray(float[] arr) {
 			int i = 0;
 			arr[i++] = ambient.x;
 			arr[i++] = ambient.y;
 			arr[i++] = ambient.z;
-//			arr[i++] = ambientStrength;
+			arr[i++] = ambientStrength;
 
 			arr[i++] = diffuse.x;
 			arr[i++] = diffuse.y;
 			arr[i++] = diffuse.z;
-//			arr[i++] = diffuseStrength;
+			arr[i++] = diffuseStrength;
 
 			arr[i++] = specular.x;
 			arr[i++] = specular.y;
 			arr[i++] = specular.z;
-//			arr[i++] = specularStrength;
+			arr[i++] = specularStrength;
 
-//			arr[i++] = shininess;
-//			arr[i++] = 0;
-//			arr[i++] = 0;
-//			arr[i++] = 0;
+			arr[i++] = shininess;
+			arr[i++] = 0;
+			arr[i++] = 0;
+			arr[i++] = 0;
 
 			return arr;
 
@@ -626,7 +607,7 @@ public class ModelLoader {
 		}
 
 		public static int sizeOf() {
-			return 9;
+			return 16;
 		}
 
 		public static void toString(float[] data) {
@@ -634,7 +615,7 @@ public class ModelLoader {
 			System.out.println("ambient : " + data[i++] + " " + data[i++] + " " + data[i++] /*+ " x " + data[i++]*/);
 			System.out.println("diffuse : " + data[i++] + " " + data[i++] + " " + data[i++] /*+ " x " + data[i++]*/);
 			System.out.println("specular: " + data[i++] + " " + data[i++] + " " + data[i++] /*+ " x " + data[i++]*/);
-//			System.out.println("shininess: " + data[i++] + " " + data[i++] + " " + data[i++] + " " + data[i++]);
+			//			System.out.println("shininess: " + data[i++] + " " + data[i++] + " " + data[i++] + " " + data[i++]);
 		}
 	}
 
@@ -676,26 +657,6 @@ public class ModelLoader {
 		data[i++] = specular.g();
 		data[i++] = specular.b();
 		//		data[i++] = specular.a();
-
-	}
-
-	public void createMaterial(Vector3f ambient, Vector3f diffuse, Vector3f specular, float[] data) {
-		int i = 0;
-		//ambient
-		data[i++] = ambient.x();
-		data[i++] = ambient.y();
-		data[i++] = ambient.z();
-		//		data[i++] = ambient.w();
-		//put diffuse
-		data[i++] = diffuse.x();
-		data[i++] = diffuse.y();
-		data[i++] = diffuse.z();
-		//		data[i++] = diffuse.w();
-		//put specular
-		data[i++] = specular.x();
-		data[i++] = specular.y();
-		data[i++] = specular.z();
-		//		data[i++] = specular.w();
 
 	}
 
