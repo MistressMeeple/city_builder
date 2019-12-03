@@ -465,45 +465,26 @@ public class ModelLoader {
 
 	}
 
-	private static IShaderUniformUploadSystem<Material, Integer> matUpload = new IShaderUniformUploadSystem<Material, Integer>() {
-		FloatBuffer matBuf = BufferUtils.createFloatBuffer(12);
-
-		@Override
-		public void uploadToShader(Material upload, Integer uniformID, MemoryStack stack) {
-			/*
-			 * transpose to be 3x4. as like in fragment shader
-			 */
-			upload.ambient.get(0, matBuf);
-			upload.diffuse.get(4, matBuf);
-			upload.specular.get(8, matBuf);
-			matBuf.flip();
-			GL46.glUniformMatrix4x3fv(uniformID, false, matBuf);
-		}
-	};
-
 	void render() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glUseProgram(program.programID);
 
 		for (Scene.Mesh mesh : scene.meshes) {
-			if (false) {
-				ShaderProgramSystem.loadVAO(program, setupDiscard(mesh));
-			} else {
-				glBindBuffer(GL_ARRAY_BUFFER, mesh.vertexArrayBuffer);
-				glVertexAttribPointer(vertexAttribute, 3, GL_FLOAT, false, 0, 0);
-				glBindBuffer(GL_ARRAY_BUFFER, mesh.normalArrayBuffer);
-				glVertexAttribPointer(normalAttribute, 3, GL_FLOAT, false, 0, 0);
-				glBindBuffer(GL_ARRAY_BUFFER, mesh.materialIndexBuffer);
-				glVertexAttribPointer(materialIndexAttrib, 1, GL_FLOAT, false, 0, 0);
+			glBindBuffer(GL_ARRAY_BUFFER, mesh.vertexArrayBuffer);
+			glVertexAttribPointer(vertexAttribute, 3, GL_FLOAT, false, 0, 0);
+			glBindBuffer(GL_ARRAY_BUFFER, mesh.normalArrayBuffer);
+			glVertexAttribPointer(normalAttribute, 3, GL_FLOAT, false, 0, 0);
+			glBindBuffer(GL_ARRAY_BUFFER, mesh.materialIndexBuffer);
+			glVertexAttribPointer(materialIndexAttrib, 1, GL_FLOAT, false, 0, 0);
 
-				IntBuffer buffer = BufferUtils.createIntBuffer(1);
-				buffer.put(mesh.materialIndex);
-				buffer.flip();
-				glBufferData(GL_ARRAY_BUFFER, buffer, ShaderProgram.BufferUsage.StreamDraw.getGLID());
+			IntBuffer buffer = BufferUtils.createIntBuffer(1);
+			buffer.put(mesh.materialIndex);
+			buffer.flip();
+			glBufferData(GL_ARRAY_BUFFER, buffer, ShaderProgram.BufferUsage.StreamDraw.getGLID());
 
-				GL46.glVertexAttribDivisor(materialIndexAttrib, 1);
-			}
+			GL46.glVertexAttribDivisor(materialIndexAttrib, 1);
+
 			glUniformMatrix4fv(modelMatrixUniform, false, modelMatrix.get(modelMatrixBuffer));
 
 			glUniformMatrix4fv(viewProjectionMatrixUniform, false, viewProjectionMatrix.get(viewProjectionMatrixBuffer));
@@ -514,7 +495,6 @@ public class ModelLoader {
 
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.elementArrayBuffer);
 			glDrawElements(GL_TRIANGLES, mesh.elementCount, GL_UNSIGNED_INT, 0);
-			System.out.println(mesh.materialIndex);
 		}
 
 		//				ShaderProgramSystem.render(program);
@@ -660,11 +640,10 @@ public class ModelLoader {
 
 	}
 
-	static class Scene {
+	class Scene {
 
 		public AIScene scene;
 		public List<Mesh> meshes;
-		public List<Material> materials;
 
 		public Scene(AIScene scene) {
 
@@ -678,14 +657,6 @@ public class ModelLoader {
 					meshes.add(new Mesh(AIMesh.create(meshesBuffer.get(i))));
 				}
 			}
-			if (true) {
-				int materialCount = scene.mNumMaterials();
-				PointerBuffer materialsBuffer = scene.mMaterials();
-				materials = new ArrayList<>();
-				for (int i = 0; i < materialCount; ++i) {
-					materials.add(new Material(AIMaterial.create(materialsBuffer.get(i))));
-				}
-			}
 
 		}
 
@@ -693,17 +664,16 @@ public class ModelLoader {
 			aiReleaseImport(scene);
 			scene = null;
 			meshes = null;
-			materials = null;
 		}
 
-		public static class Model {
+		public class Model {
 			Set<Integer> meshes = new CollectionSuppliers.SetSupplier<Integer>().get();
 			Matrix4f modelTranslation = new Matrix4f();
 			String name;
 
 		}
 
-		public static class Mesh {
+		public class Mesh {
 
 			public int materialIndex = 0;
 			public long mesh;
@@ -716,95 +686,70 @@ public class ModelLoader {
 			public Mesh(AIMesh mesh) {
 				this.mesh = mesh.address();
 				this.materialIndex = mesh.mMaterialIndex();
-				//TODO IMPLIMENT MATERIAL INDEX BUFFER
+				//material index buffer
+				if (true) {
+					materialIndexBuffer = glGenBuffers();
+					glBindBuffer(GL_ARRAY_BUFFER, materialIndexBuffer);
+					IntBuffer buffer = BufferUtils.createIntBuffer(1);
+					buffer.put(materialIndex);
+					buffer.flip();
+					glBufferData(GL_ARRAY_BUFFER, buffer, GL_STATIC_DRAW);
+				}
+				//vertices
+				if (true) {
+					List<Vector3f> verts = new ArrayList<>();
+					vertexArrayBuffer = glGenBuffers();
+					glBindBuffer(GL_ARRAY_BUFFER, vertexArrayBuffer);
 
-				materialIndexBuffer = glGenBuffers();
-				glBindBuffer(GL_ARRAY_BUFFER, materialIndexBuffer);
-				IntBuffer buffer = BufferUtils.createIntBuffer(1);
-				buffer.put(materialIndex);
-				buffer.flip();
-				glBufferData(GL_ARRAY_BUFFER, buffer, GL_STATIC_DRAW);
+					AIVector3D.Buffer vertices = mesh.mVertices();
+					int rem = vertices.remaining();
+					int size = AIVector3D.SIZEOF * rem;
 
-				vertexArrayBuffer = glGenBuffers();
-				glBindBuffer(GL_ARRAY_BUFFER, vertexArrayBuffer);
-				AIVector3D.Buffer vertices = mesh.mVertices();
-				nglBufferData(
-					GL_ARRAY_BUFFER,
-					AIVector3D.SIZEOF * vertices.remaining(),
-					vertices.address(),
-					GL_STATIC_DRAW);
+					nglBufferData(GL_ARRAY_BUFFER, size, vertices.address(), GL_STATIC_DRAW);
+					vertices.forEach(new Consumer<AIVector3D>() {
 
-				normalArrayBuffer = glGenBuffers();
-				glBindBuffer(GL_ARRAY_BUFFER, normalArrayBuffer);
-				AIVector3D.Buffer normals = mesh.mNormals();
-				nglBufferData(
-					GL_ARRAY_BUFFER,
-					AIVector3D.SIZEOF * normals.remaining(),
-					normals.address(),
-					GL_STATIC_DRAW);
-
-				int faceCount = mesh.mNumFaces();
-				elementCount = faceCount * 3;
-				IntBuffer elementArrayBufferData = BufferUtils.createIntBuffer(elementCount);
-				AIFace.Buffer facesBuffer = mesh.mFaces();
-				for (int i = 0; i < faceCount; ++i) {
-					AIFace face = facesBuffer.get(i);
-					if (face.mNumIndices() != 3) {
-						logger.warn("AIFace.mNumIndices() != 3, actually has " + face.mNumIndices());
-						logger.warn("wont use this face");
-					} else {
-						elementArrayBufferData.put(face.mIndices());
+						@Override
+						public void accept(AIVector3D vec) {
+							verts.add(new Vector3f(vec.x(), vec.y(), vec.z()));
+						}
+					});
+					System.out.println(rem + " " + verts.size());
+					System.out.println();
+				}
+				//normals
+				if (true) {
+					normalArrayBuffer = glGenBuffers();
+					glBindBuffer(GL_ARRAY_BUFFER, normalArrayBuffer);
+					AIVector3D.Buffer normals = mesh.mNormals();
+					nglBufferData(
+						GL_ARRAY_BUFFER,
+						AIVector3D.SIZEOF * normals.remaining(),
+						normals.address(),
+						GL_STATIC_DRAW);
+				}
+				//element indicies
+				if (true) {
+					int faceCount = mesh.mNumFaces();
+					elementCount = faceCount * 3;
+					IntBuffer elementArrayBufferData = BufferUtils.createIntBuffer(elementCount);
+					AIFace.Buffer facesBuffer = mesh.mFaces();
+					for (int i = 0; i < faceCount; ++i) {
+						AIFace face = facesBuffer.get(i);
+						if (face.mNumIndices() != 3) {
+							logger.warn("AIFace.mNumIndices() != 3, actually has " + face.mNumIndices());
+							logger.warn("wont use this face");
+						} else {
+							elementArrayBufferData.put(face.mIndices());
+						}
 					}
-				}
-				elementArrayBufferData.flip();
-				elementArrayBuffer = glGenBuffers();
-				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementArrayBuffer);
-				glBufferData(
-					GL_ELEMENT_ARRAY_BUFFER,
-					elementArrayBufferData,
-					GL_STATIC_DRAW);
-			}
-		}
-
-		public static class Material {
-
-			public AIMaterial mMaterial;
-			public AIColor4D mAmbientColor;
-			public AIColor4D mDiffuseColor;
-			public AIColor4D mSpecularColor;
-
-			public Material(AIMaterial material) {
-
-				mMaterial = material;
-
-				mAmbientColor = AIColor4D.create();
-				if (aiGetMaterialColor(
-					mMaterial,
-					AI_MATKEY_COLOR_AMBIENT,
-					aiTextureType_NONE,
-					0,
-					mAmbientColor) != 0) {
-					throw new IllegalStateException(aiGetErrorString());
-				}
-				mDiffuseColor = AIColor4D.create();
-				if (aiGetMaterialColor(
-					mMaterial,
-					AI_MATKEY_COLOR_DIFFUSE,
-					aiTextureType_NONE,
-					0,
-					mDiffuseColor) != 0) {
-					throw new IllegalStateException(aiGetErrorString());
-				}
-				mSpecularColor = AIColor4D.create();
-				if (aiGetMaterialColor(
-					mMaterial,
-					AI_MATKEY_COLOR_SPECULAR,
-					aiTextureType_NONE,
-					0,
-					mSpecularColor) != 0) {
-					throw new IllegalStateException(aiGetErrorString());
+					elementArrayBufferData.flip();
+					elementArrayBuffer = glGenBuffers();
+					glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementArrayBuffer);
+					glBufferData(GL_ELEMENT_ARRAY_BUFFER, elementArrayBufferData, GL_STATIC_DRAW);
+					glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 				}
 			}
 		}
+
 	}
 }
