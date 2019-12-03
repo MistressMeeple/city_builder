@@ -901,6 +901,9 @@ public class ShaderProgramSystem {
 
 	public static void close(ShaderProgram program) {
 		detatchAndDeleteShaders(program);
+		for (VAO vao : program.VAOs) {
+			deleteMesh(vao);
+		}
 	}
 
 }
