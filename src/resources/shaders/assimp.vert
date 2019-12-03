@@ -2,15 +2,15 @@
 
 layout(location = 1) in  vec4 vertex;
 layout(location = 2) in vec3 normal;
-layout(location = 3) in int materialIndex;
+layout(location = 3) in float materialIndex;
 //instanced
-uniform mat4 modelMatrix;
+layout(location = 4) in mat4 modelMatrix;
+layout(location = 8) in mat3 normalMatrix;
 
 uniform mat4 projectionMatrix;
 uniform mat4 viewMatrix;
 uniform mat4 vpMatrix;
 
-uniform mat3 normalMatrix;
 
 out vec3 vPosition;
 out vec3 vNormal;
@@ -21,6 +21,6 @@ void main() {
     gl_Position = vpMatrix * position;
     vPosition = position.xyz;
     vNormal = normalMatrix * normal;
-	vMaterialIndex = materialIndex ;
+	vMaterialIndex = int(materialIndex );
 	
 }

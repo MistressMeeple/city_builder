@@ -3,7 +3,6 @@ package com.meeple.citybuild.client.render;
 import static org.lwjgl.assimp.Assimp.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
@@ -12,10 +11,8 @@ import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Consumer;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.log4j.Appender;
 import org.apache.log4j.BasicConfigurator;
@@ -25,10 +22,8 @@ import org.apache.log4j.PatternLayout;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
-import org.joml.Vector4f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
-import org.lwjgl.assimp.AIColor4D;
 import org.lwjgl.assimp.AIFace;
 import org.lwjgl.assimp.AIMaterial;
 import org.lwjgl.assimp.AIMesh;
@@ -47,9 +42,8 @@ import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.Callback;
 import org.lwjgl.system.MemoryStack;
 
-import com.meeple.citybuild.client.render.ModelLoader.Scene.Mesh;
 import com.meeple.shared.CollectionSuppliers;
-import com.meeple.shared.frame.OGL.IShaderUniformUploadSystem;
+import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferType;
@@ -61,7 +55,6 @@ import com.meeple.shared.frame.OGL.ShaderProgram.VBO;
 import com.meeple.shared.frame.OGL.ShaderProgram.VBOBufferType;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem.ShaderClosable;
-import com.meeple.shared.frame.OGL.UniformManager;
 import com.meeple.shared.frame.nuklear.IOUtil;
 
 /**
@@ -112,7 +105,7 @@ public class ModelLoader {
 	int lightPositionUniform;
 	int viewPositionUniform;
 
-	Scene scene;
+	Model model = new Model();
 
 	Matrix4f modelMatrix = new Matrix4f().rotateY(0.5f * (float) Math.PI).scale(1.5f, 1.5f, 1.5f);
 	Matrix4f viewMatrix = new Matrix4f();
@@ -135,6 +128,7 @@ public class ModelLoader {
 	GLFWCursorPosCallback cpCallback;
 	GLFWScrollCallback sCallback;
 	Callback debugProc;
+	AIScene scene;
 
 	void loop() {
 		while (!glfwWindowShouldClose(window)) {
@@ -150,7 +144,7 @@ public class ModelLoader {
 		try {
 			init();
 			loop();
-			scene.free();
+			aiReleaseImport(scene);
 			if (debugProc != null) {
 				debugProc.free();
 			}
@@ -217,12 +211,12 @@ public class ModelLoader {
 					glfwSetWindowShouldClose(window, true);
 				}
 				if (key == GLFW_KEY_SPACE) {
-					for (Scene.Mesh mesh : scene.meshes) {
-						if (mesh.materialIndex == maxMaterials - 1) {
-							mesh.materialIndex = 0;
-						} else {
-							mesh.materialIndex += 1;
+					for (Entry<ShaderProgram.Mesh, Integer> entry : model.meshToMaterials.entrySet()) {
 
+						if (entry.getValue() == maxMaterials - 1) {
+							entry.setValue(0);
+						} else {
+							entry.setValue(entry.getValue() + 1);
 						}
 					}
 
@@ -291,7 +285,7 @@ public class ModelLoader {
 
 		ByteBuffer file = IOUtil.ioResourceToByteBuffer("resources/spaceship.blend", 2048 * 8);
 
-		AIScene scene =
+		scene =
 			aiImportFileFromMemory(
 				file,
 				0 |
@@ -307,10 +301,18 @@ public class ModelLoader {
 			throw new IllegalStateException(aiGetErrorString());
 		}
 		storeMaterialBuffer(scene);
-		this.scene = new Scene(scene);
 
-		for (Scene.Mesh mesh : this.scene.meshes) {
-			ShaderProgramSystem.loadVAO(program, setupDiscard(mesh));
+		if (true) {
+			int meshCount = scene.mNumMeshes();
+			PointerBuffer meshesBuffer = scene.mMeshes();
+			for (int i = 0; i < meshCount; ++i) {
+				AIMesh mesh = AIMesh.create(meshesBuffer.get(i));
+				int mIndex = 1;
+				ShaderProgram.Mesh dmesh = setupDiscard(mesh, mIndex);
+				ShaderProgramSystem.loadVAO(program, dmesh);
+				model.meshToMaterials.put(dmesh, mIndex);
+
+			}
 		}
 
 	}
@@ -376,32 +378,34 @@ public class ModelLoader {
 		projectionMatrix.mul(viewMatrix, viewProjectionMatrix);
 	}
 
-	private ShaderProgram.Mesh setupDiscard(Mesh meshData) {
+	private ShaderProgram.Mesh setupDiscard(AIMesh aim, int matIndex) {
 		ShaderProgram.Mesh mesh = new ShaderProgram.Mesh();
-		AIMesh aim = AIMesh.create(meshData.mesh);
 
-		Attribute positionAttrib = new Attribute();
+		Attribute vertexAttrib = new Attribute();
 		Attribute normalAttrib = new Attribute();
-		Attribute matIndexAttrib = new Attribute();
+
+		Attribute materialIndexAttrib = new Attribute();
+		Attribute meshTransformAttrib = new Attribute();
+		Attribute meshNormalAttrib = new Attribute();
 		VBO elementAttrib = new VBO();
-		positionAttrib.name = "vertex";
-		positionAttrib.bufferType = BufferType.ArrayBuffer;
-		positionAttrib.dataType = GLDataType.Float;
-		positionAttrib.bufferUsage = BufferUsage.StreamDraw;
-		positionAttrib.dataSize = 3;
-		positionAttrib.normalised = false;
+
+		vertexAttrib.name = "vertex";
+		vertexAttrib.bufferType = BufferType.ArrayBuffer;
+		vertexAttrib.dataType = GLDataType.Float;
+		vertexAttrib.bufferUsage = BufferUsage.StaticDraw;
+		vertexAttrib.dataSize = 3;
+		vertexAttrib.normalised = false;
 
 		AIVector3D.Buffer vertices = aim.mVertices();
-		positionAttrib.bufferAddress = vertices.address();
-		positionAttrib.bufferLen = (long) (AIVector3D.SIZEOF * vertices.remaining());
-		positionAttrib.bufferResourceType = VBOBufferType.Address;
-
-		mesh.VBOs.add(positionAttrib);
+		vertexAttrib.bufferAddress = vertices.address();
+		vertexAttrib.bufferLen = (long) (AIVector3D.SIZEOF * vertices.remaining());
+		vertexAttrib.bufferResourceType = VBOBufferType.Address;
+		mesh.VBOs.add(vertexAttrib);
 
 		normalAttrib.name = "normal";
 		normalAttrib.bufferType = BufferType.ArrayBuffer;
 		normalAttrib.dataType = GLDataType.Float;
-		normalAttrib.bufferUsage = BufferUsage.StreamDraw;
+		normalAttrib.bufferUsage = BufferUsage.StaticDraw;
 		normalAttrib.dataSize = 3;
 		normalAttrib.normalised = false;
 		normalAttrib.instanced = false;
@@ -433,22 +437,56 @@ public class ModelLoader {
 		elementArrayBufferData.flip();
 		elementAttrib.buffer = elementArrayBufferData;
 
-		matIndexAttrib.name = "materialIndex";
-		matIndexAttrib.bufferType = BufferType.ArrayBuffer;
-		matIndexAttrib.dataType = GLDataType.Int;
-		matIndexAttrib.bufferUsage = BufferUsage.StreamDraw;
-		matIndexAttrib.dataSize = 1;
-		matIndexAttrib.normalised = false;
-		matIndexAttrib.instanced = true;
-		matIndexAttrib.instanceStride = 1;
-		mesh.VBOs.add(matIndexAttrib);
-		matIndexAttrib.data.add(meshData.materialIndex);
+		materialIndexAttrib.name = "materialIndex";
+		materialIndexAttrib.bufferType = BufferType.ArrayBuffer;
+		materialIndexAttrib.dataType = GLDataType.Float;
+		materialIndexAttrib.bufferUsage = BufferUsage.DynamicDraw;
+		materialIndexAttrib.dataSize = 1;
+		materialIndexAttrib.normalised = false;
+		materialIndexAttrib.instanced = true;
+		materialIndexAttrib.instanceStride = 1;
+		mesh.VBOs.add(materialIndexAttrib);
+		materialIndexAttrib.data.add(matIndex);
+
+		meshTransformAttrib.name = "modelMatrix";
+		meshTransformAttrib.bufferType = BufferType.ArrayBuffer;
+		meshTransformAttrib.dataType = GLDataType.Float;
+		meshTransformAttrib.bufferUsage = BufferUsage.DynamicDraw;
+		meshTransformAttrib.dataSize = 16;
+		meshTransformAttrib.normalised = false;
+		meshTransformAttrib.instanced = true;
+		meshTransformAttrib.instanceStride = 1;
+		mesh.VBOs.add(meshTransformAttrib);
+		FrameUtils.appendToList(meshTransformAttrib.data, modelMatrix);
+
+		meshNormalAttrib.name = "normalMatrix";
+		meshNormalAttrib.bufferType = BufferType.ArrayBuffer;
+		meshNormalAttrib.dataType = GLDataType.Float;
+		meshNormalAttrib.bufferUsage = BufferUsage.DynamicDraw;
+		meshNormalAttrib.dataSize = 9;
+		meshNormalAttrib.normalised = false;
+		meshNormalAttrib.instanced = true;
+		meshNormalAttrib.instanceStride = 1;
+		mesh.VBOs.add(meshNormalAttrib);
+		normalMatrix.set(modelMatrix).invert().transpose();
+		FrameUtils.appendToList(meshNormalAttrib.data, normalMatrix);
 
 		mesh.vertexCount = elementCount;
 		mesh.modelRenderType = GLDrawMode.Triangles;
 		mesh.index = new WeakReference<ShaderProgram.VBO>(elementAttrib);
 
+		mesh.instanceAttributes.put("materialIndex", new WeakReference<>(materialIndexAttrib));
+		mesh.instanceAttributes.put("modelMatrix", new WeakReference<>(meshTransformAttrib));
+		mesh.instanceAttributes.put("normalMatrix", new WeakReference<>(meshNormalAttrib));
+
 		return mesh;
+
+	}
+
+	class Model {
+		Map<ShaderProgram.Mesh, Integer> meshToMaterials = new CollectionSuppliers.MapSupplier<ShaderProgram.Mesh, Integer>().get();
+
+		Matrix4f translation = new Matrix4f();
 
 	}
 
@@ -457,32 +495,55 @@ public class ModelLoader {
 
 		glUseProgram(program.programID);
 
-		for (Scene.Mesh mesh : scene.meshes) {
-			/*	glBindBuffer(GL_ARRAY_BUFFER, mesh.vertexArrayBuffer);
-				glVertexAttribPointer(vertexAttribute, 3, GL_FLOAT, false, 0, 0);
-				glBindBuffer(GL_ARRAY_BUFFER, mesh.normalArrayBuffer);
-				glVertexAttribPointer(normalAttribute, 3, GL_FLOAT, false, 0, 0);
-				glBindBuffer(GL_ARRAY_BUFFER, mesh.materialIndexBuffer);
-				glVertexAttribPointer(materialIndexAttrib, 1, GL_FLOAT, false, 0, 0);
-			
-				IntBuffer buffer = BufferUtils.createIntBuffer(1);
-				buffer.put(mesh.materialIndex);
+		for (Entry<ShaderProgram.Mesh, Integer> submeshEntry : model.meshToMaterials.entrySet()) {
+			Attribute matIndex = submeshEntry.getKey().instanceAttributes.get("materialIndex").get();
+			matIndex.data.clear();
+			matIndex.data.add(submeshEntry.getValue());
+			matIndex.update.set(true);
+			/*try (ShaderClosable sc = ShaderProgramSystem.useVBO(matIndex)) {
+				IntBuffer buffer = (IntBuffer) matIndex.buffer;
+				buffer.clear();
+				buffer.put(submeshEntry.getValue());
 				buffer.flip();
-				glBufferData(GL_ARRAY_BUFFER, buffer, ShaderProgram.BufferUsage.StreamDraw.getGLID());
-			
-				GL46.glVertexAttribDivisor(materialIndexAttrib, 1);*/
-
-			glUniformMatrix4fv(modelMatrixUniform, false, modelMatrix.get(modelMatrixBuffer));
-
-			glUniformMatrix4fv(viewProjectionMatrixUniform, false, viewProjectionMatrix.get(viewProjectionMatrixBuffer));
-			normalMatrix.set(modelMatrix).invert().transpose();
-			glUniformMatrix3fv(normalMatrixUniform, false, normalMatrix.get(normalMatrixBuffer));
-			glUniform3fv(lightPositionUniform, lightPosition.get(lightPositionBuffer));
-			glUniform3fv(viewPositionUniform, viewPosition.get(viewPositionBuffer));
+				GL46.glBufferData(matIndex.bufferType.getGLID(), buffer, matIndex.bufferUsage.getGLID());
+			}*/
 			/*
-						glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.elementArrayBuffer);
-						glDrawElements(GL_TRIANGLES, mesh.elementCount, GL_UNSIGNED_INT, 0);*/
+						Attribute modelMatrixAtt = submeshEntry.getKey().instanceAttributes.get("modelMatrix").get();
+						FrameUtils.appendToList(modelMatrixAtt.data, model.translation);
+						modelMatrixAtt.update.set(true);
+			
+						Attribute normalMatrixAtt = submeshEntry.getKey().instanceAttributes.get("normalMatrix").get();
+						normalMatrix.set(modelMatrix).invert().transpose();
+						FrameUtils.appendToList(normalMatrixAtt.data, normalMatrix);
+						normalMatrixAtt.update.set(true);*/
 		}
+
+		/*	
+			glBindBuffer(GL_ARRAY_BUFFER, mesh.vertexArrayBuffer);
+			glVertexAttribPointer(vertexAttribute, 3, GL_FLOAT, false, 0, 0);
+			glBindBuffer(GL_ARRAY_BUFFER, mesh.normalArrayBuffer);
+			glVertexAttribPointer(normalAttribute, 3, GL_FLOAT, false, 0, 0);
+			glBindBuffer(GL_ARRAY_BUFFER, mesh.materialIndexBuffer);
+			glVertexAttribPointer(materialIndexAttrib, 1, GL_FLOAT, false, 0, 0);
+		
+			IntBuffer buffer = BufferUtils.createIntBuffer(1);
+			buffer.put(mesh.materialIndex);
+			buffer.flip();
+			glBufferData(GL_ARRAY_BUFFER, buffer, ShaderProgram.BufferUsage.StreamDraw.getGLID());
+		
+			GL46.glVertexAttribDivisor(materialIndexAttrib, 1);
+		*/
+
+		glUniformMatrix4fv(modelMatrixUniform, false, modelMatrix.get(modelMatrixBuffer));
+		normalMatrix.set(modelMatrix).invert().transpose();
+		glUniformMatrix3fv(normalMatrixUniform, false, normalMatrix.get(normalMatrixBuffer));
+
+		glUniformMatrix4fv(viewProjectionMatrixUniform, false, viewProjectionMatrix.get(viewProjectionMatrixBuffer));
+		glUniform3fv(lightPositionUniform, lightPosition.get(lightPositionBuffer));
+		glUniform3fv(viewPositionUniform, viewPosition.get(viewPositionBuffer));
+		/*
+					glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.elementArrayBuffer);
+					glDrawElements(GL_TRIANGLES, mesh.elementCount, GL_UNSIGNED_INT, 0);*/
 
 		//				ShaderProgramSystem.render(program);
 		ShaderProgramSystem.tryRender(program);
@@ -493,27 +554,31 @@ public class ModelLoader {
 		PointerBuffer mats = scene.mMaterials();
 		int i = 0;
 
-		float[] data = new float[Material.sizeOf()];
-		Material m = new Material();
-		m.diffuse.set(1, 0, 0);
-		m.ambient.set(0, 1, 0);
-		m.specular.set(0, 0, 1);
 		{
+			Material m = new Material();
+			m.ambient.set(1, 0, 0);
+			m.diffuse.set(1, 0, 0);
+			m.specular.set(1, 0, 0);
+			float[] data = m.toArray();
+			GL46.glUniformMatrix4fv(materialsUniformBlock[i++], false, data);
+			Material.toString(data);
+		}
+		{
+			Material m = new Material();
+			m.ambient.set(0, 1, 0);
+			m.diffuse.set(0, 1, 0);
+			m.specular.set(0, 1, 0);
 
-			m.diffuseStrength = 0.5f;
-			m.toArray(data);
+			float[] data = m.toArray();
 			GL46.glUniformMatrix4fv(materialsUniformBlock[i++], false, data);
 			Material.toString(data);
 		}
 		{
-			m.diffuseStrength = 0f;
-			m.toArray(data);
-			GL46.glUniformMatrix4fv(materialsUniformBlock[i++], false, data);
-			Material.toString(data);
-		}
-		{
-			m.diffuseStrength = 1f;
-			m.toArray(data);
+			Material m = new Material();
+			m.ambient.set(0, 0, 1);
+			m.diffuse.set(0, 0, 1);
+			m.specular.set(0, 0, 1);
+			float[] data = m.toArray();
 			GL46.glUniformMatrix4fv(materialsUniformBlock[i++], false, data);
 			Material.toString(data);
 		}
@@ -523,19 +588,11 @@ public class ModelLoader {
 			AIMaterial material = AIMaterial.createSafe(mats.get(i));
 			if (material != null) {
 				float[] materialDataBuffer = new float[4 * 3];
-				createMaterial(material, materialDataBuffer);
-				GL46.glUniformMatrix4fv(materialsUniformBlock[i++], false, materialDataBuffer);
-				Material.toString(materialDataBuffer);
+				//				createMaterial(material, materialDataBuffer);
+				//				GL46.glUniformMatrix4fv(materialsUniformBlock[i++], false, materialDataBuffer);
+				//				Material.toString(materialDataBuffer);
 			}
 		}
-		Material material = new Material();
-		material.ambient.set(1, 0, 0);
-		material.diffuse.set(1, 0, 0);
-		material.specular.set(0, 0, 1);
-		float[] d = material.toArray();
-
-		GL46.glUniformMatrix4fv(materialsUniformBlock[i++], false, d);
-		Material.toString(d);
 
 	}
 
@@ -580,164 +637,53 @@ public class ModelLoader {
 
 		public static void toString(float[] data) {
 			int i = 0;
-			System.out.println("ambient : " + data[i++] + " " + data[i++] + " " + data[i++] /*+ " x " + data[i++]*/);
-			System.out.println("diffuse : " + data[i++] + " " + data[i++] + " " + data[i++] /*+ " x " + data[i++]*/);
-			System.out.println("specular: " + data[i++] + " " + data[i++] + " " + data[i++] /*+ " x " + data[i++]*/);
-			//			System.out.println("shininess: " + data[i++] + " " + data[i++] + " " + data[i++] + " " + data[i++]);
+			System.out.println("ambient  : " + data[i++] + " " + data[i++] + " " + data[i++] + " x " + data[i++]);
+			System.out.println("diffuse  : " + data[i++] + " " + data[i++] + " " + data[i++] + " x " + data[i++]);
+			System.out.println("specular : " + data[i++] + " " + data[i++] + " " + data[i++] + " x " + data[i++]);
+			System.out.println("shininess: " + data[i++] /*+ " " + data[i++] + " " + data[i++] + " " + data[i++]*/);
+			System.out.println();
 		}
 	}
-
-	public void createMaterial(AIMaterial AImaterial, float[] data) {
-
-		AIColor4D ambient = AIColor4D.create();
-		if (aiGetMaterialColor(AImaterial, AI_MATKEY_COLOR_AMBIENT, aiTextureType_NONE, 0, ambient) != 0) {
-			logger.warn("no ambient found\r\t\n" + aiGetErrorString());
-			ambient.set(0, 0, 0, 1);
-
-		}
-
-		AIColor4D diffuse = AIColor4D.create();
-
-		if (aiGetMaterialColor(AImaterial, AI_MATKEY_COLOR_DIFFUSE, aiTextureType_NONE, 0, diffuse) != 0) {
-			logger.warn("no diffuse found\r\t\n" + aiGetErrorString());
-			diffuse.set(0, 0, 0, 1);
-		}
-
-		AIColor4D specular = AIColor4D.create();
-		if (aiGetMaterialColor(AImaterial, AI_MATKEY_COLOR_SPECULAR, aiTextureType_NONE, 0, specular) != 0) {
-			logger.warn("no specular found\r\t\n" + aiGetErrorString());
-			specular.set(0, 0, 0, 1);
-		}
-
-		int i = 0;
-		//ambient
-		data[i++] = ambient.r();
-		data[i++] = ambient.g();
-		data[i++] = ambient.b();
-		//		data[i++] = ambient.a();
-		//put diffuse
-		data[i++] = diffuse.r();
-		data[i++] = diffuse.g();
-		data[i++] = diffuse.b();
-		//		data[i++] = diffuse.a();
-		//put specular
-		data[i++] = specular.r();
-		data[i++] = specular.g();
-		data[i++] = specular.b();
-		//		data[i++] = specular.a();
-
-	}
-
-	class Scene {
-
-		public AIScene scene;
-		public List<Mesh> meshes;
-
-		public Scene(AIScene scene) {
-
-			this.scene = scene;
-
-			if (true) {
-				int meshCount = scene.mNumMeshes();
-				PointerBuffer meshesBuffer = scene.mMeshes();
-				meshes = new ArrayList<>();
-				for (int i = 0; i < meshCount; ++i) {
-					meshes.add(new Mesh(AIMesh.create(meshesBuffer.get(i))));
-				}
+	/*
+		public void createMaterial(AIMaterial AImaterial, float[] data) {
+	
+			AIColor4D ambient = AIColor4D.create();
+			if (aiGetMaterialColor(AImaterial, AI_MATKEY_COLOR_AMBIENT, aiTextureType_NONE, 0, ambient) != 0) {
+				logger.warn("no ambient found\r\t\n" + aiGetErrorString());
+				ambient.set(0, 0, 0, 1);
+	
 			}
-
-		}
-
-		public void free() {
-			aiReleaseImport(scene);
-			scene = null;
-			meshes = null;
-		}
-
-		public class Model {
-			Set<Integer> meshes = new CollectionSuppliers.SetSupplier<Integer>().get();
-			Matrix4f modelTranslation = new Matrix4f();
-			String name;
-
-		}
-
-		public class Mesh {
-
-			public int materialIndex = 0;
-			public long mesh;
-			public int materialIndexBuffer;
-			public int vertexArrayBuffer;
-			public int normalArrayBuffer;
-			public int elementArrayBuffer;
-			public int elementCount;
-
-			public Mesh(AIMesh mesh) {
-				this.mesh = mesh.address();
-				this.materialIndex = mesh.mMaterialIndex();
-				//material index buffer
-				if (true) {
-					materialIndexBuffer = glGenBuffers();
-					glBindBuffer(GL_ARRAY_BUFFER, materialIndexBuffer);
-					IntBuffer buffer = BufferUtils.createIntBuffer(1);
-					buffer.put(materialIndex);
-					buffer.flip();
-					glBufferData(GL_ARRAY_BUFFER, buffer, GL_STATIC_DRAW);
-				}
-				//vertices
-				if (true) {
-					List<Vector3f> verts = new ArrayList<>();
-					vertexArrayBuffer = glGenBuffers();
-					glBindBuffer(GL_ARRAY_BUFFER, vertexArrayBuffer);
-
-					AIVector3D.Buffer vertices = mesh.mVertices();
-					int rem = vertices.remaining();
-					int size = AIVector3D.SIZEOF * rem;
-
-					nglBufferData(GL_ARRAY_BUFFER, size, vertices.address(), GL_STATIC_DRAW);
-					vertices.forEach(new Consumer<AIVector3D>() {
-
-						@Override
-						public void accept(AIVector3D vec) {
-							verts.add(new Vector3f(vec.x(), vec.y(), vec.z()));
-						}
-					});
-					System.out.println(rem + " " + verts.size());
-					System.out.println();
-				}
-				//normals
-				if (true) {
-					normalArrayBuffer = glGenBuffers();
-					glBindBuffer(GL_ARRAY_BUFFER, normalArrayBuffer);
-					AIVector3D.Buffer normals = mesh.mNormals();
-					nglBufferData(
-						GL_ARRAY_BUFFER,
-						AIVector3D.SIZEOF * normals.remaining(),
-						normals.address(),
-						GL_STATIC_DRAW);
-				}
-				//element indicies
-				if (true) {
-					int faceCount = mesh.mNumFaces();
-					elementCount = faceCount * 3;
-					IntBuffer elementArrayBufferData = BufferUtils.createIntBuffer(elementCount);
-					AIFace.Buffer facesBuffer = mesh.mFaces();
-					for (int i = 0; i < faceCount; ++i) {
-						AIFace face = facesBuffer.get(i);
-						if (face.mNumIndices() != 3) {
-							logger.warn("AIFace.mNumIndices() != 3, actually has " + face.mNumIndices());
-							logger.warn("wont use this face");
-						} else {
-							elementArrayBufferData.put(face.mIndices());
-						}
-					}
-					elementArrayBufferData.flip();
-					elementArrayBuffer = glGenBuffers();
-					glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementArrayBuffer);
-					glBufferData(GL_ELEMENT_ARRAY_BUFFER, elementArrayBufferData, GL_STATIC_DRAW);
-					glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-				}
+	
+			AIColor4D diffuse = AIColor4D.create();
+	
+			if (aiGetMaterialColor(AImaterial, AI_MATKEY_COLOR_DIFFUSE, aiTextureType_NONE, 0, diffuse) != 0) {
+				logger.warn("no diffuse found\r\t\n" + aiGetErrorString());
+				diffuse.set(0, 0, 0, 1);
 			}
-		}
+	
+			AIColor4D specular = AIColor4D.create();
+			if (aiGetMaterialColor(AImaterial, AI_MATKEY_COLOR_SPECULAR, aiTextureType_NONE, 0, specular) != 0) {
+				logger.warn("no specular found\r\t\n" + aiGetErrorString());
+				specular.set(0, 0, 0, 1);
+			}
+	
+			int i = 0;
+			//ambient
+			data[i++] = ambient.r();
+			data[i++] = ambient.g();
+			data[i++] = ambient.b();
+			//		data[i++] = ambient.a();
+			//put diffuse
+			data[i++] = diffuse.r();
+			data[i++] = diffuse.g();
+			data[i++] = diffuse.b();
+			//		data[i++] = diffuse.a();
+			//put specular
+			data[i++] = specular.r();
+			data[i++] = specular.g();
+			data[i++] = specular.b();
+			//		data[i++] = specular.a();
+	
+		}*/
 
-	}
 }

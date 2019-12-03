@@ -12,11 +12,11 @@ uniform mat4 materials[{maxmats}];
 
 in vec3 vPosition;
 in vec3 vNormal;
-in flat int vMaterialIndex;
+flat in int vMaterialIndex;
 out lowp vec4 outColour;
 
 void main() {
-
+	float i = 0.1 * 2;
 	int index = int(vMaterialIndex);
 	mat4 mat = materials[index];
 	
@@ -35,8 +35,7 @@ void main() {
     vec3 viewDirection = normalize(uViewPosition - vPosition);
     vec3 reflectDirection = reflect(-lightDirection, normal);
     vec3 specularColor = specularStrength * pow(max(dot(viewDirection, reflectDirection), 0.0), shininess) * mat_specular;
-	
+		
 	outColour = vec4(ambientColor + diffuseColor + specularColor,1);
-	
 	
 }
