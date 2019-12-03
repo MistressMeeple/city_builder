@@ -214,6 +214,12 @@ public class ShaderProgram {
 		public boolean singleFrameDiscard = false;
 	}
 
+	public static enum VBOBufferType {
+		Address,
+		Buffer,
+		List
+	}
+
 	public static class VBO {
 
 		public int VBOID = NULL;
@@ -232,8 +238,14 @@ public class ShaderProgram {
 		public GLDataType dataType;
 		public final AtomicBoolean update = new AtomicBoolean(true);
 		//		public final AtomicBoolean uploadBuffer = new AtomicBoolean(false);
+		public VBOBufferType bufferResourceType = VBOBufferType.List;
 		public List<Number> data = new CollectionSuppliers.ListSupplier<Number>().get();
 		public Buffer buffer;
+		public Long bufferAddress;
+		/**
+		 * used when using the unsafe direct buffer allocation
+		 */
+		public Long bufferLen;
 	}
 
 	public static class Mesh extends VAO {

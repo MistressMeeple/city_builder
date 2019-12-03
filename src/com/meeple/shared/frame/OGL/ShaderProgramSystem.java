@@ -324,81 +324,127 @@ public class ShaderProgramSystem {
 	 */
 	public static void writeDataToBuffer(VBO vbo) {
 
-		int arraySize = vbo.data.size();
+		switch (vbo.bufferResourceType) {
+			case Address:
+				GL46.nglBufferData(vbo.bufferType.getGLID(), vbo.bufferLen, vbo.bufferAddress, vbo.bufferUsage.getGLID());
+				break;
+			case List:
 
-		//TODO check actual buffer size vs expected
-		//		logger.trace("todo: check acutal size vs expected size");
-		switch (vbo.dataType) {
-			case Byte:
-			case UnsignedByte: {
-				ByteBuffer byteBuffer = ((ByteBuffer) vbo.buffer);
-				if (byteBuffer == null || byteBuffer.capacity() != arraySize) {
-					vbo.buffer = byteBuffer = BufferUtils.createByteBuffer(arraySize);
-				}
-				for (Number b : vbo.data) {
-					byteBuffer.put(b.byteValue());
-				}
-				byteBuffer.flip();
-				GL46.glBufferData(vbo.bufferType.getGLID(), byteBuffer, vbo.bufferUsage.getGLID());
+				int arraySize = vbo.data.size();
 
-				break;
-			}
-			case Short:
-			case UnsignedShort: {
+				//TODO check actual buffer size vs expected
+				//		logger.trace("todo: check acutal size vs expected size");
+				switch (vbo.dataType) {
+					case Byte:
+					case UnsignedByte: {
+						ByteBuffer byteBuffer = ((ByteBuffer) vbo.buffer);
+						if (byteBuffer == null || byteBuffer.capacity() != arraySize) {
+							vbo.buffer = byteBuffer = BufferUtils.createByteBuffer(arraySize);
+						}
+						for (Number b : vbo.data) {
+							byteBuffer.put(b.byteValue());
+						}
+						byteBuffer.flip();
 
-				ShortBuffer shortBuffer = ((ShortBuffer) vbo.buffer);
-				if (shortBuffer == null || shortBuffer.capacity() != arraySize) {
-					vbo.buffer = shortBuffer = BufferUtils.createShortBuffer(arraySize);
-				}
-				for (Number b : vbo.data) {
-					shortBuffer.put(b.shortValue());
-				}
-				shortBuffer.flip();
-				GL46.glBufferData(vbo.bufferType.getGLID(), shortBuffer, vbo.bufferUsage.getGLID());
-				break;
-			}
-			case Int:
-			case UnsignedInt: {
+						break;
+					}
+					case Short:
+					case UnsignedShort: {
 
-				IntBuffer intBuffer = ((IntBuffer) vbo.buffer);
-				if (intBuffer == null || intBuffer.capacity() != arraySize) {
-					vbo.buffer = intBuffer = BufferUtils.createIntBuffer(arraySize);
+						ShortBuffer shortBuffer = ((ShortBuffer) vbo.buffer);
+						if (shortBuffer == null || shortBuffer.capacity() != arraySize) {
+							vbo.buffer = shortBuffer = BufferUtils.createShortBuffer(arraySize);
+						}
+						for (Number b : vbo.data) {
+							shortBuffer.put(b.shortValue());
+						}
+						shortBuffer.flip();
+						break;
+					}
+					case Int:
+					case UnsignedInt: {
+
+						IntBuffer intBuffer = ((IntBuffer) vbo.buffer);
+						if (intBuffer == null || intBuffer.capacity() != arraySize) {
+							vbo.buffer = intBuffer = BufferUtils.createIntBuffer(arraySize);
+						}
+						for (Number b : vbo.data) {
+							intBuffer.put(b.intValue());
+						}
+						intBuffer.flip();
+						break;
+					}
+					case HalfFloat:
+					case Float: {
+						FloatBuffer floatBuffer = ((FloatBuffer) vbo.buffer);
+						if (floatBuffer == null || floatBuffer.capacity() != arraySize) {
+							vbo.buffer = floatBuffer = BufferUtils.createFloatBuffer(arraySize);
+						}
+						for (Number b : vbo.data) {
+							floatBuffer.put(b.floatValue());
+						}
+						floatBuffer.flip();
+						break;
+					}
+					case Double: {
+						DoubleBuffer doubleBuffer = ((DoubleBuffer) vbo.buffer);
+						if (doubleBuffer == null || doubleBuffer.capacity() != arraySize) {
+							vbo.buffer = doubleBuffer = BufferUtils.createDoubleBuffer(arraySize);
+						}
+						for (Number b : vbo.data) {
+							doubleBuffer.put(b.doubleValue());
+						}
+						doubleBuffer.flip();
+						break;
+					}
+					case Fixed:
+						System.out.println("Sorry I have no idea how to represent fixed in java... ");
+						throw new RuntimeException(new UnsupportedDataTypeException());
 				}
-				for (Number b : vbo.data) {
-					intBuffer.put(b.intValue());
+
+			case Buffer:
+				switch (vbo.dataType) {
+					case Byte:
+					case UnsignedByte: {
+						ByteBuffer byteBuffer = ((ByteBuffer) vbo.buffer);
+						GL46.glBufferData(vbo.bufferType.getGLID(), byteBuffer, vbo.bufferUsage.getGLID());
+
+						break;
+					}
+					case Short:
+					case UnsignedShort: {
+
+						ShortBuffer shortBuffer = ((ShortBuffer) vbo.buffer);
+						GL46.glBufferData(vbo.bufferType.getGLID(), shortBuffer, vbo.bufferUsage.getGLID());
+						break;
+					}
+					case Int:
+					case UnsignedInt: {
+
+						IntBuffer intBuffer = ((IntBuffer) vbo.buffer);
+						GL46.glBufferData(vbo.bufferType.getGLID(), intBuffer, vbo.bufferUsage.getGLID());
+						break;
+					}
+					case HalfFloat:
+					case Float: {
+						FloatBuffer floatBuffer = ((FloatBuffer) vbo.buffer);
+						GL46.glBufferData(vbo.bufferType.getGLID(), floatBuffer, vbo.bufferUsage.getGLID());
+						break;
+					}
+					case Double: {
+						DoubleBuffer doubleBuffer = ((DoubleBuffer) vbo.buffer);
+						GL46.glBufferData(vbo.bufferType.getGLID(), doubleBuffer, vbo.bufferUsage.getGLID());
+						break;
+					}
+					case Fixed: {
+						System.out.println("Sorry I have no idea how to represent fixed in java... ");
+						throw new RuntimeException(new UnsupportedDataTypeException());
+					}
+					default: {
+						break;
+
+					}
 				}
-				intBuffer.flip();
-				GL46.glBufferData(vbo.bufferType.getGLID(), intBuffer, vbo.bufferUsage.getGLID());
-				break;
-			}
-			case HalfFloat:
-			case Float: {
-				FloatBuffer floatBuffer = ((FloatBuffer) vbo.buffer);
-				if (floatBuffer == null || floatBuffer.capacity() != arraySize) {
-					vbo.buffer = floatBuffer = BufferUtils.createFloatBuffer(arraySize);
-				}
-				for (Number b : vbo.data) {
-					floatBuffer.put(b.floatValue());
-				}
-				floatBuffer.flip();
-				GL46.glBufferData(vbo.bufferType.getGLID(), floatBuffer, vbo.bufferUsage.getGLID());
-				break;
-			}
-			case Double: {
-				DoubleBuffer doubleBuffer = ((DoubleBuffer) vbo.buffer);
-				if (doubleBuffer == null || doubleBuffer.capacity() != arraySize) {
-					vbo.buffer = doubleBuffer = BufferUtils.createDoubleBuffer(arraySize);
-				}
-				for (Number b : vbo.data) {
-					doubleBuffer.put(b.doubleValue());
-				}
-				doubleBuffer.flip();
-				GL46.glBufferData(vbo.bufferType.getGLID(), doubleBuffer, vbo.bufferUsage.getGLID());
-				break;
-			}
-			case Fixed:
-				System.out.println("Sorry I have no idea how to represent fixed in java... ");
-				throw new RuntimeException(new UnsupportedDataTypeException());
 		}
 	}
 
