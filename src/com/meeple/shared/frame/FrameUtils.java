@@ -128,14 +128,60 @@ public class FrameUtils {
 		values.add(value);
 	}
 
+	public static int glErrorCheck(String fileName, int line) {
+		int errorCode;
+		while ((errorCode = GL46.glGetError()) != GL46.GL_NO_ERROR) {
+			String error = "";
+			switch (errorCode) {
+				case GL46.GL_INVALID_ENUM:
+					error = "INVALID_ENUM";
+					break;
+				case GL46.GL_INVALID_VALUE:
+					error = "INVALID_VALUE";
+					break;
+				case GL46.GL_INVALID_OPERATION:
+					error = "INVALID_OPERATION";
+					break;
+				case GL46.GL_STACK_OVERFLOW:
+					error = "STACK_OVERFLOW";
+					break;
+				case GL46.GL_STACK_UNDERFLOW:
+					error = "STACK_UNDERFLOW";
+					break;
+				case GL46.GL_OUT_OF_MEMORY:
+					error = "OUT_OF_MEMORY";
+					break;
+				case GL46.GL_INVALID_FRAMEBUFFER_OPERATION:
+					error = "INVALID_FRAMEBUFFER_OPERATION";
+					break;
+			}
+			System.err.println(error + " (" + fileName + ".java:" + line);
+		}
+		return errorCode;
+
+	}
+
+	private static enum Severity {
+		High, Medium, Low, Notification, Other
+	}
+
 	public static GLDebugMessageCallbackI defaultDebugMessage = new GLDebugMessageCallbackI() {
+
+		String fmt =
+			"\r\n\tWindow %s" +
+				"\r\n\tSeverity: %s" +
+				"\r\n\tSource: %s" +
+				"\r\n\tType: %s" +
+				"\r\n\tError: %s" +
+				"\r\n\tMessage: %s";
 
 		@Override
 		public void invoke(int source, int type, int id, int severity, int length, long message, long userParam) {
 			String messageString = MemoryUtil.memUTF8(MemoryUtil.memByteBuffer(message, length));
 			String sourceString = "";
 			String typeString = "";
-			String severityString = "";
+			String error = "";
+			Severity severityString = Severity.Other;
 			switch (source) {
 				case GL46.GL_DEBUG_SOURCE_API:
 					sourceString = "API";
@@ -166,26 +212,46 @@ public class FrameUtils {
 					break;
 			}
 
+			switch (id) {
+				case GL46.GL_INVALID_ENUM:
+					error = "INVALID_ENUM";
+					break;
+				case GL46.GL_INVALID_VALUE:
+					error = "INVALID_VALUE";
+					break;
+				case GL46.GL_INVALID_OPERATION:
+					error = "INVALID_OPERATION";
+					break;
+				case GL46.GL_STACK_OVERFLOW:
+					error = "STACK_OVERFLOW";
+					break;
+				case GL46.GL_STACK_UNDERFLOW:
+					error = "STACK_UNDERFLOW";
+					break;
+				case GL46.GL_OUT_OF_MEMORY:
+					error = "OUT_OF_MEMORY";
+					break;
+				case GL46.GL_INVALID_FRAMEBUFFER_OPERATION:
+					error = "INVALID_FRAMEBUFFER_OPERATION";
+					break;
+			}
 			switch (severity) {
 				case GL46.GL_DEBUG_SEVERITY_HIGH:
-					severityString = "HIGH";
+					severityString = Severity.High;
 					break;
 
 				case GL46.GL_DEBUG_SEVERITY_MEDIUM:
-					severityString = "MEDIUM";
+					severityString = Severity.Medium;
 					break;
 
 				case GL46.GL_DEBUG_SEVERITY_LOW:
-					severityString = "LOW";
+					severityString = Severity.Low;
 					break;
 
 				case GL46.GL_DEBUG_SEVERITY_NOTIFICATION:
-					severityString = "NOTIFICATION";
+					severityString = Severity.Notification;
 					break;
 
-				default:
-					severityString = "UNKNOWN";
-					break;
 			}
 
 			switch (type) {
@@ -219,10 +285,24 @@ public class FrameUtils {
 			}
 
 			//discard notifications
-			if (severity == GL46.GL_DEBUG_SEVERITY_HIGH || severity == GL46.GL_DEBUG_SEVERITY_MEDIUM) {
-				logger.warn("[Window: " + userParam + "][" + severityString + "][" + sourceString + "][" + typeString + "] " + messageString);
-			} else if (severity == GL46.GL_DEBUG_SEVERITY_LOW) {
-				logger.trace("[Window: " + userParam + "][" + severityString + "][" + sourceString + "][" + typeString + "] " + messageString);
+			switch (severityString) {
+				case High:
+					logger.error(String.format(fmt, "" + userParam, severityString, sourceString, typeString, error, messageString));
+					break;
+				case Medium:
+					logger.warn(String.format(fmt, "" + userParam, severityString, sourceString, typeString, error, messageString));
+					break;
+				case Low:
+					logger.info(String.format(fmt, "" + userParam, severityString, sourceString, typeString, error, messageString));
+					break;
+				case Notification:
+					logger.trace(String.format(fmt, "" + userParam, severityString, sourceString, typeString, error, messageString));
+					break;
+				case Other:
+					break;
+				default:
+					break;
+
 			}
 		}
 	};
