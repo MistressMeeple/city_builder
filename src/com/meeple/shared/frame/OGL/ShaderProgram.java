@@ -26,6 +26,7 @@ public class ShaderProgram {
 	protected static final int maxAttribDataSize = 4;
 	protected static final int NULL = 0;
 	private static int bitsPerByte = 8;
+	
 
 	public enum GLDataType implements GLEnum {
 		Byte(GL46.GL_BYTE, 8),
@@ -217,7 +218,8 @@ public class ShaderProgram {
 	public static enum VBOBufferType {
 		Address,
 		Buffer,
-		List
+		List,
+		Manual
 	}
 
 	public static class VBO {

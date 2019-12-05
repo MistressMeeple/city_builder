@@ -446,6 +446,11 @@ public class ShaderProgramSystem {
 
 					}
 				}
+			case Manual:
+				logger.warn("manual management of vbo data. ");
+				break;
+			default:
+				break;
 		}
 	}
 
