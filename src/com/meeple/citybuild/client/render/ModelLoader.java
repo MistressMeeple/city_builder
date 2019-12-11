@@ -678,6 +678,10 @@ public class ModelLoader {
 			//			FrameUtils.appendToList(meshTransformAttrib.data, modelMatrix);
 			mesh.instanceAttributes.put(transformMatName, new WeakReference<>(meshTransformAttrib));
 		}
+		/**
+		 * It is important to use a data size of 16 rather than 9 because for some reason the buffer adds padding to vec3 to 4 floats
+		 * easier to just make it a 4 float array
+		 */
 		{
 			Attribute meshNormalMatrixAttrib = new Attribute();
 			meshNormalMatrixAttrib.name = "normalMatrix";
