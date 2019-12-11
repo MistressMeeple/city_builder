@@ -2,7 +2,11 @@ package com.meeple.citybuild.client.render;
 
 import static org.lwjgl.assimp.Assimp.*;
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.opengl.GL46.*;
+import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL15.*;
+import static org.lwjgl.opengl.GL20.*;
+import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.opengl.GL31.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
 import java.io.IOException;
@@ -12,6 +16,7 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.log4j.Appender;
 import org.apache.log4j.BasicConfigurator;
@@ -103,6 +108,7 @@ public class ModelLoader {
 	//at the moment i only have control over meshes through the model. this is wrong. since meshes can be used in multiple models
 	Model model = new Model();
 	Model light = new Model();
+	Map<Model, Set<MeshInstance>> instances = new CollectionSuppliers.MapSupplier<Model, Set<MeshInstance>>().get();
 
 	WeakReference<Attribute> meshTransform;
 	WeakReference<Attribute> meshNormal;
@@ -214,10 +220,13 @@ public class ModelLoader {
 						} else {
 							entry.setValue(entry.getValue() + 1);
 						}
-						Attribute matIndex = entry.getKey().instanceAttributes.get("materialIndex").get();
-						matIndex.data.clear();
-						matIndex.data.add(entry.getValue());
-						matIndex.update.set(true);
+
+						/*
+							Attribute matIndex = entry.getKey().instanceAttributes.get(materialIndexName).get();
+							matIndex.data.clear();
+							matIndex.data.add(entry.getValue());
+							matIndex.update.set(true);
+						*/
 					}
 
 				}
@@ -280,7 +289,7 @@ public class ModelLoader {
 	void loadModel() throws IOException {
 
 		//TODO import
-		ByteBuffer file = IOUtil.ioResourceToByteBuffer("resources/magnet.obj", 2048 * 8);
+		ByteBuffer file = IOUtil.ioResourceToByteBuffer("resources/cube.blend", 2048 * 8);
 
 		scene =
 			aiImportFileFromMemory(
@@ -288,8 +297,9 @@ public class ModelLoader {
 				0 |
 					//				aiProcess_JoinIdenticalVertices | 
 					aiProcess_Triangulate
-				//				aiProcessPreset_TargetRealtime_MaxQuality | 
-				//					| aiProcess_FindDegenerates | aiProcess_GenNormals | aiProcess_FixInfacingNormals | aiProcess_GenSmoothNormals
+					//				aiProcessPreset_TargetRealtime_MaxQuality | 
+					//					| aiProcess_FindDegenerates 
+					| aiProcess_GenNormals | aiProcess_FixInfacingNormals | aiProcess_GenSmoothNormals
 				//				aiProcess_ImproveCacheLocality |
 				//				aiProcess_SortByPType,
 				,
@@ -298,28 +308,36 @@ public class ModelLoader {
 			throw new IllegalStateException(aiGetErrorString());
 		}
 		storeMaterialBuffer();
-
 		if (true) {
 			int meshCount = scene.mNumMeshes();
 			PointerBuffer meshesBuffer = scene.mMeshes();
 			for (int i = 0; i < meshCount; ++i) {
 				AIMesh mesh = AIMesh.create(meshesBuffer.get(i));
 				int mIndex = 0;
-				ShaderProgram.Mesh dmesh = setupDiscard(mesh, mIndex, model.translation);
+				ShaderProgram.Mesh dmesh = setupDiscard(mesh, 5);
 				ShaderProgramSystem.loadVAO(program, dmesh);
 
-				System.out.println(i);
 				model.meshToMaterials.put(dmesh, mIndex);
 				light.meshToMaterials.put(dmesh, mIndex + 1);
 				dmesh.renderCount = 2;
+
+				MeshInstance mi = new MeshInstance();
+				mi.mesh = new WeakReference<>(dmesh);
+				mi.meshDataIndex = 0;
+				FrameUtils.addToSetMap(instances, model, mi, new CollectionSuppliers.SetSupplier<>());
+
+				MeshInstance mi2 = new MeshInstance();
+				mi2.mesh = new WeakReference<>(dmesh);
+				mi2.meshDataIndex = 1;
+				FrameUtils.addToSetMap(instances, light, mi2, new CollectionSuppliers.SetSupplier<>());
 
 			}
 		}
 	}
 
-	static final String transformMatName = "meshTransformMatrix";
-	static final String normalMatName = "meshNormalMatrix";
-	static final String materialIndexName = "meshMaterialIndex";
+	private static final String transformMatName = "meshTransformMatrix";
+	private static final String materialIndexName = "meshMaterialIndex";
+	private static final String normalMatName = "meshNormalMatrix";
 
 	void createProgram() throws IOException {
 
@@ -421,99 +439,88 @@ public class ModelLoader {
 				0f);
 		projectionMatrix.mul(viewMatrix, viewProjectionMatrix);
 		float rotation2 = -total * 0.75f * (float) Math.PI;
-		lightPosition.set(5f * (float) Math.sin(rotation2), 0, 5f * (float) Math.cos(rotation2));
+		lightPosition.set(2.5f * (float) Math.sin(rotation2), 2.5f, 2.5f * (float) Math.cos(rotation2));
+		//		lightPosition.set(5, 0, 0);
+		light.translation.setTranslation(lightPosition.x , 0, lightPosition.z );
+		//		light.translation.setTranslation(10, 0, 0);
+		//		model.translation.translate(0, deltaSeconds, 0);
 	}
 
-	class Model2 {
+	class MeshInstance {
 		WeakReference<ShaderProgram.Mesh> mesh;
-		int materialIndex;
-		/**
-		 * This is the index of the mesh data that this model represents
-		 */
 		int meshDataIndex;
 	}
 
-	class Model {
+	private void writeMeshTranslation(MeshInstance instance, Matrix4f translation) {
+		try {
+			{
+				Attribute transformat = instance.mesh.get().instanceAttributes.get(transformMatName).get();
+				long offset = instance.meshDataIndex * (transformat.dataSize * ShaderProgram.GLDataType.Float.getBytes());
 
-		Map<ShaderProgram.Mesh, Integer> meshToMaterials = new CollectionSuppliers.MapSupplier<ShaderProgram.Mesh, Integer>().get();
-		Matrix4f translation = new Matrix4f();
-	}
+				GL46.glBindBuffer(transformat.bufferType.getGLID(), transformat.VBOID);
+				GL46.glBufferSubData(transformat.bufferType.getGLID(), offset, translation.get(new float[16]));
+				GL46.glBindBuffer(transformat.bufferType.getGLID(), 0);
+			}
+			{
+				Attribute normalMat = instance.mesh.get().instanceAttributes.get(normalMatName).get();
+				long offset = instance.meshDataIndex * (normalMat.dataSize * ShaderProgram.GLDataType.Float.getBytes());
+				Matrix3f normal = new Matrix3f();
+				normal.set(translation).invert().transpose();
 
-	private void updateModel(Model model, int index) {
-
-		for (Entry<ShaderProgram.Mesh, Integer> submeshEntry : model.meshToMaterials.entrySet()) {
-			Attribute matIndex = submeshEntry.getKey().instanceAttributes.get("materialIndex").get();
-
-			GL46.glBindBuffer(matIndex.bufferType.getGLID(), matIndex.VBOID);
-			GL46.glBufferSubData(matIndex.bufferType.getGLID(), index * ShaderProgram.GLDataType.Float.getBytes(), new float[] { submeshEntry.getValue() });
-			GL46.glBindBuffer(matIndex.bufferType.getGLID(), 0);
-
-			Attribute modelMatrixAtt = submeshEntry.getKey().instanceAttributes.get("modelTransformMatrix").get();
-			GL46.glBindBuffer(modelMatrixAtt.bufferType.getGLID(), modelMatrixAtt.VBOID);
-			GL46.glBufferSubData(modelMatrixAtt.bufferType.getGLID(), index * 16 * ShaderProgram.GLDataType.Float.getBytes(), model.translation.get(new float[16]));
-			GL46.glBindBuffer(modelMatrixAtt.bufferType.getGLID(), 0);
-
-			Attribute normalMatrixAtt = submeshEntry.getKey().instanceAttributes.get("modelNormalMatrix").get();
-			Matrix3f normalMatrix = new Matrix3f();
-			normalMatrix.set(model.translation).invert().transpose();
-
-			GL46.glBindBuffer(normalMatrixAtt.bufferType.getGLID(), modelMatrixAtt.VBOID);
-			GL46.glBufferSubData(normalMatrixAtt.bufferType.getGLID(), index * 9 * ShaderProgram.GLDataType.Float.getBytes(), normalMatrix.get(new float[9]));
-			GL46.glBindBuffer(normalMatrixAtt.bufferType.getGLID(), 0);
+				float[] data = new Matrix4f(normal).get(new float[16]);
+				GL46.glBindBuffer(normalMat.bufferType.getGLID(), normalMat.VBOID);
+				GL46.glBufferSubData(normalMat.bufferType.getGLID(), offset, data);
+				GL46.glBindBuffer(normalMat.bufferType.getGLID(), 0);
+			}
+		} catch (Exception e) {
+			logger.warn("failed to update", e);
 
 		}
+	}
 
+	private void writeMeshMaterialIndex(MeshInstance instance, int materialIndex) {
+		try {
+			Attribute matIndex = instance.mesh.get().instanceAttributes.get(materialIndexName).get();
+			long offset = instance.meshDataIndex * 1;
+
+			GL46.glBindBuffer(matIndex.bufferType.getGLID(), matIndex.VBOID);
+			GL46.glBufferSubData(matIndex.bufferType.getGLID(), offset, new float[] { materialIndex });
+			GL46.glBindBuffer(matIndex.bufferType.getGLID(), 0);
+		} catch (Exception e) {
+			logger.warn("failed to update", e);
+		}
+	}
+
+	class Model {
+		Map<ShaderProgram.Mesh, Integer> meshToMaterials = new CollectionSuppliers.MapSupplier<ShaderProgram.Mesh, Integer>().get();
+		Matrix4f translation = new Matrix4f();
 	}
 
 	void render() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		glUseProgram(program.programID);
-
+		//no need to be in a program bidning, since this is shared between multiple programs
 		glBindBuffer(GL46.GL_UNIFORM_BUFFER, matrixBuffer);
 		float[] store = new float[16];
-		glBufferSubData(GL46.GL_UNIFORM_BUFFER, 0, projectionMatrix.get(store));
+		//		glBufferSubData(GL46.GL_UNIFORM_BUFFER, 0, projectionMatrix.get(store));
 		glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64, viewMatrix.get(store));
 		glBufferSubData(GL46.GL_UNIFORM_BUFFER, 128, viewProjectionMatrix.get(store));
-
 		glBindBuffer(GL46.GL_UNIFORM_BUFFER, 0);
-		//		updateModel(model);
-		//		light.translation.setTranslation(lightPosition);
 
-		//		updateModel(light, 1);
+		glUseProgram(program.programID);
 
-		//		System.out.println(lightPosition + " " + light.translation.getTranslation(new Vector3f()));
-		/*	
-			glBindBuffer(GL_ARRAY_BUFFER, mesh.vertexArrayBuffer);
-			glVertexAttribPointer(vertexAttribute, 3, GL_FLOAT, false, 0, 0);
-			glBindBuffer(GL_ARRAY_BUFFER, mesh.normalArrayBuffer);
-			glVertexAttribPointer(normalAttribute, 3, GL_FLOAT, false, 0, 0);
-			glBindBuffer(GL_ARRAY_BUFFER, mesh.materialIndexBuffer);
-			glVertexAttribPointer(materialIndexAttrib, 1, GL_FLOAT, false, 0, 0);
-		
-			IntBuffer buffer = BufferUtils.createIntBuffer(1);
-			buffer.put(mesh.materialIndex);
-			buffer.flip();
-			glBufferData(GL_ARRAY_BUFFER, buffer, ShaderProgram.BufferUsage.StreamDraw.getGLID());
-		
-			GL46.glVertexAttribDivisor(materialIndexAttrib, 1);
-		*/
-		/*
-				glUniformMatrix4fv(modelMatrixUniform, false, modelMatrix.get(modelMatrixBuffer));
-				normalMatrix.set(modelMatrix).invert().transpose();
-				glUniformMatrix3fv(normalMatrixUniform, false, normalMatrix.get(normalMatrixBuffer));*/
+		for (MeshInstance meshInstance : instances.get(model)) {
+			writeMeshTranslation(meshInstance, model.translation);
+			writeMeshMaterialIndex(meshInstance, model.meshToMaterials.get(meshInstance.mesh.get()));
+		}
 
-		//		glUniformMatrix4fv(viewProjectionMatrixUniform, false, viewProjectionMatrix.get(viewProjectionMatrixBuffer));
+		for (MeshInstance meshInstance : instances.get(light)) {
+			writeMeshTranslation(meshInstance, light.translation);
+			writeMeshMaterialIndex(meshInstance, light.meshToMaterials.get(meshInstance.mesh.get()));
+		}
 
 		glUniform3fv(lightPositionUniform, lightPosition.get(lightPositionBuffer));
 		glUniform3fv(lightColourUniform, new float[] { 1, 0, 0 });
-
-		//		glUniform3fv(viewPositionUniform, viewPosition.get(viewPositionBuffer));
-		/*
-					glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.elementArrayBuffer);
-					glDrawElements(GL_TRIANGLES, mesh.elementCount, GL_UNSIGNED_INT, 0);*/
-
-		//				ShaderProgramSystem.render(program);
 
 		ShaderProgramSystem.tryRender(program);
 
@@ -529,7 +536,6 @@ public class ModelLoader {
 			m.diffuse.set(1, 0, 0);
 			float[] data = m.toArray();
 			GL46.glUniformMatrix3fv(materialsUniformBlock[i++], false, data);
-
 		}
 		{
 			Material m = new Material();
@@ -538,7 +544,6 @@ public class ModelLoader {
 
 			float[] data = m.toArray();
 			GL46.glUniformMatrix3fv(materialsUniformBlock[i++], false, data);
-
 		}
 		{
 			Material m = new Material();
@@ -546,7 +551,6 @@ public class ModelLoader {
 			m.diffuse.set(0, 0, 1);
 			float[] data = m.toArray();
 			GL46.glUniformMatrix3fv(materialsUniformBlock[i++], false, data);
-
 		}
 
 	}
@@ -554,7 +558,7 @@ public class ModelLoader {
 	static class Material {
 		Vector3f ambient = new Vector3f(), diffuse = new Vector3f();
 		float ambientStrength = 0.5f, diffuseStrength = 0.5f;
-		//		float shininess = 4f;
+		float lightScaling = 1f;
 
 		public float[] toArray(float[] arr) {
 			int i = 0;
@@ -568,7 +572,7 @@ public class ModelLoader {
 
 			arr[i++] = ambientStrength;
 			arr[i++] = diffuseStrength;
-			//			arr[i++] = shininess;
+			arr[i++] = lightScaling;
 
 			return arr;
 
@@ -584,49 +588,7 @@ public class ModelLoader {
 
 	}
 
-	/*
-		public void createMaterial(AIMaterial AImaterial, float[] data) {
-	
-			AIColor4D ambient = AIColor4D.create();
-			if (aiGetMaterialColor(AImaterial, AI_MATKEY_COLOR_AMBIENT, aiTextureType_NONE, 0, ambient) != 0) {
-				logger.warn("no ambient found\r\t\n" + aiGetErrorString());
-				ambient.set(0, 0, 0, 1);
-	
-			}
-	
-			AIColor4D diffuse = AIColor4D.create();
-	
-			if (aiGetMaterialColor(AImaterial, AI_MATKEY_COLOR_DIFFUSE, aiTextureType_NONE, 0, diffuse) != 0) {
-				logger.warn("no diffuse found\r\t\n" + aiGetErrorString());
-				diffuse.set(0, 0, 0, 1);
-			}
-	
-			AIColor4D specular = AIColor4D.create();
-			if (aiGetMaterialColor(AImaterial, AI_MATKEY_COLOR_SPECULAR, aiTextureType_NONE, 0, specular) != 0) {
-				logger.warn("no specular found\r\t\n" + aiGetErrorString());
-				specular.set(0, 0, 0, 1);
-			}
-	
-			int i = 0;
-			//ambient
-			data[i++] = ambient.r();
-			data[i++] = ambient.g();
-			data[i++] = ambient.b();
-			//		data[i++] = ambient.a();
-			//put diffuse
-			data[i++] = diffuse.r();
-			data[i++] = diffuse.g();
-			data[i++] = diffuse.b();
-			//		data[i++] = diffuse.a();
-			//put specular
-			data[i++] = specular.r();
-			data[i++] = specular.g();
-			data[i++] = specular.b();
-			//		data[i++] = specular.a();
-	
-		}*/
-
-	private ShaderProgram.Mesh setupDiscard(AIMesh aim, int matIndex, Matrix4f modelMatrix) {
+	private ShaderProgram.Mesh setupDiscard(AIMesh aim, long maxMeshes) {
 		ShaderProgram.Mesh mesh = new ShaderProgram.Mesh();
 		{
 			Attribute vertexAttrib = new Attribute();
@@ -694,10 +656,11 @@ public class ModelLoader {
 			materialIndexAttrib.normalised = false;
 			materialIndexAttrib.instanced = true;
 			materialIndexAttrib.instanceStride = 1;
-			materialIndexAttrib.bufferResourceType = VBOBufferType.List;
+			materialIndexAttrib.bufferResourceType = VBOBufferType.Empty;
+			materialIndexAttrib.bufferLen = maxMeshes;
 			mesh.VBOs.add(materialIndexAttrib);
-			materialIndexAttrib.data.add(matIndex);
-			mesh.instanceAttributes.put("materialIndex", new WeakReference<>(materialIndexAttrib));
+			//			materialIndexAttrib.data.add(matIndex);
+			mesh.instanceAttributes.put(materialIndexName, new WeakReference<>(materialIndexAttrib));
 		}
 		{
 			Attribute meshTransformAttrib = new Attribute();
@@ -709,10 +672,27 @@ public class ModelLoader {
 			meshTransformAttrib.normalised = false;
 			meshTransformAttrib.instanced = true;
 			meshTransformAttrib.instanceStride = 1;
-			meshTransformAttrib.bufferResourceType = VBOBufferType.List;
+			meshTransformAttrib.bufferResourceType = VBOBufferType.Empty;
+			meshTransformAttrib.bufferLen = maxMeshes;
 			mesh.VBOs.add(meshTransformAttrib);
-			FrameUtils.appendToList(meshTransformAttrib.data, modelMatrix);
-			mesh.instanceAttributes.put("modelMatrix", new WeakReference<>(meshTransformAttrib));
+			//			FrameUtils.appendToList(meshTransformAttrib.data, modelMatrix);
+			mesh.instanceAttributes.put(transformMatName, new WeakReference<>(meshTransformAttrib));
+		}
+		{
+			Attribute meshNormalMatrixAttrib = new Attribute();
+			meshNormalMatrixAttrib.name = "normalMatrix";
+			meshNormalMatrixAttrib.bufferType = BufferType.ArrayBuffer;
+			meshNormalMatrixAttrib.dataType = GLDataType.Float;
+			meshNormalMatrixAttrib.bufferUsage = BufferUsage.DynamicDraw;
+			meshNormalMatrixAttrib.dataSize = 16;
+			meshNormalMatrixAttrib.normalised = false;
+			meshNormalMatrixAttrib.instanced = true;
+			meshNormalMatrixAttrib.instanceStride = 1;
+			meshNormalMatrixAttrib.bufferResourceType = VBOBufferType.Empty;
+			meshNormalMatrixAttrib.bufferLen = maxMeshes;
+			mesh.VBOs.add(meshNormalMatrixAttrib);
+			//			FrameUtils.appendToList(meshTransformAttrib.data, modelMatrix);
+			mesh.instanceAttributes.put(normalMatName, new WeakReference<>(meshNormalMatrixAttrib));
 		}
 		mesh.modelRenderType = GLDrawMode.Triangles;
 
