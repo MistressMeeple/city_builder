@@ -12,7 +12,6 @@ in vec3 vPosition;
 in vec3 vNormal;
 in vec3 lightDirection;
 in vec3 col;
-
 flat in int vMaterialIndex;
 
 out lowp vec4 outColour;
