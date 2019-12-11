@@ -447,6 +447,9 @@ public class ShaderProgramSystem {
 					}
 				}
 				break;
+			case Empty:
+				GL46.glBufferData(vbo.bufferType.getGLID(), vbo.bufferLen * vbo.dataType.getBytes() * vbo.dataSize, vbo.bufferUsage.getGLID());
+				break;
 			case Manual:
 				logger.warn("manual management of vbo data. ");
 				break;

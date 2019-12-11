@@ -219,7 +219,8 @@ public class ShaderProgram {
 		Address,
 		Buffer,
 		List,
-		Manual
+		Manual,
+		Empty
 	}
 
 	public static class VBO {
