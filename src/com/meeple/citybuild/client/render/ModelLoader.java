@@ -107,6 +107,76 @@ public class ModelLoader {
 	private int lightColourUniform;
 	private int lightStrengthUniform;
 
+	static class Material {
+		Vector3f ambient = new Vector3f(), diffuse = new Vector3f();
+		float ambientStrength = 1f, diffuseStrength = 0.5f;
+		float lightScaling = 1f;
+
+		public float[] toArray(float[] arr, int i) {
+
+			arr[i++] = ambient.x;
+			arr[i++] = ambient.y;
+			arr[i++] = ambient.z;
+
+			arr[i++] = diffuse.x;
+			arr[i++] = diffuse.y;
+			arr[i++] = diffuse.z;
+
+			arr[i++] = ambientStrength;
+			arr[i++] = diffuseStrength;
+			arr[i++] = lightScaling;
+
+			return arr;
+
+		}
+
+		public float[] toArray() {
+			return toArray(new float[sizeOf()], 0);
+		}
+
+		public int sizeOf() {
+			return 9;
+		}
+
+	}
+
+	static class Light {
+		boolean enabled = true;
+		Vector3f colour, position, attenuation;
+
+		public float[] toArray(float[] arr, int i) {
+
+			arr[i++] = colour.x;
+			arr[i++] = colour.y;
+			arr[i++] = colour.z;
+			arr[i++] = 0;
+
+			arr[i++] = position.x;
+			arr[i++] = position.y;
+			arr[i++] = position.z;
+			arr[i++] = 0;
+
+			arr[i++] = attenuation.x;
+			arr[i++] = attenuation.y;
+			arr[i++] = attenuation.z;
+			arr[i++] = 0;
+
+			arr[i++] = 0;
+			arr[i++] = 0;
+			arr[i++] = 0;
+			arr[i++] = (enabled ? 1 : 0);
+			return arr;
+		}
+
+		public float[] toArray() {
+			return toArray(new float[sizeOf()], 0);
+		}
+
+		public int sizeOf() {
+			return 16;
+		}
+	}
+
 	class Model {
 		Map<ShaderProgram.Mesh, Integer> meshToMaterials = new CollectionSuppliers.MapSupplier<ShaderProgram.Mesh, Integer>().get();
 		Matrix4f translation = new Matrix4f();
@@ -394,7 +464,7 @@ public class ModelLoader {
 				16 * ShaderProgram.GLDataType.Float.getBytes() * maxLights,
 				GL_DYNAMIC_DRAW);
 
-//			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 0, data);
+			//			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 0, data);
 
 			glBindBuffer(GL46.GL_UNIFORM_BUFFER, 0);
 
@@ -623,76 +693,6 @@ public class ModelLoader {
 			GL46.glUniformMatrix3fv(materialsUniformBlock[i++], false, data);
 		}
 
-	}
-
-	static class Material {
-		Vector3f ambient = new Vector3f(), diffuse = new Vector3f();
-		float ambientStrength = 1f, diffuseStrength = 0.5f;
-		float lightScaling = 1f;
-
-		public float[] toArray(float[] arr, int i) {
-
-			arr[i++] = ambient.x;
-			arr[i++] = ambient.y;
-			arr[i++] = ambient.z;
-
-			arr[i++] = diffuse.x;
-			arr[i++] = diffuse.y;
-			arr[i++] = diffuse.z;
-
-			arr[i++] = ambientStrength;
-			arr[i++] = diffuseStrength;
-			arr[i++] = lightScaling;
-
-			return arr;
-
-		}
-
-		public float[] toArray() {
-			return toArray(new float[sizeOf()], 0);
-		}
-
-		public int sizeOf() {
-			return 9;
-		}
-
-	}
-
-	static class Light {
-		boolean enabled = true;
-		Vector3f colour, position, attenuation;
-
-		public float[] toArray(float[] arr, int i) {
-
-			arr[i++] = colour.x;
-			arr[i++] = colour.y;
-			arr[i++] = colour.z;
-			arr[i++] = 0;
-
-			arr[i++] = position.x;
-			arr[i++] = position.y;
-			arr[i++] = position.z;
-			arr[i++] = 0;
-
-			arr[i++] = attenuation.x;
-			arr[i++] = attenuation.y;
-			arr[i++] = attenuation.z;
-			arr[i++] = 0;
-
-			arr[i++] = 0;
-			arr[i++] = 0;
-			arr[i++] = 0;
-			arr[i++] = (enabled ? 1 : 0);
-			return arr;
-		}
-
-		public float[] toArray() {
-			return toArray(new float[sizeOf()], 0);
-		}
-
-		public int sizeOf() {
-			return 16;
-		}
 	}
 
 	private ShaderProgram.Mesh setupDiscard(AIMesh aim, long maxMeshes) {
