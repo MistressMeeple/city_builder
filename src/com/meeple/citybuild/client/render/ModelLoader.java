@@ -82,13 +82,6 @@ public class ModelLoader {
 
 	public static void main(String[] args) {
 
-		int temp = 31;
-		com.meeple.citybuild.client.render.structs.Material s = new com.meeple.citybuild.client.render.structs.Material();
-		int temp2 = s.sizeOf;
-		int temp3 = (((temp2 - 1) / (4)) + 1);
-		System.out.println(temp3 * ShaderProgram.GLDataType.Float.getBytes());
-		System.exit(0);
-
 		Logger.getRootLogger().setLevel(org.apache.log4j.Level.ALL);
 		Appender a = new ConsoleAppender(new PatternLayout(debugLayout));
 		BasicConfigurator.configure(a);
@@ -116,8 +109,6 @@ public class ModelLoader {
 	private int lightPositionUniform;
 	private int lightColourUniform;
 	private int lightStrengthUniform;
-
-	
 
 	class Model {
 		Map<ShaderProgram.Mesh, Integer> meshToMaterials = new CollectionSuppliers.MapSupplier<ShaderProgram.Mesh, Integer>().get();
@@ -396,7 +387,7 @@ public class ModelLoader {
 			this.matrixBuffer = matrixBuffer;
 		}
 
-		if (true) {
+		if (false) {
 
 			int actualIndex = GL46.glGetUniformBlockIndex(program.programID, "LightBlock");
 			int buffer = GL46.glGenBuffers();
