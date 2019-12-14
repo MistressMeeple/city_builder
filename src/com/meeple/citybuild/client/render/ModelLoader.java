@@ -53,8 +53,8 @@ import com.meeple.shared.frame.OGL.ShaderProgram.BufferUsage;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDataType;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
-import com.meeple.shared.frame.OGL.ShaderProgram.VBO;
-import com.meeple.shared.frame.OGL.ShaderProgram.VBOBufferType;
+import com.meeple.shared.frame.OGL.ShaderProgram.BufferObject;
+import com.meeple.shared.frame.OGL.ShaderProgram.BufferDataManagementType;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem.ShaderClosable;
 import com.meeple.shared.frame.nuklear.IOUtil;
@@ -709,7 +709,7 @@ public class ModelLoader {
 			AIVector3D.Buffer vertices = aim.mVertices();
 			vertexAttrib.bufferAddress = vertices.address();
 			vertexAttrib.bufferLen = (long) (AIVector3D.SIZEOF * vertices.remaining());
-			vertexAttrib.bufferResourceType = VBOBufferType.Address;
+			vertexAttrib.bufferResourceType = BufferDataManagementType.Address;
 			mesh.VBOs.add(vertexAttrib);
 		}
 		{
@@ -724,17 +724,17 @@ public class ModelLoader {
 			AIVector3D.Buffer normals = aim.mNormals();
 			normalAttrib.bufferAddress = normals.address();
 			normalAttrib.bufferLen = (long) (AIVector3D.SIZEOF * normals.remaining());
-			normalAttrib.bufferResourceType = VBOBufferType.Address;
+			normalAttrib.bufferResourceType = BufferDataManagementType.Address;
 			mesh.VBOs.add(normalAttrib);
 		}
 		{
-			VBO elementAttrib = new VBO();
+			BufferObject elementAttrib = new BufferObject();
 			elementAttrib.bufferType = BufferType.ElementArrayBuffer;
 			elementAttrib.bufferUsage = BufferUsage.StaticDraw;
 			elementAttrib.dataType = GLDataType.UnsignedInt;
 			//		elementAttrib.dataSize = 3;
 			mesh.VBOs.add(elementAttrib);
-			elementAttrib.bufferResourceType = VBOBufferType.Buffer;
+			elementAttrib.bufferResourceType = BufferDataManagementType.Buffer;
 			int elementCount;
 			int faceCount = aim.mNumFaces();
 			elementCount = faceCount * 3;
@@ -750,7 +750,7 @@ public class ModelLoader {
 			}
 			elementArrayBufferData.flip();
 			elementAttrib.buffer = elementArrayBufferData;
-			mesh.index = new WeakReference<ShaderProgram.VBO>(elementAttrib);
+			mesh.index = new WeakReference<ShaderProgram.BufferObject>(elementAttrib);
 			mesh.vertexCount = elementCount;
 		}
 		{
@@ -763,7 +763,7 @@ public class ModelLoader {
 			materialIndexAttrib.normalised = false;
 			materialIndexAttrib.instanced = true;
 			materialIndexAttrib.instanceStride = 1;
-			materialIndexAttrib.bufferResourceType = VBOBufferType.Empty;
+			materialIndexAttrib.bufferResourceType = BufferDataManagementType.Empty;
 			materialIndexAttrib.bufferLen = maxMeshes;
 			mesh.VBOs.add(materialIndexAttrib);
 			mesh.instanceAttributes.put(materialIndexName, new WeakReference<>(materialIndexAttrib));
@@ -778,7 +778,7 @@ public class ModelLoader {
 			meshTransformAttrib.normalised = false;
 			meshTransformAttrib.instanced = true;
 			meshTransformAttrib.instanceStride = 1;
-			meshTransformAttrib.bufferResourceType = VBOBufferType.Empty;
+			meshTransformAttrib.bufferResourceType = BufferDataManagementType.Empty;
 			meshTransformAttrib.bufferLen = maxMeshes;
 			mesh.VBOs.add(meshTransformAttrib);
 			//			FrameUtils.appendToList(meshTransformAttrib.data, modelMatrix);
@@ -798,7 +798,7 @@ public class ModelLoader {
 			meshNormalMatrixAttrib.normalised = false;
 			meshNormalMatrixAttrib.instanced = true;
 			meshNormalMatrixAttrib.instanceStride = 1;
-			meshNormalMatrixAttrib.bufferResourceType = VBOBufferType.Empty;
+			meshNormalMatrixAttrib.bufferResourceType = BufferDataManagementType.Empty;
 			meshNormalMatrixAttrib.bufferLen = maxMeshes;
 			mesh.VBOs.add(meshNormalMatrixAttrib);
 			//			FrameUtils.appendToList(meshTransformAttrib.data, modelMatrix);

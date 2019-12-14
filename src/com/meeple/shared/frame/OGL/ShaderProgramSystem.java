@@ -37,7 +37,7 @@ import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
 import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
 import com.meeple.shared.frame.OGL.ShaderProgram.VAO;
-import com.meeple.shared.frame.OGL.ShaderProgram.VBO;
+import com.meeple.shared.frame.OGL.ShaderProgram.BufferObject;
 
 public class ShaderProgramSystem {
 
@@ -272,7 +272,7 @@ public class ShaderProgramSystem {
 	 * generates the ID, iterates and binds all VBO data and unbinds at the end
 	 * @param program to bind to
 	 * @param vao to setup
-	 * @see #bindBuffer(ShaderProgram, VBO)
+	 * @see #bindBuffer(ShaderProgram, BufferObject)
 	 */
 	public static void loadVAO(ShaderProgram program, VAO vao) {
 		if (program.programID == 0) {
@@ -287,9 +287,9 @@ public class ShaderProgramSystem {
 				logger.trace("Generating new VAO with ID " + vaoID + (mesh != null ? " for mesh " + mesh.name : ""));*/
 		GL46.glBindVertexArray(vaoID);
 		vao.VAOID = vaoID;
-		Collection<VBO> vboSet = vao.VBOs;
-		for (Iterator<VBO> iterator = vboSet.iterator(); iterator.hasNext();) {
-			VBO vbo = iterator.next();
+		Collection<BufferObject> vboSet = vao.VBOs;
+		for (Iterator<BufferObject> iterator = vboSet.iterator(); iterator.hasNext();) {
+			BufferObject vbo = iterator.next();
 			bindBuffer(program, vbo);
 		}
 		//unbind afterwards
@@ -305,7 +305,7 @@ public class ShaderProgramSystem {
 	 * @param vbo
 	 * @see #bindAttribute(int, Attribute)
 	 */
-	private static void bindBuffer(ShaderProgram program, VBO vbo) {
+	private static void bindBuffer(ShaderProgram program, BufferObject vbo) {
 		int vboID = GL46.glGenBuffers();
 		GL46.glBindBuffer(vbo.bufferType.getGLID(), vboID);
 		vbo.VBOID = vboID;
@@ -322,7 +322,7 @@ public class ShaderProgramSystem {
 	 * Writes the VBO data into the VBO buffer and then sends the buffer off to OGL
 	 * @param vbo to write data to OGL 
 	 */
-	public static void writeDataToBuffer(VBO vbo) {
+	public static void writeDataToBuffer(BufferObject vbo) {
 
 		switch (vbo.bufferResourceType) {
 			case Address:
@@ -591,7 +591,7 @@ public class ShaderProgramSystem {
 		};
 	}
 
-	public static ShaderClosable useVBO(VBO vbo) {
+	public static ShaderClosable useVBO(BufferObject vbo) {
 
 		GL46.glBindBuffer(vbo.bufferType.getGLID(), vbo.VBOID);
 		return new ShaderClosable() {
@@ -632,8 +632,8 @@ public class ShaderProgramSystem {
 	public static void renderMesh(Mesh mesh) {
 
 		//check for index buffer
-		WeakReference<VBO> indexVboRef = mesh.index;
-		VBO indexVBO = null;
+		WeakReference<BufferObject> indexVboRef = mesh.index;
+		BufferObject indexVBO = null;
 
 		if (indexVboRef != null) {
 			indexVBO = indexVboRef.get();
@@ -669,9 +669,9 @@ public class ShaderProgramSystem {
 					Mesh mesh = meshI.next();
 
 					try (ShaderClosable vaoc = useModel(mesh)) {
-						Collection<VBO> vboSet = mesh.VBOs;
-						for (Iterator<VBO> iterator = vboSet.iterator(); iterator.hasNext();) {
-							VBO vbo = iterator.next();
+						Collection<BufferObject> vboSet = mesh.VBOs;
+						for (Iterator<BufferObject> iterator = vboSet.iterator(); iterator.hasNext();) {
+							BufferObject vbo = iterator.next();
 							//check if need to write to the buffer data to OGL
 							boolean write = vbo.update.compareAndSet(true, false);
 							if (write) {
@@ -688,8 +688,8 @@ public class ShaderProgramSystem {
 						}
 						renderMesh(mesh);
 
-						for (Iterator<VBO> iterator = vboSet.iterator(); iterator.hasNext();) {
-							VBO vbo = (VBO) iterator.next();
+						for (Iterator<BufferObject> iterator = vboSet.iterator(); iterator.hasNext();) {
+							BufferObject vbo = (BufferObject) iterator.next();
 							if (vbo instanceof Attribute) {
 								Attribute attribute = (Attribute) vbo;
 								disableAttribute(attribute);
@@ -724,9 +724,9 @@ public class ShaderProgramSystem {
 						//only render if visible
 						if (mesh.visible) {
 							try (ShaderClosable vaoc = useModel(mesh)) {
-								Collection<VBO> vboSet = mesh.VBOs;
-								for (Iterator<VBO> iterator = vboSet.iterator(); iterator.hasNext();) {
-									VBO vbo = iterator.next();
+								Collection<BufferObject> vboSet = mesh.VBOs;
+								for (Iterator<BufferObject> iterator = vboSet.iterator(); iterator.hasNext();) {
+									BufferObject vbo = iterator.next();
 									//check if need to write to the buffer data to OGL
 									boolean write = vbo.update.compareAndSet(true, false);
 									if (write) {
@@ -743,8 +743,8 @@ public class ShaderProgramSystem {
 								}
 								renderMesh(mesh);
 
-								for (Iterator<VBO> iterator = vboSet.iterator(); iterator.hasNext();) {
-									VBO vbo = (VBO) iterator.next();
+								for (Iterator<BufferObject> iterator = vboSet.iterator(); iterator.hasNext();) {
+									BufferObject vbo = (BufferObject) iterator.next();
 									if (vbo instanceof Attribute) {
 										Attribute attribute = (Attribute) vbo;
 										disableAttribute(attribute);
@@ -783,9 +783,9 @@ public class ShaderProgramSystem {
 					//only render if visible
 					if (model.visible) {
 						GL46.glBindVertexArray(model.VAOID);
-						Collection<VBO> vboSet = model.VBOs;
-						for (Iterator<VBO> iterator = vboSet.iterator(); iterator.hasNext();) {
-							VBO vbo = (VBO) iterator.next();
+						Collection<BufferObject> vboSet = model.VBOs;
+						for (Iterator<BufferObject> iterator = vboSet.iterator(); iterator.hasNext();) {
+							BufferObject vbo = (BufferObject) iterator.next();
 							//check if need to write to the buffer data to OGL
 							boolean write = vbo.update.compareAndSet(true, false);
 							if (write) {
@@ -812,8 +812,8 @@ public class ShaderProgramSystem {
 
 						}
 						//check for index buffer
-						WeakReference<VBO> indexVboRef = model.index;
-						VBO indexVBO = null;
+						WeakReference<BufferObject> indexVboRef = model.index;
+						BufferObject indexVBO = null;
 
 						if (indexVboRef != null) {
 							indexVBO = indexVboRef.get();
@@ -837,8 +837,8 @@ public class ShaderProgramSystem {
 							}
 
 						}
-						for (Iterator<VBO> iterator = vboSet.iterator(); iterator.hasNext();) {
-							VBO vbo = (VBO) iterator.next();
+						for (Iterator<BufferObject> iterator = vboSet.iterator(); iterator.hasNext();) {
+							BufferObject vbo = (BufferObject) iterator.next();
 							if (vbo instanceof Attribute) {
 								Attribute att = (Attribute) vbo;
 								//disable all vertex attributes
@@ -875,9 +875,9 @@ public class ShaderProgramSystem {
 	public static void deleteMesh(VAO model) {
 		if (model != null) {
 			GL46.glDeleteVertexArrays(model.VAOID);
-			Collection<VBO> vbos = model.VBOs;
-			for (Iterator<VBO> iterator2 = vbos.iterator(); iterator2.hasNext();) {
-				VBO vbo = (VBO) iterator2.next();
+			Collection<BufferObject> vbos = model.VBOs;
+			for (Iterator<BufferObject> iterator2 = vbos.iterator(); iterator2.hasNext();) {
+				BufferObject vbo = (BufferObject) iterator2.next();
 				GL46.glDeleteBuffers(vbo.VBOID);
 				iterator2.remove();
 			}

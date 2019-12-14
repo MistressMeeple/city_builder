@@ -211,11 +211,11 @@ public class ShaderProgram {
 
 	public static class VAO {
 		public int VAOID = NULL;
-		public Set<VBO> VBOs = new CollectionSuppliers.SetSupplier<VBO>().get();
+		public Set<BufferObject> VBOs = new CollectionSuppliers.SetSupplier<BufferObject>().get();
 		public boolean singleFrameDiscard = false;
 	}
 
-	public static enum VBOBufferType {
+	public static enum BufferDataManagementType {
 		Address,
 		Buffer,
 		List,
@@ -223,25 +223,25 @@ public class ShaderProgram {
 		Empty
 	}
 
-	public static class VBO {
+	public static class BufferObject {
 
 		public int VBOID = NULL;
 		/**
-		* To be used when calling {@link org.lwjgl.opengl.GL20#glBufferData(int, ByteBuffer, int)} as first parameter ('target')
+		* To be used when calling {@link GL46#glBufferData(int, ByteBuffer, int)} as first parameter ('target')
 		*/
 		public BufferType bufferType;
 		/**
-		* To be used when calling {@link org.lwjgl.opengl.GL20#glBufferData(int, ByteBuffer, int)} as third parameter ('usage')
+		* To be used when calling {@link GL46#glBufferData(int, ByteBuffer, int)} as third parameter ('usage')
 		*/
 		public BufferUsage bufferUsage = BufferUsage.StaticDraw;
 		/**
-		 * To be used when calling {@link org.lwjgl.opengl.GL20#glVertexAttribPointer} as second parameter ('size')
+		 * To be used when calling {@link GL46#glVertexAttribPointer} as second parameter ('size')
 		 */
 		public int dataSize = 3;
 		public GLDataType dataType;
 		public final AtomicBoolean update = new AtomicBoolean(true);
 		//		public final AtomicBoolean uploadBuffer = new AtomicBoolean(false);
-		public VBOBufferType bufferResourceType = VBOBufferType.List;
+		public BufferDataManagementType bufferResourceType = BufferDataManagementType.List;
 		public List<Number> data = new CollectionSuppliers.ListSupplier<Number>().get();
 		public Buffer buffer;
 		public Long bufferAddress;
@@ -249,20 +249,21 @@ public class ShaderProgram {
 		 * used when using the unsafe direct buffer allocation
 		 */
 		public Long bufferLen;
+
 	}
 
 	public static class Mesh extends VAO {
 		public String name;
 		public int vertexCount;
 		public GLDrawMode modelRenderType = GLDrawMode.Triangles;
-		public WeakReference<VBO> index;
+		public WeakReference<BufferObject> index;
 		public Map<String, WeakReference<Attribute>> instanceAttributes = new CollectionSuppliers.MapSupplier<String, WeakReference<Attribute>>().get();
 
 		public int renderCount = 1;
 		public boolean visible = true;
 	}
 
-	public static class Attribute extends VBO {
+	public static class Attribute extends BufferObject {
 
 		protected int index;
 		public final boolean enabled = true;
