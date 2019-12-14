@@ -9,8 +9,14 @@ uniform mat3 materialsMats[{maxmats}];
 uniform vec3 uLightColour;
 uniform vec3 uLightStrength;
 
+struct Light {
+	bool enabled;
+	vec3 colour;
+	vec3 position;
+	vec3 attenuation;
+};
 layout (std140) uniform LightBlock{
-	mat4 light[{maxlights}];
+	Light lights[{maxlights}];
 };
 
 struct Material {
