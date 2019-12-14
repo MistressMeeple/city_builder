@@ -3,9 +3,7 @@ package com.meeple.citybuild.client.render.structs;
 import org.joml.Vector3f;
 
 public class Material extends Struct {
-	{
-		sizeOf = 9;
-	}
+	public static int sizeOf = 9;
 
 	public Vector3f ambient = new Vector3f(), diffuse = new Vector3f();
 	public float ambientStrength = 1f, diffuseStrength = 0.5f, lightScaling = 1f;
