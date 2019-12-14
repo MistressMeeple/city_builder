@@ -1,5 +1,14 @@
 #version 460 core
 
+struct Light {
+	vec3 colour;
+	vec3 position;
+	vec3 attenuation;
+	float enabled;
+};
+layout (std140) uniform LightBlock{
+	Light lights[{maxlights}];
+};
 layout (std140) uniform Matrices
 {
 	mat4 projectionMatrix;
@@ -18,7 +27,7 @@ layout(location = 8) in mat4 normalMatrix;
 
 out vec3 vPosition;
 out vec3 vNormal;
-out vec3 vLightDirection;
+out vec3 vLightDirection[{maxlights}];
 out int vMaterialIndex;
 
 void main() {
@@ -27,6 +36,7 @@ void main() {
     gl_Position =  vpMatrix * position;
     vPosition = position.xyz;
 	vNormal = normalize(normalMatrix * vec4(normal,1)).xyz;
-	
-	vLightDirection = uLightPosition - position.xyz;
+	for(int i = 0; i < {maxlights}; i++){
+		vLightDirection[i] = lights[i].position - position.xyz;
+	}
 }

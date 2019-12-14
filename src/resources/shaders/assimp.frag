@@ -10,10 +10,10 @@ uniform vec3 uLightColour;
 uniform vec3 uLightStrength;
 
 struct Light {
-	bool enabled;
 	vec3 colour;
 	vec3 position;
 	vec3 attenuation;
+	float enabled;
 };
 layout (std140) uniform LightBlock{
 	Light lights[{maxlights}];
@@ -31,7 +31,7 @@ layout (std140) uniform MaterialBlock{
 
 in vec3 vPosition;
 in vec3 vNormal;
-in vec3 vLightDirection;
+in vec3 vLightDirection[{maxlights}];
 flat in int vMaterialIndex;
 
 out lowp vec4 outColour;
@@ -49,18 +49,23 @@ void main() {
     vec3 matAmbientColour = mat_ambient;
 	
 	
-	float distance = length(vLightDirection);
-	float strFactor = uLightStrength.x + (uLightStrength.y * distance) + (uLightStrength.z * distance * distance);
+	//float distance = length(vLightDirection[i]);
+	///float strFactor = uLightStrength.x + (uLightStrength.y * distance) + (uLightStrength.z * distance * distance);
 	
 	
 	vec3 finalDiffuse = vec3(0);
-	float nDot1 = dot(vNormal, normalize(vLightDirection));
-	float brightness = max(0.0, nDot1);
-	vec3 matDiffuseColour = (diffuseStrength * brightness * mat_diffuse);
-	vec3 lightDiffuse = brightness * uLightColour;
-	finalDiffuse  =  lightingScale * (matDiffuseColour + lightDiffuse);
+	for(int i = 0;i < {maxlights};i++){
+		if(lights[i].enabled > 0.5){
+			float nDot1 = dot(vNormal, normalize(vLightDirection[i]));
+			float brightness = max(0.0, nDot1);
+			vec3 matDiffuseColour = (diffuseStrength * brightness * mat_diffuse);
+			vec3 lightDiffuse = brightness * lights[i].colour;
+			finalDiffuse  =  finalDiffuse + (matDiffuseColour + lightDiffuse);
+		}
+	}
 	
-	outColour = vec4(lightDiffuse, 1) + (vec4(matAmbientColour, 1) / strFactor);
+	//outColour = vec4(lightDiffuse, 1) + (vec4(matAmbientColour, 1) );
+	outColour = vec4(finalDiffuse, 1);
 	
 	
 }
