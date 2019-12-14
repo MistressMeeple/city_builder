@@ -44,17 +44,19 @@ import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.Callback;
 import org.lwjgl.system.MemoryStack;
 
+import com.meeple.citybuild.client.render.structs.Light;
+import com.meeple.citybuild.client.render.structs.Material;
 import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
+import com.meeple.shared.frame.OGL.ShaderProgram.BufferDataManagementType;
+import com.meeple.shared.frame.OGL.ShaderProgram.BufferObject;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferType;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferUsage;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDataType;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
-import com.meeple.shared.frame.OGL.ShaderProgram.BufferObject;
-import com.meeple.shared.frame.OGL.ShaderProgram.BufferDataManagementType;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem.ShaderClosable;
 import com.meeple.shared.frame.nuklear.IOUtil;
@@ -79,6 +81,14 @@ public class ModelLoader {
 	private static final int normalMatAttribIndex = 0;
 
 	public static void main(String[] args) {
+
+		int temp = 31;
+		com.meeple.citybuild.client.render.structs.Material s = new com.meeple.citybuild.client.render.structs.Material();
+		int temp2 = s.sizeOf;
+		int temp3 = (((temp2 - 1) / (4)) + 1);
+		System.out.println(temp3 * ShaderProgram.GLDataType.Float.getBytes());
+		System.exit(0);
+
 		Logger.getRootLogger().setLevel(org.apache.log4j.Level.ALL);
 		Appender a = new ConsoleAppender(new PatternLayout(debugLayout));
 		BasicConfigurator.configure(a);
@@ -107,75 +117,7 @@ public class ModelLoader {
 	private int lightColourUniform;
 	private int lightStrengthUniform;
 
-	static class Material {
-		Vector3f ambient = new Vector3f(), diffuse = new Vector3f();
-		float ambientStrength = 1f, diffuseStrength = 0.5f;
-		float lightScaling = 1f;
-
-		public float[] toArray(float[] arr, int i) {
-
-			arr[i++] = ambient.x;
-			arr[i++] = ambient.y;
-			arr[i++] = ambient.z;
-
-			arr[i++] = diffuse.x;
-			arr[i++] = diffuse.y;
-			arr[i++] = diffuse.z;
-
-			arr[i++] = ambientStrength;
-			arr[i++] = diffuseStrength;
-			arr[i++] = lightScaling;
-
-			return arr;
-
-		}
-
-		public float[] toArray() {
-			return toArray(new float[sizeOf()], 0);
-		}
-
-		public int sizeOf() {
-			return 9;
-		}
-
-	}
-
-	static class Light {
-		boolean enabled = true;
-		Vector3f colour, position, attenuation;
-
-		public float[] toArray(float[] arr, int i) {
-
-			arr[i++] = colour.x;
-			arr[i++] = colour.y;
-			arr[i++] = colour.z;
-			arr[i++] = 0;
-
-			arr[i++] = position.x;
-			arr[i++] = position.y;
-			arr[i++] = position.z;
-			arr[i++] = 0;
-
-			arr[i++] = attenuation.x;
-			arr[i++] = attenuation.y;
-			arr[i++] = attenuation.z;
-			arr[i++] = 0;
-
-			arr[i++] = 0;
-			arr[i++] = 0;
-			arr[i++] = 0;
-			arr[i++] = (enabled ? 1 : 0);
-			return arr;
-		}
-
-		public float[] toArray() {
-			return toArray(new float[sizeOf()], 0);
-		}
-
-		public int sizeOf() {
-			return 16;
-		}
-	}
+	
 
 	class Model {
 		Map<ShaderProgram.Mesh, Integer> meshToMaterials = new CollectionSuppliers.MapSupplier<ShaderProgram.Mesh, Integer>().get();
@@ -454,14 +396,14 @@ public class ModelLoader {
 			this.matrixBuffer = matrixBuffer;
 		}
 
-		if (false) {
+		if (true) {
 
 			int actualIndex = GL46.glGetUniformBlockIndex(program.programID, "LightBlock");
 			int buffer = GL46.glGenBuffers();
 			glBindBuffer(GL46.GL_UNIFORM_BUFFER, buffer);
 			glBufferData(
 				GL_UNIFORM_BUFFER,
-				16 * ShaderProgram.GLDataType.Float.getBytes() * maxLights,
+				Light.sizeOf * ShaderProgram.GLDataType.Float.getBytes() * maxLights,
 				GL_DYNAMIC_DRAW);
 
 			//			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 0, data);
