@@ -5,9 +5,6 @@
 **diffuse in second column
 **specular in third column
 */
-uniform mat3 materialsMats[{maxmats}];
-uniform vec3 uLightColour;
-uniform vec3 uLightStrength;
 
 struct Light {
 	vec3 colour;
@@ -21,9 +18,9 @@ layout (std140) uniform LightBlock{
 
 struct Material {
 	vec4 baseColour;
-	float baseScale;
 	vec3 reflectTint;
-	float reflectStrenght;
+	float baseScale;
+	float reflectStrength;
 };
 layout (std140) uniform MaterialBlock{
 	Material materials[{maxmats}];
@@ -38,34 +35,37 @@ out lowp vec4 outColour;
 
 void main() {
 	int index = int(vMaterialIndex);
-	mat3 mat = materialsMats[index];
+	Material material = materials[index];
 	
-	vec3 mat_ambient = mat[0].xyz;
-    float ambientStrength = mat[2].x;
-	vec3 mat_diffuse = mat[1].xyz;
-    float diffuseStrength = mat[2].y;
-    float lightingScale = mat[2].z;
+	vec3 baseColour = material.baseColour.rgb;
+	float colStr = material.baseScale;
+	vec3 reflectTint = material.reflectTint;
+	float refStr = material.reflectStrength;
+	float alpha = material.baseColour.a;
 	
-    vec3 matAmbientColour = mat_ambient;
-	
+    vec3 matAmbientColour = colStr * baseColour;
 	
 	//float distance = length(vLightDirection[i]);
 	///float strFactor = uLightStrength.x + (uLightStrength.y * distance) + (uLightStrength.z * distance * distance);
 	
 	
-	vec3 finalDiffuse = vec3(0);
+	vec3 runningDiffuse = vec3(0);
+	vec3 runningLightSource  = vec3(0);
+	
+	
 	for(int i = 0;i < {maxlights};i++){
 		if(lights[i].enabled > 0.5){
 			float nDot1 = dot(vNormal, normalize(vLightDirection[i]));
 			float brightness = max(0.0, nDot1);
-			vec3 matDiffuseColour = (diffuseStrength * brightness * mat_diffuse);
-			vec3 lightDiffuse = brightness * lights[i].colour;
-			finalDiffuse  =  finalDiffuse + (matDiffuseColour + lightDiffuse);
+			vec3 matDiffuseColour = (refStr * brightness * reflectTint);
+			vec3 lightDiffuse = brightness * lights[i].colour.rgb;
+			runningDiffuse  =  runningDiffuse + (+ lightDiffuse);
+		
 		}
 	}
-	
+	runningDiffuse = runningDiffuse;
 	//outColour = vec4(lightDiffuse, 1) + (vec4(matAmbientColour, 1) );
-	outColour = vec4(finalDiffuse, 1);
+	outColour = vec4(runningDiffuse, 1) ;//+ vec4(matAmbientColour,alpha);
 	
-	
+		
 }
