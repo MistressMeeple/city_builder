@@ -43,7 +43,7 @@ void main() {
 	vec3 runningDiffuse = vec3(0);
 	vec3 runningTotal = vec3(0);
 	int count = 0;
-	//https://www.desmos.com/calculator/bd8ujvojbu equation for lighting attenuation
+	//https://www.desmos.com/calculator/r3vn8t14ab equation for lighting attenuation
 	for(int i = 0;i < {maxlights};i++){
 		if(lights[i].enabled > 0.5){
 		
