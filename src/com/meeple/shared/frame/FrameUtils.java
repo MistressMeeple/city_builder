@@ -6,6 +6,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -127,8 +129,6 @@ public class FrameUtils {
 		}
 		values.add(value);
 	}
-
-	
 
 	private static enum Severity {
 		High, Medium, Low, Notification, Other
@@ -651,6 +651,37 @@ public class FrameUtils {
 		float x = vec.x * cos - vec.y * sin;
 		float y = vec.x * sin + vec.y * cos;
 		return new Vector2f(x, y);
+	}
+
+	/**
+	 * Attempts to shut down a {@link ExecutorService} peacefully first and if still doesnt shutdown then attempts to do so forcefully<br>
+	 * <b>This may block the calling thread if service does not shutdown instantly</b><br>
+	 * This is achieved by calling these functions in order. 
+	 * <ol>
+	 * <li>{@link ExecutorService#shutdown()}</li>
+	 * <li>{@link ExecutorService#awaitTermination(long, TimeUnit)}</li>
+	 * <li>{@link ExecutorService#shutdownNow()}</li>
+	 * </ol> 
+	 * {@link ExecutorService#isShutdown()} is called before each other call to not waste time
+	 * 
+	 * @param executorService service to shutdown 
+	 * @param time the maximum time to wait 
+	 * @param unit the time unit of the timeout argument
+	 */
+	public static void shutdownService(ExecutorService executorService,long time,TimeUnit unit) {
+
+		if (!executorService.isShutdown()) {
+			executorService.shutdown();
+			//try to shut peacefully
+			while (!executorService.isShutdown()) {
+				try {
+					executorService.awaitTermination(time,unit);
+				} catch (InterruptedException err) {
+				}
+				//forcefully shutdown
+				executorService.shutdownNow();
+			}
+		}
 	}
 
 }

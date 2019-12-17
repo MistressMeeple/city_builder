@@ -30,13 +30,13 @@ import com.meeple.citybuild.server.GameManager;
 import com.meeple.shared.ClientOptionSystem;
 import com.meeple.shared.Delta;
 import com.meeple.shared.Tickable;
+import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.GLFWManager;
 import com.meeple.shared.frame.OGL.KeyInputSystem;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpringArm;
 import com.meeple.shared.frame.nuklear.NuklearMenuSystem;
-import com.meeple.shared.frame.nuklear.NuklearUIComponent;
 import com.meeple.shared.frame.window.ClientWindowSystem;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 import com.meeple.shared.frame.window.ClientWindowSystem.WindowEvent;
@@ -46,11 +46,25 @@ import com.meeple.shared.frame.wrapper.WrapperImpl;
 
 public class CityBuilderMain extends GameManager implements Consumer<ExecutorService> {
 
+	/**
+	 * This is the main logger created with log4j. most, if not all, messages come through this
+	 */
 	public static Logger logger = Logger.getLogger(CityBuilderMain.class);
+	/**
+	 * Debug layout for the logger to use while in the development environment. tracks location of each message to the file and line. <br>
+	 * Not recommended on release due to  performance consumption for finding caller file + line 
+	 */
 	private static String debugLayout = "[%r][%d{HH:mm:ss:SSS}][%t][%p] (%F:%L) %m%n";
-	static String LevelFolder = "saves/";
-	static String LevelExt = ".sv";
 	//	private static String normalLayout = "[%d{HH:mm:ss:SSS}][%r]][%t][%p][%c] %m%n";
+
+	/**
+	 * Save folder of the game files
+	 */
+	final static String LevelFolder = "saves/";
+	/**
+	 * Save extension of the safe files 
+	 */
+	final static String LevelExt = ".sv";
 
 	public static void main(String[] args) throws Exception {
 
@@ -59,7 +73,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		//just in case anything doesnt use the log4j
 		//		System.setOut(ConsolePrintMirror.outConsole);
 		//		System.setErr(ConsolePrintMirror.errConsole);
-		
+
 		//setup logger
 		Logger.getRootLogger().setLevel(org.apache.log4j.Level.ALL);
 		Appender a = new ConsoleAppender(new PatternLayout(debugLayout));
@@ -70,10 +84,10 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 	}
 
-	
-	
+	/**
+	 * Client container representing most of the OGL and GLFW context per client
+	 */
 	public final ClientWindow window = new ClientWindow();
-	NuklearUIComponent placementUI = new NuklearUIComponent();
 
 	@Override
 	public void accept(ExecutorService executorService) {
@@ -81,7 +95,6 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		logger.info("Starting City builder client");
 		KeyInputSystem keyInput = new KeyInputSystem();
 		ClientOptionSystem optionsSystem = new ClientOptionSystem();
-
 
 		ClientWindowSystem.setupWindow(window, keyInput, window.nkContext, optionsSystem);
 
@@ -101,7 +114,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		};
 
 		window.events.preCleanup.add(() -> {
-			shutdownService(executorService);
+			FrameUtils.shutdownService(executorService, 1l, TimeUnit.SECONDS);
 		});
 
 		window.callbacks.keyCallbackSet.add(new GLFWKeyCallbackI() {
@@ -161,11 +174,14 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 			ClientWindowSystem.start(windowManager, window, clientQuitCounter, executorService);
 
 		}
-		shutdownService(executorService);
+		FrameUtils.shutdownService(executorService, 1l, TimeUnit.SECONDS);
 		logger.info("closing client now!");
 
 	}
 
+	/**
+	 * This is the game rendering controller. 
+	 */
 	Screen gameRenderScreen;
 	LoadingScreen loadingScreen = new LoadingScreen();
 	public GameUI gameUI = new GameUI();
@@ -227,22 +243,6 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 				break;
 		}
 
-	}
-
-	private void shutdownService(ExecutorService executorService) {
-
-		if (!executorService.isShutdown()) {
-			executorService.shutdown();
-			//try to shut peacefully
-			while (!executorService.isShutdown()) {
-				try {
-					executorService.awaitTermination(1l, TimeUnit.SECONDS);
-				} catch (InterruptedException err) {
-				}
-				//forcefully shutdown
-				executorService.shutdownNow();
-			}
-		}
 	}
 
 	Wrapper<Buildings> placement = new WrapperImpl<>();
