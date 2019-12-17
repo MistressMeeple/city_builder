@@ -41,8 +41,7 @@ void main() {
     vec3 matAmbientColour =  colStr * baseColour;
 	
 	vec3 runningDiffuse = vec3(0);
-	vec3 runningTotal = vec3(0);
-	int count = 0;
+	
 	//https://www.desmos.com/calculator/r3vn8t14ab equation for lighting attenuation
 	for(int i = 0;i < {maxlights};i++){
 		if(lights[i].enabled > 0.5){
@@ -62,7 +61,6 @@ void main() {
 			vec3 matDiffuseColour = (refStr * max(0.0, brightness) * reflectTint);
 			vec3 lightDiffuse = brightness * lights[i].colour.rgb;
 			runningDiffuse  =  runningDiffuse + ((matDiffuseColour + lightDiffuse) * max(strFactor,0));
-			count+=1;
 		}
 	}
 	//runningDiffuse = runningDiffuse / count;
