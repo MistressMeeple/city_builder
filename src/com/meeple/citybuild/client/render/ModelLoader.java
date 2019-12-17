@@ -378,10 +378,10 @@ public class ModelLoader {
 		program = new ShaderProgram();
 		//generate shader program sources, replacing "max" values
 		//max lights/max materials
-		String fragSource = ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/assimp.frag"));
+		String fragSource = ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/lighting.frag"));
 		fragSource = fragSource.replaceAll("\\{maxmats\\}", "" + maxMaterials);
 		fragSource = fragSource.replaceAll("\\{maxlights\\}", maxLights + "");
-		String vertSource = ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/assimp.vert"));
+		String vertSource = ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/lighting.vert"));
 		vertSource = vertSource.replaceAll("\\{maxlights\\}", maxLights + "");
 		program.shaderSources.put(GLShaderType.VertexShader, vertSource);
 		program.shaderSources.put(GLShaderType.FragmentShader, fragSource);
