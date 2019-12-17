@@ -59,15 +59,19 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		//just in case anything doesnt use the log4j
 		//		System.setOut(ConsolePrintMirror.outConsole);
 		//		System.setErr(ConsolePrintMirror.errConsole);
+		
+		//setup logger
 		Logger.getRootLogger().setLevel(org.apache.log4j.Level.ALL);
 		Appender a = new ConsoleAppender(new PatternLayout(debugLayout));
 		BasicConfigurator.configure(a);
 
+		//start program
 		new CityBuilderMain().accept(service);
 
 	}
 
-	//TODO remove this 
+	
+	
 	public final ClientWindow window = new ClientWindow();
 	NuklearUIComponent placementUI = new NuklearUIComponent();
 
