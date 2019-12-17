@@ -1,11 +1,5 @@
 #version 460 core
 
-/*
-**ambient in first column
-**diffuse in second column
-**specular in third column
-*/
-
 struct Light {
 	vec3 colour;
 	vec3 position;
@@ -25,6 +19,7 @@ struct Material {
 layout (std140) uniform MaterialBlock{
 	Material materials[{maxmats}];
 };
+uniform float ambientBrightness;
 
 in vec3 vPosition;
 in vec3 vNormal;
@@ -43,29 +38,35 @@ void main() {
 	float refStr = material.reflectStrength;
 	float alpha = material.baseColour.a;
 	
-    vec3 matAmbientColour = colStr * baseColour;
-	
-	//float distance = length(vLightDirection[i]);
-	///float strFactor = uLightStrength.x + (uLightStrength.y * distance) + (uLightStrength.z * distance * distance);
-	
+    vec3 matAmbientColour =  colStr * baseColour;
 	
 	vec3 runningDiffuse = vec3(0);
-	vec3 runningLightSource  = vec3(0);
-	
-	
+	vec3 runningTotal = vec3(0);
+	int count = 0;
+	//https://www.desmos.com/calculator/bd8ujvojbu equation for lighting attenuation
 	for(int i = 0;i < {maxlights};i++){
 		if(lights[i].enabled > 0.5){
-			float nDot1 = dot(vNormal, normalize(vLightDirection[i]));
-			float brightness = max(0.0, nDot1);
-			vec3 matDiffuseColour = (refStr * brightness * reflectTint);
-			vec3 lightDiffuse = brightness * lights[i].colour.rgb;
-			runningDiffuse  =  runningDiffuse + (+ lightDiffuse);
 		
+			float distance = length(vLightDirection[i]);
+			float strFactor=1;
+			if( abs(distance) > lights[i].attenuation.x){
+				strFactor = 1 - pow(max(distance - lights[i].attenuation.x,0),1/lights[i].attenuation.z)/lights[i].attenuation.y;
+			}
+			
+			vec3 uvNormal = normalize(vNormal);
+			vec3 uvLightDirection = normalize(vLightDirection[i]);
+			
+			float nDot1 = dot(uvNormal, uvLightDirection);
+			
+			float brightness = nDot1 + (lights[i].attenuation.z/2);
+			vec3 matDiffuseColour = (refStr * max(0.0, brightness) * reflectTint);
+			vec3 lightDiffuse = brightness * lights[i].colour.rgb;
+			runningDiffuse  =  runningDiffuse + ((matDiffuseColour + lightDiffuse) * max(strFactor,0));
+			count+=1;
 		}
 	}
-	runningDiffuse = runningDiffuse;
+	//runningDiffuse = runningDiffuse / count;
 	//outColour = vec4(lightDiffuse, 1) + (vec4(matAmbientColour, 1) );
-	outColour = vec4(runningDiffuse, 1) ;//+ vec4(matAmbientColour,alpha);
-	
-		
+	vec4 minAmb = vec4(matAmbientColour,alpha) * ambientBrightness;
+	outColour = max((vec4(runningDiffuse,1) * vec4(matAmbientColour,alpha)), minAmb);
 }

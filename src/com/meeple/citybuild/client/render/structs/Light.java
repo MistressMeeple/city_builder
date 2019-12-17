@@ -4,7 +4,8 @@ import org.joml.Vector3f;
 /**
  * a light holds the data represented in the shader code. <br>
  * colour, position, attenuation and whether or not it is enabled<br>
- * This class also manages the conversion to raw data to be uploaded and its data size in the GLSL code
+ * This class also manages the conversion to raw data to be uploaded and its data size in the GLSL code<br>
+ * Function for calculating attenuation can be found <a href="https://www.desmos.com/calculator/bd8ujvojbu"> here</a>
  * @author Megan
  *
  */

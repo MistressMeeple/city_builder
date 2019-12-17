@@ -98,9 +98,7 @@ public class ModelLoader {
 	private int matrixBuffer;
 	private int lightBuffer;
 	private int materialBuffer;
-
-	//fragment shader uniforms
-	private int materialsUniformBlock[] = new int[maxMaterials];
+	private int ambientBrightnessLocation;
 
 	/**
 	 * class that represents a set of meshes paired with their material index, and a shared transformation
@@ -127,6 +125,7 @@ public class ModelLoader {
 	 */
 	Model primaryModel = new Model();
 	Model primaryLightModel = new Model();
+	Model[] models = new Model[10];
 	/**
 	 * this holds the models mesh instance data
 	 */
@@ -331,23 +330,40 @@ public class ModelLoader {
 			for (int i = 0; i < meshCount; ++i) {
 				AIMesh mesh = AIMesh.create(meshesBuffer.get(i));
 				int mIndex = 0;
-				ShaderProgram.Mesh dmesh = setupDiscard(mesh, 5);
+				ShaderProgram.Mesh dmesh = setupDiscard(mesh, 2 + models.length);
 				ShaderProgramSystem.loadVAO(program, dmesh);
 
 				primaryModel.meshToMaterials.put(dmesh, mIndex);
 				primaryLightModel.meshToMaterials.put(dmesh, mIndex);
 				dmesh.renderCount = 2;
 
-				MeshInstance mi = new MeshInstance();
-				mi.mesh = new WeakReference<>(dmesh);
-				mi.meshDataIndex = 0;
-				FrameUtils.addToSetMap(instances, primaryModel, mi, new CollectionSuppliers.SetSupplier<>());
+				int index = 0;
+				{
+					MeshInstance mi = new MeshInstance();
+					mi.mesh = new WeakReference<>(dmesh);
+					mi.meshDataIndex = index++;
+					FrameUtils.addToSetMap(instances, primaryModel, mi, new CollectionSuppliers.SetSupplier<>());
+				}
+				{
+					MeshInstance mi2 = new MeshInstance();
+					mi2.mesh = new WeakReference<>(dmesh);
+					mi2.meshDataIndex = index++;
+					FrameUtils.addToSetMap(instances, primaryLightModel, mi2, new CollectionSuppliers.SetSupplier<>());
+				}
+				if (true) {
 
-				MeshInstance mi2 = new MeshInstance();
-				mi2.mesh = new WeakReference<>(dmesh);
-				mi2.meshDataIndex = 1;
-				FrameUtils.addToSetMap(instances, primaryLightModel, mi2, new CollectionSuppliers.SetSupplier<>());
+					for (int j = 0; j < models.length; j++) {
+						models[j] = new Model();
+						models[j].meshToMaterials.put(dmesh, 1);
+						dmesh.renderCount += 1;
 
+						MeshInstance mi = new MeshInstance();
+						mi.mesh = new WeakReference<>(dmesh);
+						mi.meshDataIndex = index++;
+						FrameUtils.addToSetMap(instances, models[j], mi, new CollectionSuppliers.SetSupplier<>());
+						models[j].translation.scale(1 + (j / models.length), 1, 1 + (j / models.length));
+					}
+				}
 			}
 		}
 	}
@@ -374,6 +390,8 @@ public class ModelLoader {
 		ShaderProgramSystem.create(program);
 
 		glUseProgram(program.programID);
+		ambientBrightnessLocation = GL46.glGetUniformLocation(program.programID, "ambientBrightness");
+
 		//-----binding to the view/projection uniform buffer/block-----//
 		if (true) {
 
@@ -404,19 +422,15 @@ public class ModelLoader {
 				Light.sizeOf * ShaderProgram.GLDataType.Float.getBytes() * maxLights,
 				GL_DYNAMIC_DRAW);
 
-			float[] data = new float[Light.sizeOf];
-			float d = 0.5f;
-			primaryLight.position.set(0, 0, 0);
-			primaryLight.attenuation.set(1, 0.01f, 0.005f);
-			primaryLight.colour.set(0, 0, 1);
+			primaryLight.position.set(10, 5, 0);
+			primaryLight.attenuation.set(7, 1, 1f);
+			primaryLight.colour.set(0.5f, 0.5f, 0.1f);
 			primaryLight.enabled = true;
-			primaryLight.toArray(data, 0);
 
-			secondaryLight.position.set(1, 1, 1);
-			secondaryLight.attenuation.set(1, 1, 1);
-			secondaryLight.colour.set(1, 1, 1);
-			secondaryLight.enabled = false;
-			secondaryLight.toArray(data, 0);
+			secondaryLight.position.set(0, 5, 0);
+			secondaryLight.attenuation.set(7, 1, 1f);
+			secondaryLight.colour.set(0.5f, 0.5f, 0.1f);
+			secondaryLight.enabled = true;
 
 			//			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 0, data);
 			/*
@@ -444,8 +458,8 @@ public class ModelLoader {
 			//get the actual index of the uniform block
 			int actualIndex = GL46.glGetUniformBlockIndex(program.programID, "MaterialBlock");
 			//generate a buffer
-			int buffer = GL46.glGenBuffers();
-			glBindBuffer(GL46.GL_UNIFORM_BUFFER, buffer);
+			materialBuffer = GL46.glGenBuffers();
+			glBindBuffer(GL46.GL_UNIFORM_BUFFER, materialBuffer);
 			//set buffer size to be max materials * sizeof(material) * float.bytes
 			glBufferData(
 				GL_UNIFORM_BUFFER,
@@ -458,38 +472,35 @@ public class ModelLoader {
 
 			{
 				Material m = new Material();
-				m.baseColour.set(1, 0, 0, 1);
-				m.reflectiveTint.set(1, 0, 0);
+				m.baseColour.set(0.5f, 0, 0, 1);
+				m.reflectiveTint.set(1, 1, 0);
+				m.baseColourStrength = 0.5f;
+				m.reflectivityStrength = 0.1f;
 				data = m.toArray(data, 0);
 				glBufferSubData(GL46.GL_UNIFORM_BUFFER, 0, data);
 				i++;
 			}
 			{
 				Material m = new Material();
-				m.baseColour.set(0, 1, 0, 1);
+				m.baseColour.set(1, 0, 0, 1);
+				m.baseColourStrength = 1f;
 				m.reflectiveTint.set(0, 1, 0);
 				m.toArray(data, 0);
-				glBufferSubData(GL46.GL_UNIFORM_BUFFER, Material.dataOffset(Material.sizeOf, i++), data);
+				glBufferSubData(GL46.GL_UNIFORM_BUFFER, Material.dataOffset(Material.sizeOf, i++) * ShaderProgram.GLDataType.Float.getBytes(), data);
 			}
 			{
 				Material m = new Material();
 				m.baseColour.set(0, 0, 1, 1);
 				m.reflectiveTint.set(0, 0, 1);
-				glBufferSubData(GL46.GL_UNIFORM_BUFFER, Material.dataOffset(Material.sizeOf, i++), data);
+				glBufferSubData(GL46.GL_UNIFORM_BUFFER, Material.dataOffset(Material.sizeOf, i++) * ShaderProgram.GLDataType.Float.getBytes(), data);
 			}
 			//unbind
 			glBindBuffer(GL46.GL_UNIFORM_BUFFER, 0);
 
 			//binds the buffer to a binding index
-			glBindBufferBase(GL_UNIFORM_BUFFER, materialBufferBindingPoint, buffer);
+			glBindBufferBase(GL_UNIFORM_BUFFER, materialBufferBindingPoint, materialBuffer);
 			//binds the binding index to the interface block (by index)
 			glUniformBlockBinding(program.programID, actualIndex, materialBufferBindingPoint);
-			this.materialBuffer = buffer;
-		}
-
-		//TODO move the materials to the UBO rather than a direct uniform location array
-		for (int i = 0; i < maxMaterials; i++) {
-			materialsUniformBlock[i] = glGetUniformLocation(program.programID, "materials[" + i + "]");
 
 		}
 
@@ -523,7 +534,7 @@ public class ModelLoader {
 
 		//set camera rotation
 		if (true) {
-			rotation = total * 0.25f * (float) Math.PI;
+			rotation = total * 0.125f * (float) Math.PI;
 		}
 		//update projection matrix, not needed per frame but easier to have. 
 		projectionMatrix
@@ -532,8 +543,9 @@ public class ModelLoader {
 				(float) width / height,
 				0.01f,
 				100.0f);
+
 		//setting the view position defined by the rotation previously set and a radius
-		viewPosition.set(10f * (float) Math.cos(rotation), 10f, 10f * (float) Math.sin(rotation));
+		viewPosition.set(15f * (float) Math.cos(rotation), 15f, 15f * (float) Math.sin(rotation));
 		//setting the view matrix to look at 000 from view position
 		viewMatrix
 			.setLookAt(
@@ -551,14 +563,75 @@ public class ModelLoader {
 
 		//handles the rotation of light source/model
 		if (true) {
-			float rotation2 = -total * 0.75f * (float) Math.PI;
-			lightPosition.set(2.5f * (float) Math.sin(rotation2), 5f, 5f * (float) Math.cos(rotation2));
+			float rotation2 = -total * 0.25f * (float) Math.PI;
+			lightPosition.set(10f * (float) Math.sin(rotation2), 5f, 10f * (float) Math.cos(rotation2));
+			//			lightPosition.set(0, 5, 0);
 			//		lightPosition.set(5, 0, 0);
-			primaryLightModel.translation.setTranslation(lightPosition.x, 0, lightPosition.z);
+			primaryLightModel.translation.setTranslation(lightPosition.x, 1, lightPosition.z);
 			primaryLight.position.set(lightPosition);
+
+			primaryLight.attenuation.y = primaryLight.attenuation.x * (1 * (float) (Math.sin(rotation2) + 1f) / 2f);
+
+		}
+		if (true) {
+			//TODO
+			for (int i = 0; i < models.length; i++) {
+
+				float a = (-total + (i * 0.8f)) * 0.25f;
+				float b = a * (float) Math.PI;
+				Vector3f lpos = new Vector3f(
+					10f * (float) Math.sin(b),
+					i * 0.05f,
+					2 * (float) Math.cos(b));
+				models[i].translation.setTranslation(lpos);
+			}
 		}
 		//		light.translation.setTranslation(10, 0, 0);
 		//		model.translation.translate(0, deltaSeconds, 0);
+	}
+
+	/**
+	 * Main rendering part, called each frame. 
+	 * only handles uploading/correcting data to buffers in OGL and rendering through shader program.
+	 */
+	void render() {
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glEnable(GL_DEPTH_TEST);
+
+		writeVPMatrix(matrixBuffer, viewMatrix, viewProjectionMatrix);
+		try (ShaderClosable sc = ShaderProgramSystem.useProgram(program)) {
+
+			for (MeshInstance meshInstance : instances.get(primaryModel)) {
+				writeMeshTranslation(meshInstance, primaryModel.translation);
+				writeMeshMaterialIndex(meshInstance, primaryModel.meshToMaterials.get(meshInstance.mesh.get()));
+			}
+			for (MeshInstance meshInstance : instances.get(primaryLightModel)) {
+				writeMeshTranslation(meshInstance, primaryLightModel.translation);
+				writeMeshMaterialIndex(meshInstance, primaryLightModel.meshToMaterials.get(meshInstance.mesh.get()));
+			}
+
+			if (true) {
+
+				for (int i = 0; i < models.length; i++) {
+
+					for (MeshInstance meshInstance : instances.get(models[i])) {
+						writeMeshTranslation(meshInstance, models[i].translation);
+						writeMeshMaterialIndex(meshInstance, models[i].meshToMaterials.get(meshInstance.mesh.get()));
+					}
+				}
+			}
+
+			/*
+				glUniform3fv(lightPositionUniform, lightPosition.get(lightPositionBuffer));
+				glUniform3fv(lightColourUniform, new float[] { 1, 0, 0 });
+				glUniform3fv(lightStrengthUniform, new float[] { 1, 0.01f, 0.005f });*/
+			writeLight(lightBuffer, 1, primaryLight);
+			writeLight(lightBuffer, 0, secondaryLight);
+			glUniform1f(ambientBrightnessLocation, 0.0125f);
+		}
+
+		ShaderProgramSystem.tryRender(program);
+
 	}
 
 	/**
@@ -642,38 +715,6 @@ public class ModelLoader {
 		int offset = Struct.dataOffset(Light.sizeOf, index) * ShaderProgram.GLDataType.Float.getBytes();
 		glBufferSubData(GL46.GL_UNIFORM_BUFFER, offset, store);
 		glBindBuffer(GL46.GL_UNIFORM_BUFFER, 0);
-
-	}
-
-	/**
-	 * Main rendering part, called each frame. 
-	 * only handles uploading/correcting data to buffers in OGL and rendering through shader program.
-	 */
-	void render() {
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		writeVPMatrix(matrixBuffer, viewMatrix, viewProjectionMatrix);
-		try (ShaderClosable sc = ShaderProgramSystem.useProgram(program)) {
-
-			for (MeshInstance meshInstance : instances.get(primaryModel)) {
-				writeMeshTranslation(meshInstance, primaryModel.translation);
-				writeMeshMaterialIndex(meshInstance, primaryModel.meshToMaterials.get(meshInstance.mesh.get()));
-			}
-
-			for (MeshInstance meshInstance : instances.get(primaryLightModel)) {
-				writeMeshTranslation(meshInstance, primaryLightModel.translation);
-				writeMeshMaterialIndex(meshInstance, primaryLightModel.meshToMaterials.get(meshInstance.mesh.get()));
-			}
-
-			/*
-				glUniform3fv(lightPositionUniform, lightPosition.get(lightPositionBuffer));
-				glUniform3fv(lightColourUniform, new float[] { 1, 0, 0 });
-				glUniform3fv(lightStrengthUniform, new float[] { 1, 0.01f, 0.005f });*/
-			writeLight(lightBuffer, 0, primaryLight);
-			writeLight(lightBuffer, 1, secondaryLight);
-		}
-
-		ShaderProgramSystem.tryRender(program);
 
 	}
 

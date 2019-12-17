@@ -36,10 +36,8 @@ void main() {
     vec4 position = modelMatrix * vertex;
     gl_Position =  vpMatrix * position;
     vPosition = position.xyz;
-	vNormal = normalize(normalMatrix * vec4(normal,1)).xyz;
-	for(int i = 0; i < {maxlights}; i++){
-		
-			vLightDirection[i] = lights[i].position.xyz - position.xyz;
-		
+	vNormal = (normalMatrix * vec4(normal,1)).xyz;
+	for(int i = 0; i < {maxlights}; i++){		
+		vLightDirection[i] = lights[i].position.xyz - position.xyz;
 	}
 }
