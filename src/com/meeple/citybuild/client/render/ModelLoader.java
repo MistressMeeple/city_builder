@@ -97,7 +97,7 @@ public class ModelLoader {
 	//vertex shader uniforms
 	private int matrixBuffer;
 	private int lightBuffer;
-	private int materialBuffer;
+	//	private int materialBuffer;
 	private int ambientBrightnessLocation;
 
 	/**
@@ -373,7 +373,7 @@ public class ModelLoader {
 	 */
 	private static final String transformMatName = "meshTransformMatrix", materialIndexName = "meshMaterialIndex", normalMatName = "meshNormalMatrix";
 
-	private int storeMatrixBuffer(Matrix4f view, Matrix4f projection, Matrix4f vpMult) {
+	private int storeMatrixBuffer(Matrix4f view, Matrix4f projection, Matrix4f vpMult, int bindingPoint) {
 		int matrixBuffer = GL46.glGenBuffers();
 		glBindBuffer(GL46.GL_UNIFORM_BUFFER, matrixBuffer);
 		glBufferData(GL_UNIFORM_BUFFER, 64 * 3, GL_DYNAMIC_DRAW);
@@ -382,30 +382,34 @@ public class ModelLoader {
 		glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64, projection.get(store));
 		glBufferSubData(GL46.GL_UNIFORM_BUFFER, 128, vpMult.get(store));
 		glBindBuffer(GL46.GL_UNIFORM_BUFFER, 0);
+
+		//binds the buffer to a binding index
+		glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, matrixBuffer);
+
 		return matrixBuffer;
 
 	}
 
-	private void setupMatrixBuffer(String name, ShaderProgram... programs) {
+	private int genUBO(int bindingPoint, long maxSize) {
+		int buffer = GL46.glGenBuffers();
+		glBindBuffer(GL46.GL_UNIFORM_BUFFER, buffer);
+		glBufferData(
+			GL_UNIFORM_BUFFER,
+			maxSize,
+			GL_DYNAMIC_DRAW);
 
-		//-----binding to the view/projection uniform buffer/block-----//
-		if (true) {
+		//binds the buffer to a binding index
+		glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, buffer);
 
-			int actualIndex = GL46.glGetUniformBlockIndex(program.programID, "Matrices");
-			int matrixBuffer = GL46.glGenBuffers();
-			glBindBuffer(GL46.GL_UNIFORM_BUFFER, matrixBuffer);
-			glBufferData(GL_UNIFORM_BUFFER, 64 * 3, GL_DYNAMIC_DRAW);
-			float[] store = new float[16];
-			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 0, viewMatrix.get(store));
-			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64, projectionMatrix.get(store));
-			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 128, viewProjectionMatrix.get(store));
-			glBindBuffer(GL46.GL_UNIFORM_BUFFER, 0);
+		return buffer;
 
-			//binds the buffer to a binding index
-			glBindBufferBase(GL_UNIFORM_BUFFER, vpMatrixBindingpoint, matrixBuffer);
+	}
+
+	private void bindUBONameToIndex(String name, int binding, ShaderProgram... programs) {
+		for (ShaderProgram program : programs) {
+			int actualIndex = GL46.glGetUniformBlockIndex(program.programID, name);
 			//binds the binding index to the interface block (by index)
-			glUniformBlockBinding(program.programID, actualIndex, vpMatrixBindingpoint);
-			this.matrixBuffer = matrixBuffer;
+			glUniformBlockBinding(program.programID, actualIndex, binding);
 		}
 	}
 
@@ -427,36 +431,13 @@ public class ModelLoader {
 
 		glUseProgram(program.programID);
 		ambientBrightnessLocation = GL46.glGetUniformLocation(program.programID, "ambientBrightness");
-
 		//-----binding to the view/projection uniform buffer/block-----//
 		if (true) {
-
-			int actualIndex = GL46.glGetUniformBlockIndex(program.programID, "Matrices");
-			int matrixBuffer = GL46.glGenBuffers();
-			glBindBuffer(GL46.GL_UNIFORM_BUFFER, matrixBuffer);
-			glBufferData(GL_UNIFORM_BUFFER, 64 * 3, GL_DYNAMIC_DRAW);
-			float[] store = new float[16];
-			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 0, viewMatrix.get(store));
-			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64, projectionMatrix.get(store));
-			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 128, viewProjectionMatrix.get(store));
-			glBindBuffer(GL46.GL_UNIFORM_BUFFER, 0);
-
-			//binds the buffer to a binding index
-			glBindBufferBase(GL_UNIFORM_BUFFER, vpMatrixBindingpoint, matrixBuffer);
-			//binds the binding index to the interface block (by index)
-			glUniformBlockBinding(program.programID, actualIndex, vpMatrixBindingpoint);
-			this.matrixBuffer = matrixBuffer;
+			this.matrixBuffer = storeMatrixBuffer(viewMatrix, projectionMatrix, viewProjectionMatrix, vpMatrixBindingpoint);
+			bindUBONameToIndex("Matrices", vpMatrixBindingpoint, program);
 		}
 		//-----binding to the light uniform buffer/block-----//
 		if (true) {
-
-			int actualIndex = GL46.glGetUniformBlockIndex(program.programID, "LightBlock");
-			lightBuffer = GL46.glGenBuffers();
-			glBindBuffer(GL46.GL_UNIFORM_BUFFER, lightBuffer);
-			glBufferData(
-				GL_UNIFORM_BUFFER,
-				Light.sizeOf * ShaderProgram.GLDataType.Float.getBytes() * maxLights,
-				GL_DYNAMIC_DRAW);
 
 			primaryLight.position.set(10, 5, 0);
 			primaryLight.attenuation.set(7, 1, 1f);
@@ -464,44 +445,18 @@ public class ModelLoader {
 			primaryLight.enabled = true;
 
 			secondaryLight.position.set(0, 5, 0);
-			secondaryLight.attenuation.set(7, 1, 1f);
+			secondaryLight.attenuation.set(7, 10, 1f);
 			secondaryLight.colour.set(0.5f, 0.5f, 0.1f);
 			secondaryLight.enabled = true;
 
-			//			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 0, data);
-			/*
-																
-																Light light = new Light();
-																light.position.set(0, 0, 0);
-																light.attenuation.set(0, 0.01f, 0.005f);
-																light.colour.set(1, 0, 0);
-																light.enabled = true;
-																
-																light.toArray(data, 0);
-																
-																glBufferSubData(GL46.GL_UNIFORM_BUFFER, Struct.dataOffset(Light.sizeOf, 1), data);*/
-
-			glBindBuffer(GL46.GL_UNIFORM_BUFFER, 0);
-
-			//binds the buffer to a binding index
-			glBindBufferBase(GL_UNIFORM_BUFFER, lightBufferBindingPoint, lightBuffer);
-			//binds the binding index to the interface block (by index)
-			glUniformBlockBinding(program.programID, actualIndex, lightBufferBindingPoint);
+			lightBuffer = genUBO(lightBufferBindingPoint, Light.sizeOf * ShaderProgram.GLDataType.Float.getBytes() * maxLights);
+			bindUBONameToIndex("LightBlock", lightBufferBindingPoint, program);
 
 		}
 		//-----binding to the material uniform buffer/block-----//
 		if (true) {
-			//get the actual index of the uniform block
-			int actualIndex = GL46.glGetUniformBlockIndex(program.programID, "MaterialBlock");
-			//generate a buffer
-			materialBuffer = GL46.glGenBuffers();
-			glBindBuffer(GL46.GL_UNIFORM_BUFFER, materialBuffer);
-			//set buffer size to be max materials * sizeof(material) * float.bytes
-			glBufferData(
-				GL_UNIFORM_BUFFER,
-				Material.sizeOf * ShaderProgram.GLDataType.Float.getBytes() * maxMaterials,
-				GL_DYNAMIC_DRAW);
 
+			int materialBuffer = genUBO(materialBufferBindingPoint, Material.sizeOf * ShaderProgram.GLDataType.Float.getBytes() * maxMaterials);
 			//upload material data
 			int i = 0;
 			float[] data = new float[Material.sizeOf];
@@ -530,20 +485,11 @@ public class ModelLoader {
 				m.reflectiveTint.set(0, 0, 1);
 				glBufferSubData(GL46.GL_UNIFORM_BUFFER, Material.dataOffset(Material.sizeOf, i++) * ShaderProgram.GLDataType.Float.getBytes(), data);
 			}
+			bindUBONameToIndex("MaterialBlock", materialBufferBindingPoint, program);
 			//unbind
 			glBindBuffer(GL46.GL_UNIFORM_BUFFER, 0);
 
-			//binds the buffer to a binding index
-			glBindBufferBase(GL_UNIFORM_BUFFER, materialBufferBindingPoint, materialBuffer);
-			//binds the binding index to the interface block (by index)
-			glUniformBlockBinding(program.programID, actualIndex, materialBufferBindingPoint);
-
 		}
-
-		/*ambientColorUniform = glGetUniformLocation(program.programID, "uAmbientColor");
-		diffuseColorUniform = glGetUniformLocation(program.programID, "uDiffuseColor");
-		specularColorUniform = glGetUniformLocation(program.programID, "uSpecularColor");
-		*/
 
 	}
 
@@ -660,7 +606,9 @@ public class ModelLoader {
 			/*
 				glUniform3fv(lightPositionUniform, lightPosition.get(lightPositionBuffer));
 				glUniform3fv(lightColourUniform, new float[] { 1, 0, 0 });
-				glUniform3fv(lightStrengthUniform, new float[] { 1, 0.01f, 0.005f });*/
+				glUniform3fv(lightStrengthUniform, new float[] { 1, 0.01f, 0.005f });
+			*/
+
 			writeLight(lightBuffer, 1, primaryLight);
 			writeLight(lightBuffer, 0, secondaryLight);
 			glUniform1f(ambientBrightnessLocation, 0.0125f);
