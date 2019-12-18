@@ -373,6 +373,42 @@ public class ModelLoader {
 	 */
 	private static final String transformMatName = "meshTransformMatrix", materialIndexName = "meshMaterialIndex", normalMatName = "meshNormalMatrix";
 
+	private int storeMatrixBuffer(Matrix4f view, Matrix4f projection, Matrix4f vpMult) {
+		int matrixBuffer = GL46.glGenBuffers();
+		glBindBuffer(GL46.GL_UNIFORM_BUFFER, matrixBuffer);
+		glBufferData(GL_UNIFORM_BUFFER, 64 * 3, GL_DYNAMIC_DRAW);
+		float[] store = new float[16];
+		glBufferSubData(GL46.GL_UNIFORM_BUFFER, 0, view.get(store));
+		glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64, projection.get(store));
+		glBufferSubData(GL46.GL_UNIFORM_BUFFER, 128, vpMult.get(store));
+		glBindBuffer(GL46.GL_UNIFORM_BUFFER, 0);
+		return matrixBuffer;
+
+	}
+
+	private void setupMatrixBuffer(String name, ShaderProgram... programs) {
+
+		//-----binding to the view/projection uniform buffer/block-----//
+		if (true) {
+
+			int actualIndex = GL46.glGetUniformBlockIndex(program.programID, "Matrices");
+			int matrixBuffer = GL46.glGenBuffers();
+			glBindBuffer(GL46.GL_UNIFORM_BUFFER, matrixBuffer);
+			glBufferData(GL_UNIFORM_BUFFER, 64 * 3, GL_DYNAMIC_DRAW);
+			float[] store = new float[16];
+			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 0, viewMatrix.get(store));
+			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64, projectionMatrix.get(store));
+			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 128, viewProjectionMatrix.get(store));
+			glBindBuffer(GL46.GL_UNIFORM_BUFFER, 0);
+
+			//binds the buffer to a binding index
+			glBindBufferBase(GL_UNIFORM_BUFFER, vpMatrixBindingpoint, matrixBuffer);
+			//binds the binding index to the interface block (by index)
+			glUniformBlockBinding(program.programID, actualIndex, vpMatrixBindingpoint);
+			this.matrixBuffer = matrixBuffer;
+		}
+	}
+
 	void createProgram() throws IOException {
 		//create new shader program
 		program = new ShaderProgram();
@@ -400,8 +436,8 @@ public class ModelLoader {
 			glBindBuffer(GL46.GL_UNIFORM_BUFFER, matrixBuffer);
 			glBufferData(GL_UNIFORM_BUFFER, 64 * 3, GL_DYNAMIC_DRAW);
 			float[] store = new float[16];
-			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 0, projectionMatrix.get(store));
-			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64, viewMatrix.get(store));
+			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 0, viewMatrix.get(store));
+			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64, projectionMatrix.get(store));
 			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 128, viewProjectionMatrix.get(store));
 			glBindBuffer(GL46.GL_UNIFORM_BUFFER, 0);
 
@@ -697,7 +733,7 @@ public class ModelLoader {
 		glBindBuffer(GL46.GL_UNIFORM_BUFFER, buffer);
 		float[] store = new float[16];
 		//		glBufferSubData(GL46.GL_UNIFORM_BUFFER, 0, projectionMatrix.get(store));
-		glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64, view.get(store));
+		glBufferSubData(GL46.GL_UNIFORM_BUFFER, 0, view.get(store));
 		glBufferSubData(GL46.GL_UNIFORM_BUFFER, 128, viewProjection.get(store));
 		glBindBuffer(GL46.GL_UNIFORM_BUFFER, 0);
 	}
