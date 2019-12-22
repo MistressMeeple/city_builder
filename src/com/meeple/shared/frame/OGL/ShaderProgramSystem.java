@@ -35,6 +35,7 @@ import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.FileLoader;
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
+import com.meeple.shared.frame.OGL.ShaderProgram.GLStatus;
 import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
 import com.meeple.shared.frame.OGL.ShaderProgram.VAO;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferObject;
@@ -91,8 +92,9 @@ public class ShaderProgramSystem {
 	 * <li>Getting/setting indexes of all uniforms attached to program< ({@link #bindUniformLocations(int, Map)})</li>
 	 * </ol>
 	 * @param program Shader program to create/setup
+	 * @throws Exception when the program fails error checks. if thrown auto closes and deletes resources
 	 */
-	public static void create(ShaderProgram program) {
+	public static void create(ShaderProgram program) throws Exception {
 		program.programID = GL46.glCreateProgram();
 		logger.trace("Creating new Shader program with ID: " + program.programID);
 		Map<GLShaderType, Integer> shaderIDs = compileShaders(program.shaderSources);
@@ -101,23 +103,28 @@ public class ShaderProgramSystem {
 		program.shaderIDs.putAll(shaderIDs);
 		bindShaders(program.programID, program.shaderIDs.values());
 		//bindAttributeLocations(program.programID, program.attributes);
-		GL46.glLinkProgram(program.programID);
-		programErrorCheck(program.programID, GL46.GL_LINK_STATUS);
-		GL46.glValidateProgram(program.programID);
-		programErrorCheck(program.programID, GL46.GL_VALIDATE_STATUS);
-		bindUniformLocations(program.programID, program.uniformSystems);
+		try {
+			GL46.glLinkProgram(program.programID);
+			programErrorCheck(program.programID, GLStatus.LinkStatus);
+			GL46.glValidateProgram(program.programID);
+			programErrorCheck(program.programID, GLStatus.ValidateStatus);
+			bindUniformLocations(program.programID, program.uniformSystems);
+		} catch (Exception e) {
+			close(program);
+			throw e;
+		}
 	}
 
-	private static void programErrorCheck(int program, int query) {
-		int linkStatus = glGetProgrami(program, query);
+	private static String programErrorCheck(int program, GLStatus status) throws Exception {
+		int linkStatus = glGetProgrami(program, status.getGLID());
 		String programLog = glGetProgramInfoLog(program);
 		if (programLog.trim().length() > 0) {
-
 			logger.trace("program log: \r\n" + programLog);
 		}
 		if (linkStatus == 0) {
-			throw new AssertionError();
+			throw new AssertionError("Program failed the error check: " + status.getGLID());
 		}
+		return programLog;
 	}
 
 	private static boolean shaderCompileCheck(int shader) {
@@ -159,7 +166,7 @@ public class ShaderProgramSystem {
 	}
 
 	/**
-	 * Attatches all the Shaders (ID's stored in values) to the given program ID
+	 * Attaches all the Shaders (ID's stored in values) to the given program ID
 	 * @param makeQuadProgram ID to bind to 
 	 * @param shaderMap map of shader type-ID's to bind
 	 */

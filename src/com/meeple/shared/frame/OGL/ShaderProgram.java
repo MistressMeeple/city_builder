@@ -26,7 +26,22 @@ public class ShaderProgram {
 	protected static final int maxAttribDataSize = 4;
 	protected static final int NULL = 0;
 	private static int bitsPerByte = 8;
-	
+
+	public static enum GLStatus implements GLEnum {
+		LinkStatus(GL46.GL_LINK_STATUS),
+		ValidateStatus(GL46.GL_VALIDATE_STATUS),
+		CompileStatus(GL46.GL_COMPILE_STATUS);
+		private int type;
+
+		GLStatus(int type) {
+			this.type = type;
+		}
+
+		@Override
+		public int getGLID() {
+			return type;
+		}
+	}
 
 	public enum GLDataType implements GLEnum {
 		Byte(GL46.GL_BYTE, 8),
