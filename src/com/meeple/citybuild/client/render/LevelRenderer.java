@@ -62,7 +62,11 @@ public class LevelRenderer {
 		program.shaderSources.put(GLShaderType.VertexShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/line3D.vert")));
 		program.shaderSources.put(GLShaderType.FragmentShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
 
-		ShaderProgramSystem.create(program);
+		try {
+			ShaderProgramSystem.create(program);
+		} catch (Exception err) {
+			err.printStackTrace();
+		}
 		return u;
 	}
 
@@ -75,7 +79,12 @@ public class LevelRenderer {
 		program.shaderSources.put(GLShaderType.VertexShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/line2D-UI.vert")));
 		program.shaderSources.put(GLShaderType.FragmentShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
 
-		ShaderProgramSystem.create(program);
+		try {
+			ShaderProgramSystem.create(program);
+		} catch (Exception err) {
+			// TODO Auto-generated catch block
+			err.printStackTrace();
+		}
 		return u;
 
 	}
@@ -89,8 +98,30 @@ public class LevelRenderer {
 		program.shaderSources.put(GLShaderType.VertexShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/3D-unlit.vert")));
 		program.shaderSources.put(GLShaderType.FragmentShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
 
-		ShaderProgramSystem.create(program);
+		try {
+			ShaderProgramSystem.create(program);
+		} catch (Exception err) {
+
+			err.printStackTrace();
+		}
 		return u;
+	}
+
+	public void setupLitProgram(ShaderProgram program, int maxLights, int maxMaterials) {
+		String fragSource = ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/lighting.frag"));
+		fragSource = fragSource.replaceAll("\\{maxmats\\}", "" + maxMaterials);
+		fragSource = fragSource.replaceAll("\\{maxlights\\}", maxLights + "");
+		String vertSource = ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/lighting.vert"));
+		vertSource = vertSource.replaceAll("\\{maxlights\\}", maxLights + "");
+		program.shaderSources.put(GLShaderType.VertexShader, vertSource);
+		program.shaderSources.put(GLShaderType.FragmentShader, fragSource);
+		try {
+			ShaderProgramSystem.create(program);
+		} catch (Exception err) {
+			// TODO Auto-generated catch block
+			err.printStackTrace();
+		}
+
 	}
 
 	public void preRender(LevelData level, VPMatrix vp, ShaderProgram program) {
