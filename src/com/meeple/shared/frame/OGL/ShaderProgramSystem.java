@@ -5,8 +5,6 @@ import static org.lwjgl.system.MemoryStack.*;
 
 import java.io.BufferedReader;
 import java.io.Closeable;
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.lang.ref.WeakReference;
@@ -34,11 +32,11 @@ import org.lwjgl.system.MemoryStack;
 import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.FileLoader;
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
+import com.meeple.shared.frame.OGL.ShaderProgram.BufferObject;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLStatus;
 import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
 import com.meeple.shared.frame.OGL.ShaderProgram.VAO;
-import com.meeple.shared.frame.OGL.ShaderProgram.BufferObject;
 
 public class ShaderProgramSystem {
 
