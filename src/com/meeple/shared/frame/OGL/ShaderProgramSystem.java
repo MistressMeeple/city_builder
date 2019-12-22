@@ -94,7 +94,7 @@ public class ShaderProgramSystem {
 	 * @param program Shader program to create/setup
 	 * @throws Exception when the program fails error checks. if thrown auto closes and deletes resources
 	 */
-	public static void create(ShaderProgram program) throws Exception {
+	public static void create(ShaderProgram program) {
 		program.programID = GL46.glCreateProgram();
 		logger.trace("Creating new Shader program with ID: " + program.programID);
 		Map<GLShaderType, Integer> shaderIDs = compileShaders(program.shaderSources);
@@ -103,33 +103,69 @@ public class ShaderProgramSystem {
 		program.shaderIDs.putAll(shaderIDs);
 		bindShaders(program.programID, program.shaderIDs.values());
 		//bindAttributeLocations(program.programID, program.attributes);
+		String log = "";
 		try {
 			GL46.glLinkProgram(program.programID);
-			programErrorCheck(program.programID, GLStatus.LinkStatus);
+			log = programStatusCheck(program.programID, GLStatus.LinkStatus);
+			if (log.length() > 0) {
+				logger.trace("program log: \r\n" + log);
+			}
 			GL46.glValidateProgram(program.programID);
-			programErrorCheck(program.programID, GLStatus.ValidateStatus);
+			log = programStatusCheck(program.programID, GLStatus.ValidateStatus);
+			if (log.length() > 0) {
+				logger.trace("program log: \r\n" + log);
+			}
 			bindUniformLocations(program.programID, program.uniformSystems);
 		} catch (Exception e) {
 			close(program);
-			throw e;
+			throw new AssertionError();
 		}
 	}
 
-	private static String programErrorCheck(int program, GLStatus status) throws Exception {
+	private static String programStatusCheck(int program, GLStatus status) {
 		int linkStatus = glGetProgrami(program, status.getGLID());
 		String programLog = glGetProgramInfoLog(program);
-		if (programLog.trim().length() > 0) {
-			logger.trace("program log: \r\n" + programLog);
-		}
 		if (linkStatus == 0) {
-			throw new AssertionError("Program failed the error check: " + status.getGLID());
+			throw new AssertionError("Program failed the status check: " + status.name() + "\r\n" + programLog);
 		}
 		return programLog;
 	}
 
-	private static boolean shaderCompileCheck(int shader) {
-		int linkStatus = glGetShaderi(shader, GL46.GL_COMPILE_STATUS);
-		return linkStatus == 0;
+	private static String shaderCompileCheck(int shaderID) {
+		int linkStatus = glGetShaderi(shaderID, GLStatus.CompileStatus.getGLID());
+		String shaderLog = glGetShaderInfoLog(shaderID);
+		if (linkStatus == 0) {
+			throw new AssertionError("Shader failed to compile. \r\n" + shaderLog);
+		}
+		return shaderLog;
+	}
+
+	/**
+	 * Compile a single shader from source and given type, prints any errors 
+	 * @param source shader source to compile
+	 * @param type shader type of shader to compile
+	 * @return generated ID of shader
+	 */
+	public static int compileShader(String source, int type) {
+		int shaderID = GL46.glCreateShader(type);
+		GL46.glShaderSource(shaderID, source);
+		GL46.glCompileShader(shaderID);
+
+		String shaderLog = "";
+		try {
+			shaderCompileCheck(shaderID);
+
+			logger.trace("Shader with ID '" + shaderID + "' successfully compiled");
+			if (shaderLog.trim().length() > 0) {
+				logger.debug("Shader Log: \r\n" + shaderLog);
+			}
+			return shaderID;
+		} catch (Exception e) {
+			GL46.glDeleteShader(shaderID);
+			throw new AssertionError();
+
+		}
+
 	}
 
 	public static void merge(Map<GLShaderType, Integer> mergeFrom, Map<GLShaderType, Integer> mergeTo) {
@@ -198,30 +234,6 @@ public class ShaderProgramSystem {
 				system.bindUniformLocations(programID, uniforms.keySet());
 			}
 		}
-	}
-
-	/**
-	 * Compile a single shader from source and given type, prints any errors 
-	 * @param source shader source to compile
-	 * @param type shader type of shader to compile
-	 * @return generated ID of shader
-	 */
-	public static int compileShader(String source, int type) {
-		int shaderID = GL46.glCreateShader(type);
-		GL46.glShaderSource(shaderID, source);
-		GL46.glCompileShader(shaderID);
-
-		String shaderLog = glGetShaderInfoLog(shaderID);
-		if (shaderCompileCheck(shaderID)) {
-
-			logger.trace("Shader with ID '" + shaderID + "' successfully compiled");
-			if (shaderLog.trim().length() > 0) {
-				logger.debug("Shader Log: \r\n" + shaderLog);
-			} else {
-				throw new AssertionError(shaderLog);
-			}
-		}
-		return shaderID;
 	}
 
 	/**
