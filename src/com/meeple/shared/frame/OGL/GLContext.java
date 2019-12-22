@@ -13,7 +13,7 @@ import com.meeple.shared.CollectionSuppliers.SetSupplier;
 
 public class GLContext implements AutoCloseable {
 
-	public static final GLContext instance = new GLContext();
+	
 	public Set<Integer> vertexArrays = new SetSupplier<Integer>().get();
 	public Set<Integer> buffers = new SetSupplier<Integer>().get();
 
