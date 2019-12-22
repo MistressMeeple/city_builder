@@ -237,33 +237,6 @@ public class ShaderProgramSystem {
 	}
 
 	/**
-	 * Load shader source from file provided
-	 * @param file to be read from
-	 * @return String contents of file
-	 */
-	@Deprecated
-	public static String loadShaderSourceFromFile(File file) {
-		StringBuilder shaderSource = new StringBuilder();
-		if (!file.exists()) {
-
-			logger.warn("Couldnt read the shader file. (file not found)");
-			logger.warn("File: " + file.getAbsolutePath());
-
-		}
-		try {
-			BufferedReader reader = new BufferedReader(new FileReader(file));
-			String line;
-			while ((line = reader.readLine()) != null) {
-				shaderSource.append(line).append("\n");
-			}
-			reader.close();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-		return shaderSource.toString();
-	}
-
-	/**
 	 * Loads a string that represents a shader from the file system. <br>
 	 * calls {@link FileLoader#loadFile(String)} to get the file resource stream then convers the file into a string by reading line by line
 	 * @param name file name to load in either the packaged jar file or external file
