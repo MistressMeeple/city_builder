@@ -7,18 +7,26 @@ import static org.lwjgl.opengl.GL31.*;
 import java.util.Iterator;
 import java.util.Set;
 
+import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL46;
+import org.lwjgl.opengl.GLCapabilities;
 
 import com.meeple.shared.CollectionSuppliers.SetSupplier;
 
 public class GLContext implements AutoCloseable {
-
-	
+	public GLCapabilities capabilities;
 	public Set<Integer> vertexArrays = new SetSupplier<Integer>().get();
 	public Set<Integer> buffers = new SetSupplier<Integer>().get();
 
 	public Set<Integer> programs = new SetSupplier<Integer>().get();
 	public Set<Integer> shaders = new SetSupplier<Integer>().get();
+
+	public GLContext() {
+	}
+
+	public void init() {
+		capabilities = GL.createCapabilities();
+	}
 
 	/**
 	 * Generates a new UBO. sets its max size and binds it to the binding point <br>
