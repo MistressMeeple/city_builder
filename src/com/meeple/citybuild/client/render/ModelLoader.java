@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -22,9 +23,12 @@ import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
+import org.joml.FrustumIntersection;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
+import org.joml.Vector2i;
 import org.joml.Vector3f;
+import org.joml.Vector4f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.assimp.AIFace;
@@ -43,13 +47,19 @@ import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.Callback;
 import org.lwjgl.system.MemoryStack;
 
+import com.meeple.citybuild.client.render.WorldRenderer.MeshExt;
 import com.meeple.citybuild.client.render.structs.Light;
 import com.meeple.citybuild.client.render.structs.Material;
 import com.meeple.citybuild.client.render.structs.Struct;
+import com.meeple.citybuild.server.LevelData;
+import com.meeple.citybuild.server.LevelData.Chunk;
+import com.meeple.citybuild.server.LevelData.Chunk.Tile;
+import com.meeple.citybuild.server.WorldGenerator.Tiles;
 import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.OGL.ShaderProgram;
+import com.meeple.shared.frame.OGL.ShaderProgramSystem;
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferDataManagementType;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferObject;
@@ -61,6 +71,7 @@ import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
 import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2.ShaderClosable;
+import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
 import com.meeple.shared.frame.nuklear.IOUtil;
 import com.meeple.shared.frame.wrapper.Wrapper;
 import com.meeple.shared.frame.wrapper.WrapperImpl;
@@ -157,16 +168,6 @@ public class ModelLoader {
 		try (GLContext glContext = new GLContext()) {
 			setupGLFW();
 			glContext.init();
-			/*
-			if (!caps.GL_shader_objects) {
-				throw new AssertionError("This demo requires the _shader_objects extension.");
-			}
-			if (!caps.GL_vertex_shader) {
-				throw new AssertionError("This demo requires the _vertex_shader extension.");
-			}
-			if (!caps.GL_fragment_shader) {
-				throw new AssertionError("This demo requires the _fragment_shader extension.");
-			}*/
 
 			glClearColor(0f, 0f, 0f, 1f);
 			glEnable(GL_DEPTH_TEST);
@@ -206,101 +207,106 @@ public class ModelLoader {
 		}
 	}
 
-	void setupGLFW() throws IOException {
+	Map<Chunk, MeshExt> baked = new CollectionSuppliers.MapSupplier<Chunk, MeshExt>().get();
 
-		if (!glfwInit()) {
-			throw new IllegalStateException("Unable to initialize GLFW");
-		}
+	public void preRender(LevelData level, VPMatrix vp, ShaderProgram program) {
+		FrustumIntersection fi = new FrustumIntersection(vp.cache);
 
-		glfwDefaultWindowHints();
-		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-		window = glfwCreateWindow(
-			width,
-			height,
-			"Wavefront obj model loading with Assimp demo",
-			NULL,
-			NULL);
-		if (window == NULL)
-			throw new AssertionError("Failed to create the GLFW window");
-
-		glfwSetFramebufferSizeCallback(window, fbCallback = new GLFWFramebufferSizeCallback() {
-			@Override
-			public void invoke(long window, int width, int height) {
-				if (width > 0 && height > 0 && (ModelLoader.this.fbWidth != width || ModelLoader.this.fbHeight != height)) {
-					ModelLoader.this.fbWidth = width;
-					ModelLoader.this.fbHeight = height;
-				}
-			}
-		});
-		glfwSetWindowSizeCallback(window, wsCallback = new GLFWWindowSizeCallback() {
-			@Override
-			public void invoke(long window, int width, int height) {
-				if (width > 0 && height > 0 && (ModelLoader.this.width != width || ModelLoader.this.height != height)) {
-					ModelLoader.this.width = width;
-					ModelLoader.this.height = height;
-				}
-			}
-		});
-		glfwSetKeyCallback(window, keyCallback = new GLFWKeyCallback() {
-			@Override
-			public void invoke(long window, int key, int scancode, int action, int mods) {
-				if (action != GLFW_RELEASE) {
-					return;
-				}
-				if (key == GLFW_KEY_ESCAPE) {
-					glfwSetWindowShouldClose(window, true);
-				}
-				if (key == GLFW_KEY_SPACE) {
-
-					for (Entry<ShaderProgram.Mesh, Integer> entry : primaryModel.meshToMaterials.entrySet()) {
-
-						if (entry.getValue() == maxMaterials - 1) {
-							entry.setValue(0);
-						} else {
-							entry.setValue(entry.getValue() + 1);
-						}
-
-						/*
-							Attribute matIndex = entry.getKey().instanceAttributes.get(materialIndexName).get();
-							matIndex.data.clear();
-							matIndex.data.add(entry.getValue());
-							matIndex.update.set(true);
-						*/
+		Set<Entry<Vector2i, Chunk>> set = level.chunks.entrySet();
+		synchronized (level.chunks) {
+			for (Iterator<Entry<Vector2i, Chunk>> i = set.iterator(); i.hasNext();) {
+				Entry<Vector2i, Chunk> entry = i.next();
+				Vector2i loc = entry.getKey();
+				Chunk chunk = entry.getValue();
+				Vector3f chunkPos = new Vector3f(loc.x * LevelData.fullChunkSize, loc.y * LevelData.fullChunkSize, 0);
+				MeshExt m = baked.get(chunk);
+				if (m == null || chunk.rebake.getAndSet(false)) {
+					if (m != null) {
+						m.mesh.singleFrameDiscard = true;
 					}
-
+					m = bakeChunk(chunkPos, chunk);
+					ShaderProgramSystem.loadVAO(program, m.mesh);
+					m.mesh.visible = false;
+					baked.put(chunk, m);
 				}
+				switch (fi.intersectAab(chunkPos, chunkPos.add(LevelData.fullChunkSize, LevelData.fullChunkSize, 0, new Vector3f()))) {
+
+					case FrustumIntersection.INSIDE:
+					case FrustumIntersection.INTERSECT:
+						m.mesh.visible = true;
+						//render chunk
+						break;
+					case FrustumIntersection.OUTSIDE:
+						m.mesh.visible = false;
+						break;
+					default:
+						break;
+				}
+
 			}
-		});
-		glfwSetScrollCallback(window, sCallback = new GLFWScrollCallback() {
-			@Override
-			public void invoke(long window, double xoffset, double yoffset) {
-				if (yoffset < 0) {
-					fov *= 1.05f;
-				} else {
-					fov *= 1f / 1.05f;
-				}
-				if (fov < 10.0f) {
-					fov = 10.0f;
-				} else if (fov > 120.0f) {
-					fov = 120.0f;
-				}
-			}
-		});
-
-		GLFWVidMode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-		glfwSetWindowPos(window, (vidmode.width() - width) / 2, (vidmode.height() - height) / 2);
-		glfwMakeContextCurrent(window);
-		//ENABLE V-SYNC, this dramatically reduces GPU CPU intensity 
-		glfwSwapInterval(1);
-		glfwSetCursorPos(window, width / 2, height / 2);
-
-		try (MemoryStack frame = MemoryStack.stackPush()) {
-			IntBuffer framebufferSize = frame.mallocInt(2);
-			nglfwGetFramebufferSize(window, memAddress(framebufferSize), memAddress(framebufferSize) + 4);
-			width = framebufferSize.get(0);
-			height = framebufferSize.get(1);
 		}
+		drawAxis(program);
+
+	}
+
+	private MeshExt bakeChunk(Vector3f chunkPos, Chunk chunk) {
+		MeshExt m = new MeshExt();
+
+		WorldRenderer.setupDiscardMesh3D(m, 4);
+		m.mesh.modelRenderType = GLDrawMode.TriangleFan;
+		m.mesh.name = "chunk_" + (int) chunkPos.x + "_" + (int) chunkPos.y;
+		m.mesh.renderCount = 0;
+
+		m.positionAttrib.data.add(0f);
+		m.positionAttrib.data.add(0f);
+		m.positionAttrib.data.add(0f);
+
+		m.positionAttrib.data.add(LevelData.tileSize);
+		m.positionAttrib.data.add(0f);
+		m.positionAttrib.data.add(0f);
+
+		m.positionAttrib.data.add(LevelData.tileSize);
+		m.positionAttrib.data.add(LevelData.tileSize);
+		m.positionAttrib.data.add(0f);
+
+		m.positionAttrib.data.add(0f);
+		m.positionAttrib.data.add(LevelData.tileSize);
+		m.positionAttrib.data.add(0f);
+
+		//TODO bake chunk instead
+		for (int x = 0; x < chunk.tiles.length; x++) {
+			for (int y = 0; y < chunk.tiles[x].length; y++) {
+				Vector3f tilePos = chunkPos.add(x * LevelData.tileSize, y * LevelData.tileSize, 0, new Vector3f());
+				Vector4f colour = new Vector4f();
+				Tile tile = chunk.tiles[x][y];
+				if (tile == null) {
+					chunk.tiles[x][y] = chunk.new Tile();
+					tile = chunk.tiles[x][y];
+				}
+				if (tile.type == null) {
+					tile.type = Tiles.Hole;
+				}
+
+				switch (tile.type) {
+					case Hole:
+
+						break;
+					case Ground:
+
+						colour = new Vector4f(0.1f, 1f, 0.1f, 1f);
+						FrameUtils.appendToList(m.offsetAttrib.data, tilePos);
+						m.colourAttrib.data.add(colour.x);
+						m.colourAttrib.data.add(colour.y);
+						m.colourAttrib.data.add(colour.z);
+						m.colourAttrib.data.add(colour.w);
+						m.mesh.renderCount += 1;
+						break;
+
+				}
+
+			}
+		}
+		return m;
 	}
 
 	/**
@@ -409,8 +415,8 @@ public class ModelLoader {
 		logger.trace("foo");
 	}
 
-	private int storeMatrixBuffer(Matrix4f view, Matrix4f projection, Matrix4f vpMult, int bindingPoint) {
-		int matrixBuffer = genUBO(bindingPoint, 64 * 3);
+	private int storeMatrixBuffer(GLContext glc, Matrix4f view, Matrix4f projection, Matrix4f vpMult, int bindingPoint) {
+		int matrixBuffer = glc.genUBO(bindingPoint, 64 * 3);
 		logger.trace("mat buffer: " + matrixBuffer);
 		float[] store = new float[16];
 		glBufferSubData(GL46.GL_UNIFORM_BUFFER, 0, view.get(store));
@@ -420,22 +426,7 @@ public class ModelLoader {
 
 		//binds the buffer to a binding index
 		glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, matrixBuffer);
-
 		return matrixBuffer;
-
-	}
-
-	private int genUBO(int bindingPoint, long maxSize) {
-		int buffer = GL46.glGenBuffers();
-		glBindBuffer(GL46.GL_UNIFORM_BUFFER, buffer);
-		glBufferData(
-			GL_UNIFORM_BUFFER,
-			maxSize,
-			GL_DYNAMIC_DRAW);
-
-		//binds the buffer to a binding index
-		glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, buffer);
-		return buffer;
 	}
 
 	private void bindUBONameToIndex(String name, int binding, ShaderProgram... programs) {
@@ -470,7 +461,7 @@ public class ModelLoader {
 		ambientBrightnessLocation = GL46.glGetUniformLocation(program.programID, "ambientBrightness");
 		//-----binding to the view/projection uniform buffer/block-----//
 		if (true) {
-			this.matrixBuffer = storeMatrixBuffer(viewMatrix, projectionMatrix, viewProjectionMatrix, vpMatrixBindingpoint);
+			this.matrixBuffer = storeMatrixBuffer(glc, viewMatrix, projectionMatrix, viewProjectionMatrix, vpMatrixBindingpoint);
 			bindUBONameToIndex("Matrices", vpMatrixBindingpoint, program);
 		}
 		//-----binding to the light uniform buffer/block-----//
@@ -487,7 +478,7 @@ public class ModelLoader {
 			secondaryLight.enabled = true;
 		}
 		if (true) {
-			lightBuffer = genUBO(lightBufferBindingPoint, Light.sizeOf * ShaderProgram.GLDataType.Float.getBytes() * maxLights);
+			lightBuffer = glc.genUBO(lightBufferBindingPoint, Light.sizeOf * ShaderProgram.GLDataType.Float.getBytes() * maxLights);
 
 			bindUBONameToIndex("LightBlock", lightBufferBindingPoint, program);
 
@@ -496,7 +487,7 @@ public class ModelLoader {
 		if (true) {
 
 			//i really should delete this afterwards
-			int materialBuffer = genUBO(materialBufferBindingPoint, Material.sizeOf * ShaderProgram.GLDataType.Float.getBytes() * maxMaterials);
+			int materialBuffer = glc.genUBO(materialBufferBindingPoint, Material.sizeOf * ShaderProgram.GLDataType.Float.getBytes() * maxMaterials);
 			//upload material data
 			int i = 0;
 			float[] data = new float[Material.sizeOf];
@@ -875,4 +866,295 @@ public class ModelLoader {
 		return mesh;
 
 	}
+	/**
+	 * sets up the mesh with attributes/VBOs and uses the AIMesh data provided  
+	 * @param aim mesh data to read from
+	 * @param maxMeshes maximum instances of the mesh
+	 * @return Mesh to be rendered with shader program
+	 */
+	private ShaderProgram.Mesh setup_3D_lit_flat_mesh(AIMesh aim, long maxMeshes) {
+		ShaderProgram.Mesh mesh = new ShaderProgram.Mesh();
+		{
+			Attribute vertexAttrib = new Attribute();
+			vertexAttrib.name = "vertex";
+			vertexAttrib.bufferType = BufferType.ArrayBuffer;
+			vertexAttrib.dataType = GLDataType.Float;
+			vertexAttrib.bufferUsage = BufferUsage.StaticDraw;
+			vertexAttrib.dataSize = 3;
+			vertexAttrib.normalised = false;
+
+			AIVector3D.Buffer vertices = aim.mVertices();
+			vertexAttrib.bufferAddress = vertices.address();
+
+			vertexAttrib.bufferLen = (long) (AIVector3D.SIZEOF * vertices.remaining());
+			vertexAttrib.bufferResourceType = BufferDataManagementType.Address;
+			mesh.VBOs.add(vertexAttrib);
+		}
+		
+		{
+			Attribute normalAttrib = new Attribute();
+			normalAttrib.name = "normal";
+			normalAttrib.bufferType = BufferType.ArrayBuffer;
+			normalAttrib.dataType = GLDataType.Float;
+			normalAttrib.bufferUsage = BufferUsage.StaticDraw;
+			normalAttrib.dataSize = 3;
+			normalAttrib.normalised = false;
+			normalAttrib.instanced = false;
+			AIVector3D.Buffer normals = aim.mNormals();
+			normalAttrib.bufferAddress = normals.address();
+			normalAttrib.bufferLen = (long) (AIVector3D.SIZEOF * normals.remaining());
+			normalAttrib.bufferResourceType = BufferDataManagementType.Address;
+			mesh.VBOs.add(normalAttrib);
+		}
+		
+		{
+			BufferObject elementAttrib = new BufferObject();
+			elementAttrib.bufferType = BufferType.ElementArrayBuffer;
+			elementAttrib.bufferUsage = BufferUsage.StaticDraw;
+			elementAttrib.dataType = GLDataType.UnsignedInt;
+			//			elementAttrib.dataSize = 3;
+			mesh.VBOs.add(elementAttrib);
+			AIFace.Buffer facesBuffer = aim.mFaces();
+			int faceCount = aim.mNumFaces();
+			int elementCount = faceCount * 3;
+			elementAttrib.bufferResourceType = BufferDataManagementType.Buffer;
+
+			IntBuffer elementArrayBufferData = convertElementBuffer(facesBuffer, faceCount, elementCount);
+			elementAttrib.buffer = elementArrayBufferData;
+
+			mesh.index = new WeakReference<ShaderProgram.BufferObject>(elementAttrib);
+			mesh.vertexCount = elementCount;
+		}
+
+		{
+			Attribute materialIndexAttrib = new Attribute();
+			materialIndexAttrib.name = "materialIndex";
+			materialIndexAttrib.bufferType = BufferType.ArrayBuffer;
+			materialIndexAttrib.dataType = GLDataType.Float;
+			materialIndexAttrib.bufferUsage = BufferUsage.DynamicDraw;
+			materialIndexAttrib.dataSize = 1;
+			materialIndexAttrib.normalised = false;
+			materialIndexAttrib.instanced = true;
+			materialIndexAttrib.instanceStride = 1;
+			materialIndexAttrib.bufferResourceType = BufferDataManagementType.Empty;
+			materialIndexAttrib.bufferLen = maxMeshes;
+			mesh.VBOs.add(materialIndexAttrib);
+			mesh.instanceAttributes.put(materialIndexName, new WeakReference<>(materialIndexAttrib));
+		}
+
+		{
+			Attribute meshTransformAttrib = new Attribute();
+			meshTransformAttrib.name = "modelMatrix";
+			meshTransformAttrib.bufferType = BufferType.ArrayBuffer;
+			meshTransformAttrib.dataType = GLDataType.Float;
+			meshTransformAttrib.bufferUsage = BufferUsage.DynamicDraw;
+			meshTransformAttrib.dataSize = 16;
+			meshTransformAttrib.normalised = false;
+			meshTransformAttrib.instanced = true;
+			meshTransformAttrib.instanceStride = 1;
+			meshTransformAttrib.bufferResourceType = BufferDataManagementType.Empty;
+			meshTransformAttrib.bufferLen = maxMeshes;
+			mesh.VBOs.add(meshTransformAttrib);
+			//			FrameUtils.appendToList(meshTransformAttrib.data, modelMatrix);
+			mesh.instanceAttributes.put(transformMatName, new WeakReference<>(meshTransformAttrib));
+		}
+		/**
+		 * It is important to use a data size of 16 rather than 9 because for some reason the buffer adds padding to vec3 to 4 floats
+		 * easier to just make it a 4 float array
+		 */
+		{
+			Attribute meshNormalMatrixAttrib = new Attribute();
+			meshNormalMatrixAttrib.name = "normalMatrix";
+			meshNormalMatrixAttrib.bufferType = BufferType.ArrayBuffer;
+			meshNormalMatrixAttrib.dataType = GLDataType.Float;
+			meshNormalMatrixAttrib.bufferUsage = BufferUsage.DynamicDraw;
+			meshNormalMatrixAttrib.dataSize = 16;
+			meshNormalMatrixAttrib.normalised = false;
+			meshNormalMatrixAttrib.instanced = true;
+			meshNormalMatrixAttrib.instanceStride = 1;
+			meshNormalMatrixAttrib.bufferResourceType = BufferDataManagementType.Empty;
+			meshNormalMatrixAttrib.bufferLen = maxMeshes;
+			mesh.VBOs.add(meshNormalMatrixAttrib);
+			//			FrameUtils.appendToList(meshTransformAttrib.data, modelMatrix);
+			mesh.instanceAttributes.put(normalMatName, new WeakReference<>(meshNormalMatrixAttrib));
+		}
+		mesh.modelRenderType = GLDrawMode.Triangles;
+
+		return mesh;
+
+	}
+
+	private void drawAxis(ShaderProgram program) {
+		AIMesh aim = null;
+		setupMesh(aim, 1);
+		{
+
+			Vector4f colour = new Vector4f(1, 0, 0, 1);
+			MeshExt m = new MeshExt();
+			WorldRenderer.setupDiscardMesh3D(m, 2);
+
+			m.positionAttrib.data.add(0f);
+			m.positionAttrib.data.add(0f);
+			m.positionAttrib.data.add(0f);
+
+			m.positionAttrib.data.add(100f);
+			m.positionAttrib.data.add(0f);
+			m.positionAttrib.data.add(0f);
+
+			m.colourAttrib.data.add(colour.x);
+			m.colourAttrib.data.add(colour.y);
+			m.colourAttrib.data.add(colour.z);
+			m.colourAttrib.data.add(colour.w);
+			FrameUtils.appendToList(m.offsetAttrib.data, new Vector3f());
+			m.mesh.name = "modelr";
+			m.mesh.modelRenderType = GLDrawMode.Line;
+			ShaderProgramSystem.loadVAO(program, m.mesh);
+		}
+
+		{
+
+			Vector4f colour = new Vector4f(0, 1, 0, 1);
+			MeshExt m = new MeshExt();
+			WorldRenderer.setupDiscardMesh3D(m, 2);
+
+			m.positionAttrib.data.add(0f);
+			m.positionAttrib.data.add(0f);
+			m.positionAttrib.data.add(0f);
+
+			m.positionAttrib.data.add(0f);
+			m.positionAttrib.data.add(100f);
+			m.positionAttrib.data.add(0f);
+
+			m.colourAttrib.data.add(colour.x);
+			m.colourAttrib.data.add(colour.y);
+			m.colourAttrib.data.add(colour.z);
+			m.colourAttrib.data.add(colour.w);
+			FrameUtils.appendToList(m.offsetAttrib.data, new Vector3f());
+			m.mesh.name = "modelg";
+			m.mesh.modelRenderType = GLDrawMode.Line;
+			ShaderProgramSystem.loadVAO(program, m.mesh);
+		}
+
+		{
+
+			Vector4f colour = new Vector4f(0, 0, 1, 1);
+			MeshExt m = new MeshExt();
+			WorldRenderer.setupDiscardMesh3D(m, 2);
+
+			m.positionAttrib.data.add(0f);
+			m.positionAttrib.data.add(0f);
+			m.positionAttrib.data.add(0f);
+
+			m.positionAttrib.data.add(0f);
+			m.positionAttrib.data.add(0f);
+			m.positionAttrib.data.add(100f);
+
+			m.colourAttrib.data.add(colour.x);
+			m.colourAttrib.data.add(colour.y);
+			m.colourAttrib.data.add(colour.z);
+			m.colourAttrib.data.add(colour.w);
+			FrameUtils.appendToList(m.offsetAttrib.data, new Vector3f());
+			m.mesh.name = "modelb";
+			m.mesh.modelRenderType = GLDrawMode.Line;
+			ShaderProgramSystem.loadVAO(program, m.mesh);
+		}
+	}
+
+	void setupGLFW() throws IOException {
+
+		if (!glfwInit()) {
+			throw new IllegalStateException("Unable to initialize GLFW");
+		}
+
+		glfwDefaultWindowHints();
+		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+		window = glfwCreateWindow(
+			width,
+			height,
+			"Wavefront obj model loading with Assimp demo",
+			NULL,
+			NULL);
+		if (window == NULL)
+			throw new AssertionError("Failed to create the GLFW window");
+
+		glfwSetFramebufferSizeCallback(window, fbCallback = new GLFWFramebufferSizeCallback() {
+			@Override
+			public void invoke(long window, int width, int height) {
+				if (width > 0 && height > 0 && (ModelLoader.this.fbWidth != width || ModelLoader.this.fbHeight != height)) {
+					ModelLoader.this.fbWidth = width;
+					ModelLoader.this.fbHeight = height;
+				}
+			}
+		});
+		glfwSetWindowSizeCallback(window, wsCallback = new GLFWWindowSizeCallback() {
+			@Override
+			public void invoke(long window, int width, int height) {
+				if (width > 0 && height > 0 && (ModelLoader.this.width != width || ModelLoader.this.height != height)) {
+					ModelLoader.this.width = width;
+					ModelLoader.this.height = height;
+				}
+			}
+		});
+		glfwSetKeyCallback(window, keyCallback = new GLFWKeyCallback() {
+			@Override
+			public void invoke(long window, int key, int scancode, int action, int mods) {
+				if (action != GLFW_RELEASE) {
+					return;
+				}
+				if (key == GLFW_KEY_ESCAPE) {
+					glfwSetWindowShouldClose(window, true);
+				}
+				if (key == GLFW_KEY_SPACE) {
+
+					for (Entry<ShaderProgram.Mesh, Integer> entry : primaryModel.meshToMaterials.entrySet()) {
+
+						if (entry.getValue() == maxMaterials - 1) {
+							entry.setValue(0);
+						} else {
+							entry.setValue(entry.getValue() + 1);
+						}
+
+						/*
+							Attribute matIndex = entry.getKey().instanceAttributes.get(materialIndexName).get();
+							matIndex.data.clear();
+							matIndex.data.add(entry.getValue());
+							matIndex.update.set(true);
+						*/
+					}
+
+				}
+			}
+		});
+		glfwSetScrollCallback(window, sCallback = new GLFWScrollCallback() {
+			@Override
+			public void invoke(long window, double xoffset, double yoffset) {
+				if (yoffset < 0) {
+					fov *= 1.05f;
+				} else {
+					fov *= 1f / 1.05f;
+				}
+				if (fov < 10.0f) {
+					fov = 10.0f;
+				} else if (fov > 120.0f) {
+					fov = 120.0f;
+				}
+			}
+		});
+
+		GLFWVidMode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+		glfwSetWindowPos(window, (vidmode.width() - width) / 2, (vidmode.height() - height) / 2);
+		glfwMakeContextCurrent(window);
+		//ENABLE V-SYNC, this dramatically reduces GPU CPU intensity 
+		glfwSwapInterval(1);
+		glfwSetCursorPos(window, width / 2, height / 2);
+
+		try (MemoryStack frame = MemoryStack.stackPush()) {
+			IntBuffer framebufferSize = frame.mallocInt(2);
+			nglfwGetFramebufferSize(window, memAddress(framebufferSize), memAddress(framebufferSize) + 4);
+			width = framebufferSize.get(0);
+			height = framebufferSize.get(1);
+		}
+	}
+
 }
