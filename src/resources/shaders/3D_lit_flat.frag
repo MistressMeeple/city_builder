@@ -10,33 +10,22 @@ layout (std140) uniform LightBlock{
 	Light lights[{maxlights}];
 };
 
-struct Material {
-	vec4 baseColour;
-	vec3 reflectTint;
-	float baseScale;
-	float reflectStrength;
-};
-layout (std140) uniform MaterialBlock{
-	Material materials[{maxmats}];
-};
 uniform float ambientBrightness;
 
 in vec3 vPosition;
 in vec3 vNormal;
 in vec3 vLightDirection[{maxlights}];
-flat in int vMaterialIndex;
+flat in vec4 vColour;
 
 out lowp vec4 outColour;
 
 void main() {
-	int index = int(vMaterialIndex);
-	Material material = materials[index];
 	
-	vec3 baseColour = material.baseColour.rgb;
-	float colStr = material.baseScale;
-	vec3 reflectTint = material.reflectTint;
-	float refStr = material.reflectStrength;
-	float alpha = material.baseColour.a;
+	vec3 baseColour = vColour.rgb;
+	float colStr = 1;
+	vec3 reflectTint =  vColour.rgb;
+	float refStr = 1
+	float alpha = vColour.a;
 	
     vec3 matAmbientColour =  colStr * baseColour;
 	

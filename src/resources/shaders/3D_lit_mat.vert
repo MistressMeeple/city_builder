@@ -12,10 +12,14 @@ layout (std140) uniform LightBlock{
 
 layout (std140) uniform Matrices
 {
-	mat4 viewMatrix;
+	mat4 fixMatrix;
 	mat4 projectionMatrix;
+	mat4 viewMatrix;
 	mat4 vpMatrix;
+	mat4 vpfMatrix;
 };
+
+
 
 
 layout(location = 1) in vec4 vertex;
@@ -34,7 +38,7 @@ out int  vMaterialIndex;
 void main() {
 	vMaterialIndex = int(materialIndex);
     vec4 position = modelMatrix * vertex;
-    gl_Position =  vpMatrix * position;
+    gl_Position =  vpfMatrix * position;
     vPosition = position.xyz;
 	vNormal = (normalMatrix * vec4(normal,1)).xyz;
 	for(int i = 0; i < {maxlights}; i++){		
