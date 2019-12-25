@@ -2,8 +2,10 @@ package com.meeple.shared.frame.window;
 
 import static org.lwjgl.opengl.GL11.*;
 
+import java.io.Closeable;
+import java.io.IOException;
+
 import org.joml.Vector4f;
-import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.MemoryUtil;
 
 import com.meeple.shared.frame.OGL.GLContext;
@@ -12,7 +14,7 @@ import com.meeple.shared.frame.component.HasBounds2D;
 import com.meeple.shared.frame.component.IDComponent;
 import com.meeple.shared.frame.component.NamedComponent;
 
-public class Window implements HasBounds2D, NamedComponent, IDComponent<Long> {
+public class Window implements HasBounds2D, NamedComponent, IDComponent<Long>, Closeable {
 	private long windowID = 0;
 	private String name = "Default Title";
 	public Long monitor = MemoryUtil.NULL;
@@ -63,6 +65,11 @@ public class Window implements HasBounds2D, NamedComponent, IDComponent<Long> {
 	@Override
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	@Override
+	public void close() {
+		glContext.close();
 	}
 
 }
