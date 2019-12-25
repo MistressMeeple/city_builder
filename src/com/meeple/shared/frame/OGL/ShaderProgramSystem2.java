@@ -42,40 +42,6 @@ public class ShaderProgramSystem2 {
 
 	private static Logger logger = Logger.getLogger(ShaderProgramSystem.class);
 
-	public static class SingleUniformSystem extends UniformManager<String, Integer> {
-
-		@Override
-		protected Integer generateID(Integer programID, String name) {
-			int val = GL46.glGetUniformLocation(programID, name);
-			return val;
-		}
-	}
-
-	public static class MultiUniformSystem extends UniformManager<String[], Integer[]> {
-		@Override
-		protected Integer[] generateID(Integer programID, String[] name) {
-			Integer[] vals = new Integer[name.length];
-			for (int i = 0; i < name.length; i++) {
-				vals[i] = GL46.glGetUniformLocation(programID, name[i]);
-			}
-			return vals;
-		}
-	}
-
-	/**
-	 * Single upload uniform manager instance
-	 */
-	public static UniformManager<String, Integer> singleUpload = new SingleUniformSystem();
-	/**
-	 * Multiple upload uniform manager instance
-	 */
-	public static UniformManager<String[], Integer[]> multiUpload = new MultiUniformSystem();
-	/**
-	 * Single matrix uploading system
-	 */
-	public IShaderUniformUploadSystem<Matrix4f, Integer> mat4SingleUploader = (upload, uniformID, stack) -> {
-		GL46.glUniformMatrix4fv(uniformID, false, IShaderUniformUploadSystem.generateMatrix4fBuffer(stack, upload));
-	};
 
 	/**
 	 * Sets up the program by<br>
