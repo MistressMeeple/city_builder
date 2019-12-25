@@ -6,18 +6,20 @@ import org.joml.Vector4f;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.MemoryUtil;
 
+import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.component.Bounds2DComponent;
 import com.meeple.shared.frame.component.HasBounds2D;
 import com.meeple.shared.frame.component.IDComponent;
 import com.meeple.shared.frame.component.NamedComponent;
 
-public class Window  implements HasBounds2D, NamedComponent, IDComponent<Long> {
+public class Window implements HasBounds2D, NamedComponent, IDComponent<Long> {
 	private long windowID = 0;
 	private String name = "Default Title";
 	public Long monitor = MemoryUtil.NULL;
 	public Long share = MemoryUtil.NULL;
 	public boolean vSync = true;
-	public GLCapabilities capabilities;
+	//	public GLCapabilities capabilities;
+	public GLContext glContext = new GLContext();
 	public boolean created = false;
 	public Thread loopThread;
 	public boolean shouldClose = false;
@@ -36,7 +38,6 @@ public class Window  implements HasBounds2D, NamedComponent, IDComponent<Long> {
 	 * Normally which nuklear window has focus 
 	 */
 	public transient Object currentFocus = null;
-
 
 	@Override
 	public Bounds2DComponent getBounds2DComponent() {
@@ -63,7 +64,5 @@ public class Window  implements HasBounds2D, NamedComponent, IDComponent<Long> {
 	public void setName(String name) {
 		this.name = name;
 	}
-
-
 
 }

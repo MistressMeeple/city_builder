@@ -61,7 +61,7 @@ public class GLFWThread extends Thread {
 	public void run() {
 		FrameUtils.iterateRunnable(window.events.preCreation, false);
 		glfwMakeContextCurrent(window.getID());
-		window.capabilities = GL.createCapabilities();
+		window.glContext.init();
 		glfwSwapInterval(window.vSync ? 1 : 0);
 		glClearColor(window.clearColour.x, window.clearColour.x, window.clearColour.z, window.clearColour.w);
 		FrameUtils.iterateRunnable(window.events.postCreation, false);
