@@ -111,8 +111,7 @@ public class ModelLoader {
 	int fbHeight = 768;
 	float fov = 60;
 
-	//shader program
-	ShaderProgram program;
+	//
 	//vertex shader uniforms
 	private int matrixBuffer;
 	private int lightBuffer;
@@ -186,48 +185,70 @@ public class ModelLoader {
 
 	void run() {
 		try (GLContext glContext = new GLContext()) {
-			setupGLFW();
-			glContext.init();
 
+			setupGLFW();
+			/**
+			 * bind the open gl context to this thread and window
+			 */
+			glContext.init();
+			/**
+			 * setup rendering information
+			 */
 			glClearColor(0f, 0f, 0f, 1f);
 			glEnable(GL_DEPTH_TEST);
 
 			/* Create all needed GL resources */
-			createProgram(glContext);
+
+			ShaderProgram program = createProgram(glContext);
+			setupUBOs(glContext, program);
 			/*read/setup the scene meshes*/
 			loadModel(
 				glContext,
+				program,
 				"resources/models/tipi.fbx",
 				meshes);
 
-			ShaderProgram prog = new ShaderProgram();
-			String vertSource = ShaderProgramSystem2.loadShaderSourceFromFile(("resources/shaders/3D_nolit_flat.vert"));
-			String fragSource = ShaderProgramSystem2.loadShaderSourceFromFile(("resources/shaders/3D_nolit_flat.frag"));
-			prog.shaderSources.put(GLShaderType.VertexShader, vertSource);
-			prog.shaderSources.put(GLShaderType.FragmentShader, fragSource);
+			/**
+			 * setup the debug draw program
+			 */
+			ShaderProgram debugProgram = new ShaderProgram();
+			{
+				String vertSource = ShaderProgramSystem2.loadShaderSourceFromFile(("resources/shaders/3D_nolit_flat.vert"));
+				String fragSource = ShaderProgramSystem2.loadShaderSourceFromFile(("resources/shaders/3D_nolit_flat.frag"));
+				debugProgram.shaderSources.put(GLShaderType.VertexShader, vertSource);
+				debugProgram.shaderSources.put(GLShaderType.FragmentShader, fragSource);
 
-			//setup the program
-			try {
-				ShaderProgramSystem2.create(glContext, prog);
-			} catch (Exception err) {
-				err.printStackTrace();
+				//setup the program
+				try {
+					ShaderProgramSystem2.create(glContext, debugProgram);
+				} catch (Exception err) {
+					err.printStackTrace();
+				}
+				bindUBONameToIndex("Matrices", vpMatrixBindingpoint, debugProgram);
 			}
 
-			Mesh axis = drawAxis(100);
-			ShaderProgramSystem2.loadVAO(glContext, prog, axis);
-			bindUBONameToIndex("Matrices", vpMatrixBindingpoint, prog);
-			/* Show window */
+			/**
+			 * setup the axis draw mesh
+			 */
+			Mesh axis = null;
+			{
+				axis = drawAxis(100);
+				ShaderProgramSystem2.loadVAO(glContext, debugProgram, axis);
+				GL46.glLineWidth(3f);
+			}
+			/**
+			 * now everything is setup we can show the window and start rendering
+			 */
 			glfwShowWindow(window);
 
 			Callback c = GLUtil.setupDebugMessageCallback();
-			GL46.glLineWidth(3f);
 			while (!glfwWindowShouldClose(window)) {
 				glfwPollEvents();
 				glViewport(0, 0, fbWidth, fbHeight);
 				update();
-				render();
+				render(program);
 
-				ShaderProgramSystem2.tryRender(prog);
+				ShaderProgramSystem2.tryRender(debugProgram);
 				glfwSwapBuffers(window);
 			}
 
@@ -246,112 +267,13 @@ public class ModelLoader {
 		}
 	}
 
-	Map<Chunk, MeshExt> baked = new CollectionSuppliers.MapSupplier<Chunk, MeshExt>().get();
-
-	public void preRender(LevelData level, VPMatrix vp, ShaderProgram program) {
-		FrustumIntersection fi = new FrustumIntersection(vp.cache);
-
-		Set<Entry<Vector2i, Chunk>> set = level.chunks.entrySet();
-		synchronized (level.chunks) {
-			for (Iterator<Entry<Vector2i, Chunk>> i = set.iterator(); i.hasNext();) {
-				Entry<Vector2i, Chunk> entry = i.next();
-				Vector2i loc = entry.getKey();
-				Chunk chunk = entry.getValue();
-				Vector3f chunkPos = new Vector3f(loc.x * LevelData.fullChunkSize, loc.y * LevelData.fullChunkSize, 0);
-				MeshExt m = baked.get(chunk);
-				if (m == null || chunk.rebake.getAndSet(false)) {
-					if (m != null) {
-						m.mesh.singleFrameDiscard = true;
-					}
-					m = bakeChunk(chunkPos, chunk);
-					ShaderProgramSystem.loadVAO(program, m.mesh);
-					m.mesh.visible = false;
-					baked.put(chunk, m);
-				}
-				switch (fi.intersectAab(chunkPos, chunkPos.add(LevelData.fullChunkSize, LevelData.fullChunkSize, 0, new Vector3f()))) {
-
-					case FrustumIntersection.INSIDE:
-					case FrustumIntersection.INTERSECT:
-						m.mesh.visible = true;
-						//render chunk
-						break;
-					case FrustumIntersection.OUTSIDE:
-						m.mesh.visible = false;
-						break;
-					default:
-						break;
-				}
-
-			}
-		}
-
-	}
-
-	private MeshExt bakeChunk(Vector3f chunkPos, Chunk chunk) {
-		MeshExt m = new MeshExt();
-
-		WorldRenderer.setupDiscardMesh3D(m, 4);
-		m.mesh.modelRenderType = GLDrawMode.TriangleFan;
-		m.mesh.name = "chunk_" + (int) chunkPos.x + "_" + (int) chunkPos.y;
-		m.mesh.renderCount = 0;
-
-		m.positionAttrib.data.add(0f);
-		m.positionAttrib.data.add(0f);
-		m.positionAttrib.data.add(0f);
-
-		m.positionAttrib.data.add(LevelData.tileSize);
-		m.positionAttrib.data.add(0f);
-		m.positionAttrib.data.add(0f);
-
-		m.positionAttrib.data.add(LevelData.tileSize);
-		m.positionAttrib.data.add(LevelData.tileSize);
-		m.positionAttrib.data.add(0f);
-
-		m.positionAttrib.data.add(0f);
-		m.positionAttrib.data.add(LevelData.tileSize);
-		m.positionAttrib.data.add(0f);
-
-		//TODO bake chunk instead
-		for (int x = 0; x < chunk.tiles.length; x++) {
-			for (int y = 0; y < chunk.tiles[x].length; y++) {
-				Vector3f tilePos = chunkPos.add(x * LevelData.tileSize, y * LevelData.tileSize, 0, new Vector3f());
-				Vector4f colour = new Vector4f();
-				Tile tile = chunk.tiles[x][y];
-				if (tile == null) {
-					chunk.tiles[x][y] = chunk.new Tile();
-					tile = chunk.tiles[x][y];
-				}
-				if (tile.type == null) {
-					tile.type = Tiles.Hole;
-				}
-
-				switch (tile.type) {
-					case Hole:
-
-						break;
-					case Ground:
-
-						colour = new Vector4f(0.1f, 1f, 0.1f, 1f);
-						FrameUtils.appendToList(m.offsetAttrib.data, tilePos);
-						m.colourAttrib.data.add(colour.x);
-						m.colourAttrib.data.add(colour.y);
-						m.colourAttrib.data.add(colour.z);
-						m.colourAttrib.data.add(colour.w);
-						m.mesh.renderCount += 1;
-						break;
-
-				}
-
-			}
-		}
-		return m;
-	}
+	private Map<Chunk, MeshExt> baked = new CollectionSuppliers.MapSupplier<Chunk, MeshExt>().get();
 
 	/**
 	 * loads an AIScene from memory and converts all meshes found into our format
 	 * @throws IOException
 	 */
-	void loadModel(GLContext glc, String fileLocation, Map<String, Mesh> meshes) throws IOException {
+	void loadModel(GLContext glc, ShaderProgram program, String fileLocation, Map<String, Mesh> meshes) throws IOException {
 
 		//read the resource into a buffer, and load the scene from the buffer
 		ByteBuffer fileContent = IOUtil.ioResourceToByteBuffer(fileLocation, 2048 * 8);
@@ -470,9 +392,9 @@ public class ModelLoader {
 		}
 	}
 
-	void createProgram(GLContext glc) throws IOException {
+	ShaderProgram createProgram(GLContext glc) throws IOException {
 		//create new shader program
-		program = new ShaderProgram();
+		ShaderProgram program = new ShaderProgram();
 		//generate shader program sources, replacing "max" values
 		//max lights/max materials
 
@@ -492,6 +414,10 @@ public class ModelLoader {
 		} catch (Exception err) {
 			err.printStackTrace();
 		}
+		return program;
+	}
+
+	private void setupUBOs(GLContext glc, ShaderProgram program) {
 
 		glUseProgram(program.programID);
 		ambientBrightnessLocation = GL46.glGetUniformLocation(program.programID, "ambientBrightness");
@@ -648,7 +574,7 @@ public class ModelLoader {
 	 * Main rendering part, called each frame. 
 	 * only handles uploading/correcting data to buffers in OGL and rendering through shader program.
 	 */
-	void render() {
+	void render(ShaderProgram program) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glEnable(GL_DEPTH_TEST);
 
@@ -1002,6 +928,10 @@ public class ModelLoader {
 
 	}
 
+	/**
+	 * this is a generic setup for GLFW window creation
+	 * @throws IOException
+	 */
 	void setupGLFW() throws IOException {
 
 		if (!glfwInit()) {

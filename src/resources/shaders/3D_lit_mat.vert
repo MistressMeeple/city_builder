@@ -42,6 +42,6 @@ void main() {
     vPosition = position.xyz;
 	vNormal = (normalMatrix * vec4(normal,1)).xyz;
 	for(int i = 0; i < {maxlights}; i++){		
-		vLightDirection[i] = lights[i].position.xyz - position.xyz;
+		vLightDirection[i] = ( fixMatrix * (vec4(lights[i].position,1)	 - position)).xyz;
 	}
 }
