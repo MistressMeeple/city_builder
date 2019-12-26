@@ -89,17 +89,17 @@ public class GameUI extends Screen {
 
 	//TODO move to game-options
 	//---------------------settings -------------------------
-	static boolean invertMouse = true;
-	static boolean invertZoom = false;
-	static float zoomMult = 2f;
+	public static boolean invertMouse = true;
+	public static boolean invertZoom = false;
+	public static float zoomMult = 2f;
 	//aka deadzone
-	static final float panRadi = 0.5f;
-	static Vector4f compasColour = new Vector4f();
-	static Vector4f compasLineColour = new Vector4f();
+	public static final float panRadi = 0.5f;
+	public static Vector4f compasColour = new Vector4f();
+	public static Vector4f compasLineColour = new Vector4f();
 
-	static float menuCancelSeconds = 1f;
-	static long menuDelayNanos = FrameUtils.secondsToNanos(menuCancelSeconds);
-	static final float menuRadi = 0.5f;
+	public static float menuCancelSeconds = 1f;
+	public static long menuDelayNanos = FrameUtils.secondsToNanos(menuCancelSeconds);
+	public static final float menuRadi = 0.5f;
 	/*//---------------------do not change-------------------------
 	Wrapper<Vector2f> mouseRClick = new WrapperImpl<>();
 	Wrapper<Vector2f> mouseMClick = new WrapperImpl<>();
