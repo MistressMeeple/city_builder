@@ -94,8 +94,8 @@ public class GameUI extends Screen {
 	public static float zoomMult = 2f;
 	//aka deadzone
 	public static final float panRadi = 0.5f;
-	public static Vector4f compasColour = new Vector4f();
-	public static Vector4f compasLineColour = new Vector4f();
+	public static Vector4f compasColour = new Vector4f(1,0,1,1);
+	public static Vector4f compasLineColour = new Vector4f(1,1,0,1);
 
 	public static float menuCancelSeconds = 1f;
 	public static long menuDelayNanos = FrameUtils.secondsToNanos(menuCancelSeconds);
