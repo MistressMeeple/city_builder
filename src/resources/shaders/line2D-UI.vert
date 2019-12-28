@@ -14,8 +14,7 @@ layout(location = 4) in highp vec2 offset;
 out lowp vec4 passColour;
 
 uniform highp mat4 projectionMatrix;
-uniform highp mat4 viewMatrix;
-uniform highp mat4 vpMatrix;
+
 void main(void){
 
     //mat2 rot =  mat2(cos(rotation),- sin(rotation), sin(rotation), cos(rotation));
