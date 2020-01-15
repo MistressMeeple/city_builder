@@ -42,7 +42,6 @@ public class ShaderProgramSystem2 {
 
 	private static Logger logger = Logger.getLogger(ShaderProgramSystem.class);
 
-
 	/**
 	 * Sets up the program by<br>
 	 * <ol>
@@ -107,6 +106,7 @@ public class ShaderProgramSystem2 {
 
 			GL46.glDeleteProgram(program.programID);
 			glc.deleteProgram(program.programID);
+			logger.fatal(err);
 			throw new AssertionError(log, err);
 		}
 	}
@@ -715,7 +715,13 @@ public class ShaderProgramSystem2 {
 										}
 									}
 								}
+								if (mesh.preRender != null) {
+									mesh.preRender.run();
+								}
 								renderMesh(mesh);
+								if (mesh.postRender != null) {
+									mesh.postRender.run();
+								}
 
 								for (Iterator<BufferObject> iterator = vboSet.iterator(); iterator.hasNext();) {
 									BufferObject vbo = (BufferObject) iterator.next();

@@ -34,7 +34,9 @@ import com.meeple.shared.frame.CursorHelper;
 import com.meeple.shared.frame.CursorHelper.SpaceState;
 import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.OGL.ShaderProgram;
+import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
+import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
@@ -94,8 +96,8 @@ public class GameUI extends Screen {
 	public static float zoomMult = 2f;
 	//aka deadzone
 	public static final float panRadi = 0.5f;
-	public static Vector4f compasColour = new Vector4f(1,0,1,1);
-	public static Vector4f compasLineColour = new Vector4f(1,1,0,1);
+	public static Vector4f compasColour = new Vector4f(1, 0, 1, 1);
+	public static Vector4f compasLineColour = new Vector4f(1, 1, 0, 1);
 
 	public static float menuCancelSeconds = 1f;
 	public static long menuDelayNanos = FrameUtils.secondsToNanos(menuCancelSeconds);
@@ -424,10 +426,11 @@ public class GameUI extends Screen {
 
 	}
 
-	public void preRenderMouseUI(ClientWindow window, ProjectionMatrix proj, ShaderProgram program) {
+	public void preRenderMouseUI(ClientWindow window, ProjectionMatrix proj, ShaderProgram program, Mesh compasMesh, Attribute compasMeshOffset, Mesh lineMesh, Attribute lineMeshVPos) {
 
 		GL46.glEnable(GL46.GL_DEPTH_TEST);
 
+		//rebake chunk that has been referenced by ray helper
 		if (true) {
 			if (currentAction != null) {
 				Tile t = rayHelper.getCurrentTile();
@@ -437,13 +440,102 @@ public class GameUI extends Screen {
 				}
 			}
 		}
-		if (true) {
 
+		compasMesh.visible = false;
+		if (true) {
 			if (panningButtonPos != null) {
 				Vector2f mouseClickedPos = new Vector2f(panningButtonPos);
 
-				//					RenderingMain.system.loadVAO(program, mesh.mesh);
-				//					mesh.mesh.visible = false;
+				{
+					//					MeshExt m = new MeshExt();
+
+					Vector2f mouseDir = new Vector2f();
+					if (true) {
+						Vector3f camPos = new Vector3f();//vpMatrix.view.getWrapped().getPosition(new Vector3f());
+
+						Vector4f v = CursorHelper.getMouse(SpaceState.Eye_Space, window, proj, null);
+						Vector2f dir = new Vector2f(v.x - camPos.x, v.y - camPos.y);
+						Vector2f pos = new Vector2f(mouseClickedPos);
+						if (pos != null) {
+							mouseDir.x = (float) (pos.x - dir.x);
+							mouseDir.y = (float) (pos.y - dir.y);
+						}
+
+						//find dead-zone and max length
+
+						float len = mouseDir.length();
+
+						mouseDir.normalize();
+						//								float len = mouseDir.normalize();
+						if (len < panRadi) {
+							len = 0;
+						} else {
+							{
+								compasMesh.visible = true;
+								compasMeshOffset.data.clear();
+
+								compasMeshOffset.data.add(mouseClickedPos.x);
+								compasMeshOffset.data.add(mouseClickedPos.y);
+								compasMeshOffset.update.set(true);
+
+							}
+
+							if (true) {
+
+								Vector2f line = new Vector2f(mouseDir.x, mouseDir.y);
+								Vector2f lineStart = line.mul(panRadi, new Vector2f());
+								line = line.mul(len);
+								mouseDir = mouseDir.mul((len));
+
+								lineMeshVPos.data.clear();
+								lineMeshVPos.data.add(pos.x - lineStart.x);
+								lineMeshVPos.data.add(pos.y - lineStart.y);
+								lineMeshVPos.data.add(pos.x - line.x);
+								lineMeshVPos.data.add(pos.y - line.y);
+								lineMeshVPos.update.set(true);
+							}
+							/*
+							WorldRenderer.setupDiscardMesh(m, 2);
+							
+							lineMesh.attributes.m.positionAttrib.data.add(pos.x - lineStart.x);
+							m.positionAttrib.data.add(pos.y - lineStart.y);
+							m.positionAttrib.data.add(pos.x - line.x);
+							m.positionAttrib.data.add(pos.y - line.y);
+							m.mesh.modelRenderType = GLDrawMode.Line;
+							FrameUtils.appendToList(m.colourAttrib.data, new Vector4f(1, 1, 0, 1));
+							m.mesh.name = "compasLine";
+							m.zIndexAttrib.data.add(-1f);
+							ShaderProgramSystem.loadVAO(program, m.mesh);*/
+						}
+
+					}
+
+				}
+
+			}
+		}
+
+		lineMesh.visible = compasMesh.visible;
+	}
+
+	public void preRenderMouseUI(ClientWindow window, ProjectionMatrix proj, ShaderProgram program) {
+
+		GL46.glEnable(GL46.GL_DEPTH_TEST);
+
+		//rebake chunk that has been referenced by ray helper
+		if (true) {
+			if (currentAction != null) {
+				Tile t = rayHelper.getCurrentTile();
+				if (t != null) {
+					t.type = currentAction;
+					rayHelper.getCurrentChunk().rebake.set(true);
+				}
+			}
+		}
+
+		if (true) {
+			if (panningButtonPos != null) {
+				Vector2f mouseClickedPos = new Vector2f(panningButtonPos);
 
 				{
 					MeshExt m = new MeshExt();

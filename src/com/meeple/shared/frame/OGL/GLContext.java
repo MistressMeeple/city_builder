@@ -4,6 +4,7 @@ import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL31.*;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -56,6 +57,18 @@ public class GLContext implements AutoCloseable {
 	 * @param programs
 	 */
 	public void bindUBONameToIndex(String name, int bindingPoint, ShaderProgram... programs) {
+		for (ShaderProgram program : programs) {
+			int actualIndex = GL46.glGetUniformBlockIndex(program.programID, name);
+			//binds the binding index to the interface block (by index)
+			glUniformBlockBinding(program.programID, actualIndex, bindingPoint);
+		}
+	}
+
+	/**
+	 * {@link GLContext#bindUBONameToIndex(String, int, ShaderProgram...)}
+	 */
+	public void bindUBONameToIndex(String name, int bindingPoint, Collection<ShaderProgram> programs) {
+
 		for (ShaderProgram program : programs) {
 			int actualIndex = GL46.glGetUniformBlockIndex(program.programID, name);
 			//binds the binding index to the interface block (by index)

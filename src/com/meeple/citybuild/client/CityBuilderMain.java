@@ -14,6 +14,7 @@ import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.joml.Vector3f;
+import org.joml.Vector4f;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWKeyCallbackI;
 
@@ -36,6 +37,8 @@ import com.meeple.shared.frame.OGL.KeyInputSystem;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpringArm;
+import com.meeple.shared.frame.nuklear.IOUtil;
+import com.meeple.shared.frame.nuklear.NuklearManager;
 import com.meeple.shared.frame.nuklear.NuklearMenuSystem;
 import com.meeple.shared.frame.window.ClientWindowSystem;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
@@ -157,7 +160,10 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 			NuklearMenuSystem menuSystem = new NuklearMenuSystem();
 			menuSystem.create(window, window.registeredNuklear);
 			window.eventListeners.add(this::handleWindowEvent);
+
+			//NOTE this is the first screen on show when the window loads
 			window.render.setChild(loadingScreen);
+			//NOTE this is the screen that loads after loading screen for the first time
 			loadingScreen.setChild(mainMenuScreen);
 
 			window.events.render.add(0, (delta) -> {

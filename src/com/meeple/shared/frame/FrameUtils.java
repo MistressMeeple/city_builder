@@ -146,132 +146,134 @@ public class FrameUtils {
 
 		@Override
 		public void invoke(int source, int type, int id, int severity, int length, long message, long userParam) {
-			String messageString = MemoryUtil.memUTF8(MemoryUtil.memByteBuffer(message, length));
-			String sourceString = "";
-			String typeString = "";
-			String error = "";
-			Severity severityString = Severity.Other;
-			switch (source) {
-				case GL46.GL_DEBUG_SOURCE_API:
-					sourceString = "API";
-					break;
+			if (false) {
+				String messageString = MemoryUtil.memUTF8(MemoryUtil.memByteBuffer(message, length));
+				String sourceString = "";
+				String typeString = "";
+				String error = "";
+				Severity severityString = Severity.Other;
+				switch (source) {
+					case GL46.GL_DEBUG_SOURCE_API:
+						sourceString = "API";
+						break;
 
-				case GL46.GL_DEBUG_SOURCE_WINDOW_SYSTEM:
-					sourceString = "WINDOW SYSTEM";
-					break;
+					case GL46.GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+						sourceString = "WINDOW SYSTEM";
+						break;
 
-				case GL46.GL_DEBUG_SOURCE_SHADER_COMPILER:
-					sourceString = "SHADER COMPILER";
-					break;
+					case GL46.GL_DEBUG_SOURCE_SHADER_COMPILER:
+						sourceString = "SHADER COMPILER";
+						break;
 
-				case GL46.GL_DEBUG_SOURCE_THIRD_PARTY:
-					sourceString = "THIRD PARTY";
-					break;
+					case GL46.GL_DEBUG_SOURCE_THIRD_PARTY:
+						sourceString = "THIRD PARTY";
+						break;
 
-				case GL46.GL_DEBUG_SOURCE_APPLICATION:
-					sourceString = "APPLICATION";
-					break;
+					case GL46.GL_DEBUG_SOURCE_APPLICATION:
+						sourceString = "APPLICATION";
+						break;
 
-				case GL46.GL_DEBUG_SOURCE_OTHER:
-					sourceString = "UNKNOWN";
-					break;
+					case GL46.GL_DEBUG_SOURCE_OTHER:
+						sourceString = "UNKNOWN";
+						break;
 
-				default:
-					sourceString = "UNKNOWN";
-					break;
-			}
+					default:
+						sourceString = "UNKNOWN";
+						break;
+				}
 
-			switch (id) {
-				case GL46.GL_INVALID_ENUM:
-					error = "INVALID_ENUM";
-					break;
-				case GL46.GL_INVALID_VALUE:
-					error = "INVALID_VALUE";
-					break;
-				case GL46.GL_INVALID_OPERATION:
-					error = "INVALID_OPERATION";
-					break;
-				case GL46.GL_STACK_OVERFLOW:
-					error = "STACK_OVERFLOW";
-					break;
-				case GL46.GL_STACK_UNDERFLOW:
-					error = "STACK_UNDERFLOW";
-					break;
-				case GL46.GL_OUT_OF_MEMORY:
-					error = "OUT_OF_MEMORY";
-					break;
-				case GL46.GL_INVALID_FRAMEBUFFER_OPERATION:
-					error = "INVALID_FRAMEBUFFER_OPERATION";
-					break;
-			}
-			switch (severity) {
-				case GL46.GL_DEBUG_SEVERITY_HIGH:
-					severityString = Severity.High;
-					break;
+				switch (id) {
+					case GL46.GL_INVALID_ENUM:
+						error = "INVALID_ENUM";
+						break;
+					case GL46.GL_INVALID_VALUE:
+						error = "INVALID_VALUE";
+						break;
+					case GL46.GL_INVALID_OPERATION:
+						error = "INVALID_OPERATION";
+						break;
+					case GL46.GL_STACK_OVERFLOW:
+						error = "STACK_OVERFLOW";
+						break;
+					case GL46.GL_STACK_UNDERFLOW:
+						error = "STACK_UNDERFLOW";
+						break;
+					case GL46.GL_OUT_OF_MEMORY:
+						error = "OUT_OF_MEMORY";
+						break;
+					case GL46.GL_INVALID_FRAMEBUFFER_OPERATION:
+						error = "INVALID_FRAMEBUFFER_OPERATION";
+						break;
+				}
+				switch (severity) {
+					case GL46.GL_DEBUG_SEVERITY_HIGH:
+						severityString = Severity.High;
+						break;
 
-				case GL46.GL_DEBUG_SEVERITY_MEDIUM:
-					severityString = Severity.Medium;
-					break;
+					case GL46.GL_DEBUG_SEVERITY_MEDIUM:
+						severityString = Severity.Medium;
+						break;
 
-				case GL46.GL_DEBUG_SEVERITY_LOW:
-					severityString = Severity.Low;
-					break;
+					case GL46.GL_DEBUG_SEVERITY_LOW:
+						severityString = Severity.Low;
+						break;
 
-				case GL46.GL_DEBUG_SEVERITY_NOTIFICATION:
-					severityString = Severity.Notification;
-					break;
+					case GL46.GL_DEBUG_SEVERITY_NOTIFICATION:
+						severityString = Severity.Notification;
+						break;
 
-			}
+				}
 
-			switch (type) {
-				case GL46.GL_DEBUG_TYPE_ERROR:
-					typeString = "Error";
-					break;
-				case GL46.GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
-					typeString = "Depricated";
-					break;
-				case GL46.GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
-					typeString = "Undefined";
-					break;
-				case GL46.GL_DEBUG_TYPE_PORTABILITY:
-					typeString = "Non-portable";
-					break;
-				case GL46.GL_DEBUG_TYPE_PERFORMANCE:
-					typeString = "Performance";
-					break;
-				case GL46.GL_DEBUG_TYPE_MARKER:
-					typeString = "Marker";
-					break;
-				case GL46.GL_DEBUG_TYPE_PUSH_GROUP:
-					typeString = "Push";
-					break;
-				case GL46.GL_DEBUG_TYPE_POP_GROUP:
-					typeString = "Pop";
-					break;
-				case GL46.GL_DEBUG_TYPE_OTHER:
-					typeString = "Other";
-					break;
-			}
+				switch (type) {
+					case GL46.GL_DEBUG_TYPE_ERROR:
+						typeString = "Error";
+						break;
+					case GL46.GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+						typeString = "Depricated";
+						break;
+					case GL46.GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+						typeString = "Undefined";
+						break;
+					case GL46.GL_DEBUG_TYPE_PORTABILITY:
+						typeString = "Non-portable";
+						break;
+					case GL46.GL_DEBUG_TYPE_PERFORMANCE:
+						typeString = "Performance";
+						break;
+					case GL46.GL_DEBUG_TYPE_MARKER:
+						typeString = "Marker";
+						break;
+					case GL46.GL_DEBUG_TYPE_PUSH_GROUP:
+						typeString = "Push";
+						break;
+					case GL46.GL_DEBUG_TYPE_POP_GROUP:
+						typeString = "Pop";
+						break;
+					case GL46.GL_DEBUG_TYPE_OTHER:
+						typeString = "Other";
+						break;
+				}
 
-			//discard notifications
-			switch (severityString) {
-				case High:
-					logger.error(String.format(fmt, "" + userParam, severityString, sourceString, typeString, error, messageString));
-					break;
-				case Medium:
-					logger.warn(String.format(fmt, "" + userParam, severityString, sourceString, typeString, error, messageString));
-					break;
-				case Low:
-					logger.info(String.format(fmt, "" + userParam, severityString, sourceString, typeString, error, messageString));
-					break;
-				case Notification:
-					logger.trace(String.format(fmt, "" + userParam, severityString, sourceString, typeString, error, messageString));
-					break;
-				case Other:
-					break;
-				default:
-					break;
+				//discard notifications
+				switch (severityString) {
+					case High:
+						logger.error(String.format(fmt, "" + userParam, severityString, sourceString, typeString, error, messageString));
+						break;
+					case Medium:
+						logger.warn(String.format(fmt, "" + userParam, severityString, sourceString, typeString, error, messageString));
+						break;
+					case Low:
+						logger.info(String.format(fmt, "" + userParam, severityString, sourceString, typeString, error, messageString));
+						break;
+					case Notification:
+						logger.trace(String.format(fmt, "" + userParam, severityString, sourceString, typeString, error, messageString));
+						break;
+					case Other:
+						break;
+					default:
+						break;
 
+				}
 			}
 		}
 	};
@@ -668,14 +670,14 @@ public class FrameUtils {
 	 * @param time the maximum time to wait 
 	 * @param unit the time unit of the timeout argument
 	 */
-	public static void shutdownService(ExecutorService executorService,long time,TimeUnit unit) {
+	public static void shutdownService(ExecutorService executorService, long time, TimeUnit unit) {
 
 		if (!executorService.isShutdown()) {
 			executorService.shutdown();
 			//try to shut peacefully
 			while (!executorService.isShutdown()) {
 				try {
-					executorService.awaitTermination(time,unit);
+					executorService.awaitTermination(time, unit);
 				} catch (InterruptedException err) {
 				}
 				//forcefully shutdown

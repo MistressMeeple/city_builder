@@ -41,7 +41,9 @@ void main() {
     gl_Position =  vpfMatrix * position;
     vPosition = position.xyz;
 	vNormal = (normalMatrix * vec4(normal,1)).xyz;
-	for(int i = 0; i < {maxlights}; i++){		
-		vLightDirection[i] = ( fixMatrix * (vec4(lights[i].position,1)	 - position)).xyz;
+	for(int i = 0; i < {maxlights}; i++){	
+		if(lights[i].enabled >0.5){
+			vLightDirection[i] = ( fixMatrix * (vec4(lights[i].position,1)	 - position)).xyz;
+		}
 	}
 }

@@ -141,23 +141,23 @@ public class ModelLoader {
 	 */
 	Map<Model, Set<MeshInstance>> instances = new CollectionSuppliers.MapSupplier<Model, Set<MeshInstance>>().get();
 
-	Matrix4f fixMatrix = new Matrix4f(
-		1,
-		0,
-		0,
-		0,
-		0,
-		0,
-		1,
-		0,
-		0,
-		1,
-		0,
-		0,
-		0,
-		0,
-		0,
-		1);
+	Matrix4f fixMatrix = new Matrix4f(/*
+										1,
+										0,
+										0,
+										0,
+										0,
+										0,
+										1,
+										0,
+										0,
+										1,
+										0,
+										0,
+										0,
+										0,
+										0,
+										1*/);
 	Matrix4f viewMatrix = new Matrix4f();
 	Matrix4f projectionMatrix = new Matrix4f();
 	Matrix4f viewProjectionMatrix = new Matrix4f();
@@ -519,8 +519,8 @@ public class ModelLoader {
 		viewMatrix
 			.setLookAt(
 				viewPosition.x,
-				viewPosition.y,
 				viewPosition.z,
+				viewPosition.y,
 				0f,
 				0f,
 				0f,
@@ -652,7 +652,7 @@ public class ModelLoader {
 	 */
 	private void writeBuffer(MeshInstance instance, String name, float[] data) throws Exception {
 
-		Attribute attrib = instance.mesh.get().instanceAttributes.get(name).get();
+		Attribute attrib = instance.mesh.get().attributes.get(name);
 		long offset = instance.meshDataIndex * (attrib.dataSize * attrib.dataType.getBytes());
 
 		GL46.glBindBuffer(attrib.bufferType.getGLID(), attrib.VBOID);
@@ -788,7 +788,7 @@ public class ModelLoader {
 			materialIndexAttrib.bufferResourceType = BufferDataManagementType.Empty;
 			materialIndexAttrib.bufferLen = maxMeshes;
 			mesh.VBOs.add(materialIndexAttrib);
-			mesh.instanceAttributes.put(materialIndexName, new WeakReference<>(materialIndexAttrib));
+			mesh.attributes.put(materialIndexName, materialIndexAttrib);
 		}
 
 		{
@@ -805,7 +805,7 @@ public class ModelLoader {
 			meshTransformAttrib.bufferLen = maxMeshes;
 			mesh.VBOs.add(meshTransformAttrib);
 			//			FrameUtils.appendToList(meshTransformAttrib.data, modelMatrix);
-			mesh.instanceAttributes.put(transformMatName, new WeakReference<>(meshTransformAttrib));
+			mesh.attributes.put(transformMatName, meshTransformAttrib);
 		}
 		/**
 		 * It is important to use a data size of 16 rather than 9 because for some reason the buffer adds padding to vec3 to 4 floats
@@ -825,7 +825,7 @@ public class ModelLoader {
 			meshNormalMatrixAttrib.bufferLen = maxMeshes;
 			mesh.VBOs.add(meshNormalMatrixAttrib);
 			//			FrameUtils.appendToList(meshTransformAttrib.data, modelMatrix);
-			mesh.instanceAttributes.put(normalMatName, new WeakReference<>(meshNormalMatrixAttrib));
+			mesh.attributes.put(normalMatName, meshNormalMatrixAttrib);
 		}
 		mesh.modelRenderType = GLDrawMode.Triangles;
 
@@ -870,7 +870,7 @@ public class ModelLoader {
 			colourAttrib.buffer = colours;
 
 			mesh.VBOs.add(colourAttrib);
-			mesh.instanceAttributes.put(colourName, new WeakReference<>(colourAttrib));
+			mesh.attributes.put(colourName, colourAttrib);
 		}
 
 		mesh.vertexCount = count;
@@ -879,6 +879,49 @@ public class ModelLoader {
 		return mesh;
 
 	}
+
+	/*private Mesh drawAABB() {
+		int count = 3;
+		FloatBuffer verts = BufferUtils.createFloatBuffer(2 * 3 * count);
+		FloatBuffer colours = BufferUtils.createFloatBuffer(2 * 4 * count);
+		float size = 0.5f;
+		verts.put(new float[] { -size, -size, -size });
+		verts.put(new float[] { -size, size, -size });
+		verts.put(new float[] { size, size, -size });
+		verts.put(new float[] { size, -size, -size });
+	
+		verts.put(new float[] { -size, -size, size });
+		verts.put(new float[] { -size, size, size });
+		verts.put(new float[] { size, size, size });
+		verts.put(new float[] { size, -size, size });
+	
+		colours.put(new float[] { 1, 0, 0, 1 });
+	
+		verts.flip();
+		colours.flip();
+	
+		Mesh x = setup_3D_nolit_flat_mesh(verts, colours, count * 2);
+		x.attributes.get(colourName).instanced = true;
+		{
+			Attribute element = new Attribute();
+			element.name = "vertex";
+			element.bufferType = BufferType.ArrayBuffer;
+			element.dataType = GLDataType.Float;
+			element.bufferUsage = BufferUsage.StaticDraw;
+			element.dataSize = 3;
+			element.normalised = false;
+	
+			element.bufferResourceType = BufferDataManagementType.Buffer;
+			element.buffer = vertices;
+	
+			
+		}
+		x.name = "AABB";
+		x.modelRenderType = GLDrawMode.LineLoop;
+	
+		return x;
+	
+	}*/
 
 	private Mesh drawAxis(int size) {
 		int count = 3;
@@ -906,16 +949,6 @@ public class ModelLoader {
 		x.modelRenderType = GLDrawMode.Line;
 
 		return x;
-		/*
-				Mesh y = setup_3D_nolit_flat_mesh(new float[] { 0, 0, 0, 0, 100, 0 }, new Vector4f(0, 1, 0, 1));
-				y.name = "model_y";
-				y.modelRenderType = GLDrawMode.Line;
-				ShaderProgramSystem2.loadVAO(glc, program, y);
-		
-				Mesh z = setup_3D_nolit_flat_mesh(new float[] { 0, 0, 0, 0, 0, 100 }, new Vector4f(0, 0, 1, 1));
-				z.name = "model_z";
-				z.modelRenderType = GLDrawMode.Line;
-				ShaderProgramSystem2.loadVAO(glc, program, z);*/
 
 	}
 

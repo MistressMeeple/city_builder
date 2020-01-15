@@ -19,7 +19,7 @@ void main(void){
 
     //mat2 rot =  mat2(cos(rotation),- sin(rotation), sin(rotation), cos(rotation));
 	
-	vec4 worldPos = vec4(position + offset, zIndex, 1);
+	vec4 worldPos = vec4(position + offset , zIndex, 1);
 	vec4 pos =   projectionMatrix * worldPos;
 	gl_Position =  pos;
 	passColour = colour;

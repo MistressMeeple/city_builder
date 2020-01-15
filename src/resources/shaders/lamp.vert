@@ -17,7 +17,6 @@ layout (std140) uniform Matrices
 	mat4 vpMatrix;
 };
 
-
 layout(location = 1) in  vec4 vertex;
 //instanced
 layout(location = 3) in float materialIndex;

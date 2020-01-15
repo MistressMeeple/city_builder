@@ -272,10 +272,12 @@ public class ShaderProgram {
 		public int vertexCount;
 		public GLDrawMode modelRenderType = GLDrawMode.Triangles;
 		public WeakReference<BufferObject> index;
-		public Map<String, WeakReference<Attribute>> instanceAttributes = new CollectionSuppliers.MapSupplier<String, WeakReference<Attribute>>().get();
+		public Map<String, Attribute> attributes = new CollectionSuppliers.MapSupplier<String, Attribute>().get();
 
 		public int renderCount = 1;
 		public boolean visible = true;
+		public Runnable preRender;
+		public Runnable postRender;
 	}
 
 	public static class Attribute extends BufferObject {

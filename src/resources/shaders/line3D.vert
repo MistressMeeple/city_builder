@@ -11,12 +11,15 @@ layout(location = 3) in highp vec3 offset;
 
 out lowp vec4 passColour;
 
-uniform highp mat4 projectionMatrix;
-uniform highp mat4 viewMatrix;
-uniform highp mat4 vpMatrix;
+layout (std140) uniform Matrices
+{
+	mat4 projectionMatrix;
+	mat4 viewMatrix;
+	mat4 vpMatrix;
+};
 
 void main(void){
-	vec4 worldPos = vec4(position + offset	, 1);
+	vec4 worldPos = vec4(position + offset, 1);
 	vec4 pos =  vpMatrix * worldPos;
 	gl_Position =  pos;
 	passColour = colour;
