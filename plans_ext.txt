@@ -16,3 +16,7 @@ eg
 if house is made only of wood then can burn down, if a t3 house of WSS "burns down" it is not as affected
 different materials give different benifits
 higher tiers have larger capacity?
+
+
+
+artifact location spawns unique items. have to find/discover like ROR2
