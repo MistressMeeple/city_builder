@@ -1,31 +1,44 @@
 package com.meeple.shared.frame.window;
 
+import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.system.MemoryStack.*;
 
 import java.io.Closeable;
-import java.io.IOException;
 
+import org.apache.log4j.Logger;
 import org.joml.Vector4f;
+import org.lwjgl.glfw.Callbacks;
+import org.lwjgl.glfw.GLFW;
+import org.lwjgl.glfw.GLFWVidMode;
+import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 
+import com.meeple.shared.frame.FrameUtils;
+import com.meeple.shared.frame.GLFWManager;
+import com.meeple.shared.frame.GLFWThread;
 import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.component.Bounds2DComponent;
-import com.meeple.shared.frame.component.HasBounds2D;
-import com.meeple.shared.frame.component.IDComponent;
-import com.meeple.shared.frame.component.NamedComponent;
 
-public class Window implements HasBounds2D, NamedComponent, IDComponent<Long>, Closeable {
-	private long windowID = 0;
-	private String name = "Default Title";
+public class Window implements Closeable {
+
+	private static Logger logger = Logger.getLogger(Window.class);
+	public long windowID = 0;
+	public String name = "Default Title";
 	public Long monitor = MemoryUtil.NULL;
 	public Long share = MemoryUtil.NULL;
 	public boolean vSync = true;
-	//	public GLCapabilities capabilities;
-	public GLContext glContext = new GLContext();
+	public Thread loopThread ;//= new GLFWThread(this, frameTimeManager, enableDebug, runnables);
+	
+	//CONTEXTS
+	public final GLContext glContext = new GLContext();
+
+	//states
 	public boolean created = false;
-	public Thread loopThread;
 	public boolean shouldClose = false;
 	public boolean hasClosed = false;
+	
+	//rendering info
 	public int clearType = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT;
 	public int frameBufferSizeX;
 	public int frameBufferSizeY;
@@ -37,39 +50,95 @@ public class Window implements HasBounds2D, NamedComponent, IDComponent<Long>, C
 	public final Vector4f clearColour = new Vector4f(0, 0, 0, 0);
 	public final MirroredWindowCallbacks callbacks = new MirroredWindowCallbacks();
 	/**
-	 * Normally which nuklear window has focus 
+	 * Normally which nuklear this has focus 
 	 */
 	public transient Object currentFocus = null;
 
-	@Override
-	public Bounds2DComponent getBounds2DComponent() {
-		return bounds;
+	public void create() {
+
+		if (!this.created) {
+			GLFW.glfwDefaultWindowHints();
+			this.hints.process();
+			if (this.bounds.width == null || this.bounds.width < 0 || this.bounds.height == null || this.bounds.height < 0) {
+
+				// Get the resolution of the primary monitor
+				GLFWVidMode vidmode = GLFW.glfwGetVideoMode(GLFW.glfwGetPrimaryMonitor());
+				if (this.bounds.width == null || this.bounds.width < 0) {
+					this.bounds.width = (long) vidmode.width();
+				}
+				if (this.bounds.height == null || this.bounds.height < 0) {
+					this.bounds.height = (long) vidmode.width();
+				}
+			}
+
+			this.windowID = GLFW.glfwCreateWindow(this.bounds.width.intValue(), this.bounds.height.intValue(), this.name, this.monitor, this.share);
+			if (this.windowID == MemoryUtil.NULL) {
+				throw new RuntimeException("Failed to create the GLFW this");
+			}
+
+			try (MemoryStack stack = stackPush()) {
+
+				//only do this if the posXY are null, 
+				if (this.bounds.posX == null || this.bounds.posY == null || this.bounds.posX < 0 || this.bounds.posY < 0) {
+
+					// Get the resolution of the primary monitor
+					GLFWVidMode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+					if (this.bounds.posX == null || this.bounds.posX <= 0) {
+						this.bounds.posX = (vidmode.width() - this.bounds.width) / 2;
+					}
+					if (this.bounds.posY == null || this.bounds.posY <= 0) {
+						this.bounds.posY = (vidmode.height() - this.bounds.height) / 2;
+					}
+
+				}
+				// position the this
+				glfwSetWindowPos(this.windowID, this.bounds.posX.intValue(), this.bounds.posY.intValue());
+			}
+
+			this.frameBufferSizeX = this.bounds.width.intValue();
+			this.frameBufferSizeY = this.bounds.height.intValue();
+			new WindowCallbackManager().setWindowCallbacks(this.windowID, this.callbacks);
+
+			this.created = true;
+		} else {
+			logger.warn("Window has already been created");
+		}
 	}
 
-	@Override
-	public Long getID() {
-		return windowID;
-	}
+	public void show() {
 
-	@Override
-	public void setID(Long id) {
-		this.windowID = id;
-
-	}
-
-	@Override
-	public String getName() {
-		return name;
-	}
-
-	@Override
-	public void setName(String name) {
-		this.name = name;
 	}
 
 	@Override
 	public void close() {
-		glContext.close();
+		{
+			//NOTE should already be true
+			if (!shouldClose) {
+				logger.warn("Window flag to close was not true");
+			}
+			shouldClose = true;
+		}
+		//NOTE stop the thread worker
+		{
+			Thread thread = loopThread;
+			if (thread != null) {
+				thread.interrupt();
+				try {
+					thread.join();
+				} catch (Exception e) {
+					//interupted 
+				}
+			}
+		}
+		//NOTE cleanup all contexts
+		{
+			glContext.close();
+			Callbacks.glfwFreeCallbacks(windowID);
+			GLFW.glfwDestroyWindow(windowID);
+		}
+
+		FrameUtils.iterateRunnable(events.postCleanup, false);
+		hasClosed = true;
 	}
 
 }

@@ -249,14 +249,14 @@ public interface ClientWindowSystem {
 
 			@Override
 			public void secondaryClick() {
-				menuSystem.setActiveNuklear(window.menuQueue, null, null);
+//				menuSystem.setActiveNuklear(window.menuQueue, null, null);
 				levelSelect.getWrapped().accept(levelPreviewWrapper.getWrapped()[levelSelectIndex.getWrapped()]);
 
 			}
 
 			@Override
 			public void returnClick() {
-				menuSystem.goBackNuklear(window.menuQueue);
+//				menuSystem.goBackNuklear(window.menuQueue);
 
 			}
 
@@ -396,7 +396,7 @@ public interface ClientWindowSystem {
 		WindowMonitorBoundsSystem wmbs = new WindowMonitorBoundsSystem();
 		wmbs.centerBoundsInMonitor(0, window.bounds);
 
-		window.loopThread = new GLFWThread(window, quitCountdown, window.renderTimeManager, true, new Runnable[] {});
+		window.loopThread = new GLFWThread(window,  window.renderTimeManager, true, new Runnable[] {});
 		window.events.preCleanup.add(() -> window.sendEvent(WindowEvent.ClientClose));
 		Thread.currentThread().setUncaughtExceptionHandler(new UncaughtExceptionHandler() {
 
@@ -461,10 +461,10 @@ public interface ClientWindowSystem {
 			}
 		});
 
-		windowManager.create(window);
-		Builder t = windowManager.generateManagerRunnable(quitCountdown, NuklearManager.globalEventsHandler(window.nkContext, windowManager.getActiveWindows()), window.eventTimeManager, window);
+		window.create();
+//		Builder t = windowManager.generateManagerRunnable(quitCountdown, NuklearManager.globalEventsHandler(window.nkContext, windowManager.getActiveWindows()), window.eventTimeManager, window);
 		service.execute(() -> window.loopThread.start());
-		t.build().run();
+//		t.build().run();
 		//		service.execute(t.build());
 		//		window.loopThread.run();
 
@@ -476,7 +476,7 @@ public interface ClientWindowSystem {
 		clientOptionSystem.readSettingsFile(window.clientOptions);
 
 		WindowHints.debug = true;
-		window.setName("Main Window");
+		window.name=("Main Window");
 		window.vSync = true;
 		WindowHints hints = new WindowHints().setVisible(false).setDoublebuffer(true).setResizable(false);
 		window.hints.copyFrom(hints, false);
@@ -500,15 +500,15 @@ public interface ClientWindowSystem {
 			if (window.queueChangeCursorType.getWrapped() != null) {
 				switch (window.queueChangeCursorType.getWrapped()) {
 					case Disabled:
-						glfwSetInputMode(window.getID(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+						glfwSetInputMode(window.windowID, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 						window.currentCursorType.setWrapped(GLFWCursorType.Disabled);
 						break;
 					case Hidden:
-						glfwSetInputMode(window.getID(), GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+						glfwSetInputMode(window.windowID, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 						window.currentCursorType.setWrapped(GLFWCursorType.Hidden);
 						break;
 					case Normal:
-						glfwSetInputMode(window.getID(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+						glfwSetInputMode(window.windowID, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 						window.currentCursorType.setWrapped(GLFWCursorType.Normal);
 						break;
 					default:
@@ -520,7 +520,7 @@ public interface ClientWindowSystem {
 
 		window.events.postCreation.add(() -> {
 			logger.debug("Started new window thread: " + Thread.currentThread().getName());
-			glfwShowWindow(window.getID());
+			glfwShowWindow(window.windowID);
 		});
 		/*
 		 * Thread time management settings

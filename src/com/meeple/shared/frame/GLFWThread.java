@@ -7,11 +7,9 @@ import static org.lwjgl.opengl.GL11C.glViewport;
 import static org.lwjgl.system.MemoryStack.*;
 
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
 import org.lwjgl.glfw.GLFW;
-import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL46;
 import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.Callback;
@@ -28,14 +26,13 @@ public class GLFWThread extends Thread {
 
 	private static Logger logger = Logger.getLogger(GLFWThread.class);
 	final Window window;
-	AtomicInteger quit;
 	FrameTimeManager frameTimeManager;
 	Callback debugProc;
 	Set<Runnable> runnables = new CollectionSuppliers.SetSupplier<Runnable>().get();
 
-	public GLFWThread(Window window, AtomicInteger quit, FrameTimeManager frameTimeManager, boolean enableDebug, Runnable... runnables) {
+	public GLFWThread(Window window, FrameTimeManager frameTimeManager, boolean enableDebug, Runnable... runnables) {
 		this.window = window;
-		this.quit = quit;
+
 		this.frameTimeManager = frameTimeManager;
 		if (enableDebug) {
 			window.events.postCreation.add(() -> {
@@ -54,24 +51,24 @@ public class GLFWThread extends Thread {
 		for (Runnable r : runnables) {
 			this.runnables.add(r);
 		}
-		this.setName("GLFW Thread-" + window.getName());
+		this.setName("GLFW Thread-" + window.name);
 	}
 
 	@Override
 	public void run() {
 		FrameUtils.iterateRunnable(window.events.preCreation, false);
-		glfwMakeContextCurrent(window.getID());
+		glfwMakeContextCurrent(window.windowID);
 		window.glContext.init();
 		glfwSwapInterval(window.vSync ? 1 : 0);
 		glClearColor(window.clearColour.x, window.clearColour.x, window.clearColour.z, window.clearColour.w);
 		FrameUtils.iterateRunnable(window.events.postCreation, false);
 
-		GL46.glDebugMessageCallback(FrameUtils.defaultDebugMessage, window.getID());
+		GL46.glDebugMessageCallback(FrameUtils.defaultDebugMessage, window.windowID);
 		//			return quit.get() > 0 && !window.shouldClose;
 
 		Wrapper<Long> prev = new WrapperImpl<>();
 		Delta delta = new Delta();
-		while (quit.get() > 0 && !window.shouldClose && !Thread.currentThread().isInterrupted() && !window.hasClosed && !GLFW.glfwWindowShouldClose(window.getID())) {
+		while (!window.shouldClose && !Thread.currentThread().isInterrupted() && !window.hasClosed && !GLFW.glfwWindowShouldClose(window.windowID)) {
 			///Time management
 			if (true) {
 				long curr = System.nanoTime();
@@ -91,7 +88,7 @@ public class GLFWThread extends Thread {
 				glViewport(0, 0, window.frameBufferSizeX, window.frameBufferSizeY);
 			}
 
-			glfwSwapBuffers(window.getID());
+			glfwSwapBuffers(window.windowID);
 			FrameUtils.iterateRunnable(window.events.frameEnd, false);
 
 			frameTimeManager.run();
@@ -104,7 +101,7 @@ public class GLFWThread extends Thread {
 		logger.debug("Closing thread with name '" + Thread.currentThread().getName() + "'");
 
 		FrameUtils.iterateRunnable(window.events.preCleanup, false);
-		GLFW.glfwSetWindowShouldClose(window.getID(), true);
+		GLFW.glfwSetWindowShouldClose(window.windowID, true);
 		window.shouldClose = true;
 
 	}

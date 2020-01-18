@@ -90,7 +90,7 @@ public class NuklearMenuSystem extends NuklearManager {
 
 	public void setupMenu(ClientWindow window, NuklearUIComponent menuComponent, Menu menuDetails) {
 
-		menuComponent.container = window;
+//		menuComponent.container = window;
 		Bounds2DComponent mainMenuContainerBounds = menuComponent.container.getBounds2DComponent();
 		menuComponent.UUID = generateUUID();
 		menuComponent.bounds.set((mainMenuContainerBounds.width / 10) * 1, 0, (mainMenuContainerBounds.width / 10) * 3, mainMenuContainerBounds.height);
@@ -224,7 +224,7 @@ public class NuklearMenuSystem extends NuklearManager {
 	 * @param menuQueue
 	 * @param updateTo
 	 */
-	public void setActiveNuklear(List<NuklearUIComponent> menuQueue, Map<String, NuklearUIComponent> guis, String updateTo) {
+	/*public void setActiveNuklear(List<NuklearUIComponent> menuQueue, Map<String, NuklearUIComponent> guis, String updateTo) {
 		NuklearUIComponent newUI = null;
 		if (guis != null && updateTo != null) {
 			newUI = guis.get(updateTo);
@@ -240,7 +240,7 @@ public class NuklearMenuSystem extends NuklearManager {
 			navigateNuklear(menuQueue, newUI);
 		}
 	}
-
+	
 	public void navigateNuklear(Map<String, NuklearUIComponent> guis, List<NuklearUIComponent> menuQueue, String updateTo) {
 		NuklearUIComponent update = guis.get(updateTo);
 		if (update != null) {
@@ -248,9 +248,9 @@ public class NuklearMenuSystem extends NuklearManager {
 		} else {
 			System.out.println("No UI element found with UUID of '" + updateTo + "'");
 		}
-
+	
 	}
-
+	
 	private void navigateNuklear(List<NuklearUIComponent> menuQueue, NuklearUIComponent nav) {
 		List<NuklearUIComponent> queue = menuQueue;
 		int queueSize = queue.size();
@@ -261,7 +261,7 @@ public class NuklearMenuSystem extends NuklearManager {
 		setWindowVisible(nav);
 		queue.add(nav);
 	}
-
+	
 	public void goBackNuklear(List<NuklearUIComponent> menuQueue) {
 		List<NuklearUIComponent> queue = menuQueue;
 		int queueSize = queue.size();
@@ -271,14 +271,14 @@ public class NuklearMenuSystem extends NuklearManager {
 			if (queueSize > 1) {
 				swapOut = queue.get(queueSize - 2);
 			}
-
+	
 			setWindowInvisible(prev, swapOut);
 			if (swapOut != null) {
 				setWindowVisible(swapOut);
 			}
 		}
-
-	}
+	
+	}*/
 
 	public static NuklearUIComponent getActiveMenu(List<NuklearUIComponent> menuQueue) {
 		NuklearUIComponent current = null;

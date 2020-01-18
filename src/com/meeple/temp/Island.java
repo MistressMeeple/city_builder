@@ -24,11 +24,7 @@ public class Island {
 
 	public enum IslandSize {
 		TINY(0), SMALL(1), MEDIUM(2), BIG(3);
-		float radius;
-		float radius10;
-		float diameter;
-		float diameter10;
-		float pythag;
+		public float radius, radius10, diameter, diameter10, pythag;
 
 		private IslandSize(int ord) {
 			radius = ((ord + 1) * 10);
@@ -74,17 +70,17 @@ public class Island {
 
 			IslandSize size = rc.next();
 
-			Island i = new Island(r, "name" + x, size);
+			Island i = new Island(r.nextLong(), "name" + x, size);
 
-			i.generate();
+			i.generate(6, 10);
 
 			i.print();
 		}
 
 	}
 
-	public Island(Random r, String name, IslandSize size) {
-		this.random = r;
+	public Island(long seed, String name, IslandSize size) {
+		this.random = new Random(seed);
 		this.size = size;
 		this.name = name;
 	}
@@ -122,18 +118,17 @@ public class Island {
 		return simplexnoise;
 	}
 
-	public Island generate() {
-		//		float radius = size.radius * 10;
-		float[][] noise = /*new float[(int) radius][(int) radius];*/
+	public Island generate(int lower, int higher) {
+
+		float[][] noise =
 			generateSimplexNoise(
-				(float) (size.radius / MathHelper.getRandomDoubleBetween(random, 7, 10)),
+				(float) (size.radius / MathHelper.getRandomDoubleBetween(random, lower, higher)),
 				(int) (size.diameter10),
-				(int) (size.diameter10 * 2),
+				(int) (size.diameter10),
 				(int) (random.nextInt((int) size.radius10) * size.radius10),
 				(int) (random.nextInt((int) size.radius10) * size.radius10));
 
 		float[][] circle = circleHeightMap();
-		System.out.println("Starting generate");
 
 		for (int x = 0; x < size.diameter10; x++) {
 			for (int y = 0; y < size.diameter10; y++) {
@@ -150,12 +145,12 @@ public class Island {
 
 			}
 		}
-		System.out.println("Finish island gen");
+
 		return this;
 	}
 
 	public BufferedImage print() {
-		System.out.println("Island: Writing island " + toString() + " to file");
+		System.out.println("Island: Writing island " + name + " to file");
 		//		float radius = size.radius * 10;
 		int offset = (int) size.radius;
 		BufferedImage image = new BufferedImage((int) (size.diameter10) + (offset * 2), (int) (size.diameter10) + (offset * 2), BufferedImage.TYPE_INT_ARGB);
@@ -183,20 +178,29 @@ public class Island {
 		return image;
 	}
 
-	public void convertToMesh(FloatBuffer pointPositions, FloatBuffer pointColours) {
-
+	public int convertToMesh(FloatBuffer pointPositions, FloatBuffer pointColours, float scale, float zScale) {
+		int actualCount = 0;
 		for (Entry<Vector2f, Float> entry : map.entrySet()) {
+
 			Vector2f key = entry.getKey();
 			float value = entry.getValue();
 			Color c = (WorldHeights.heightColor.get(WorldHeights.getRange(value)));
 			if (c != WorldHeights.heightColor.get(WorldHeights.getRange(0))) {
 				//TODO add point to mesh
-				float x = size.diameter10 / key.x;
-				float y = size.diameter10 / key.y;
+				float x = key.x / size.diameter10;
+				float y = key.y / size.diameter10;
 				float z = 10f / value;
-				pointPositions.put(x);
-				pointPositions.put(y);
-				pointPositions.put(-z);
+				float x1 = x - 0.5f;
+				float y1 = y - 0.5f;
+				float z1 = 1 - z;
+
+				float x2 = x1 * scale;
+				float y2 = y1 * scale;
+				float z2 = z1 * zScale;
+
+				pointPositions.put(x2);
+				pointPositions.put(y2);
+				pointPositions.put(z2);
 
 				float r = c.getRed() / 255f;
 				float g = c.getGreen() / 255f;
@@ -206,10 +210,11 @@ public class Island {
 				pointColours.put(g);
 				pointColours.put(b);
 				pointColours.put(a);
-
+				actualCount += 1;
 			}
 
 		}
+		return actualCount;
 	}
 
 }

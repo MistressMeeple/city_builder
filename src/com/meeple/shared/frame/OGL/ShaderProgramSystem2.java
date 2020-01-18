@@ -617,7 +617,6 @@ public class ShaderProgramSystem2 {
 		if (indexVboRef != null) {
 			indexVBO = indexVboRef.get();
 		}
-
 		if (indexVBO != null) {
 			//if any index buffer then bind 
 			GL46.glBindBuffer(indexVBO.bufferType.getGLID(), indexVBO.VBOID);

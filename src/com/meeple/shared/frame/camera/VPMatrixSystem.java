@@ -144,7 +144,7 @@ public class VPMatrixSystem implements IShaderUniformUploadSystem<VPMatrix, Inte
 
 		public static final void update(ProjectionMatrix upload) {
 			Matrix4f matrix = new Matrix4f();
-			Bounds2DComponent bounds = upload.window.getBounds2DComponent();
+			Bounds2DComponent bounds = upload.window.bounds;
 			float aspectRatio = (float) bounds.width / (float) bounds.height;
 			if (upload.perspectiveOrOrtho) {
 				matrix.perspective((float) Math.toRadians(upload.FOV), aspectRatio, upload.nearPlane, upload.farPlane);

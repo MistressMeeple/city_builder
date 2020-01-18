@@ -158,7 +158,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 			clientQuitCounter.incrementAndGet();
 			NuklearMenuSystem menuSystem = new NuklearMenuSystem();
-			menuSystem.create(window, window.registeredNuklear);
+//			menuSystem.create(window, window.registeredNuklear);
 			window.eventListeners.add(this::handleWindowEvent);
 
 			//NOTE this is the first screen on show when the window loads

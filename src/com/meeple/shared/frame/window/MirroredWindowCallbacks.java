@@ -1,8 +1,11 @@
 package com.meeple.shared.frame.window;
 
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
+import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWCharCallbackI;
 import org.lwjgl.glfw.GLFWCharModsCallbackI;
 import org.lwjgl.glfw.GLFWCursorEnterCallbackI;
@@ -23,6 +26,7 @@ import org.lwjgl.glfw.GLFWWindowSizeCallbackI;
 import org.lwjgl.opengl.GLDebugMessageCallbackI;
 
 import com.meeple.shared.CollectionSuppliers;
+import com.meeple.shared.frame.FrameUtils;
 
 public class MirroredWindowCallbacks {
 
@@ -64,7 +68,93 @@ public class MirroredWindowCallbacks {
 	public Set<GLFWWindowSizeCallbackI> windowSizeCallbackSet = new CollectionSuppliers.SetSupplier<GLFWWindowSizeCallbackI>().get();
 	public Set<GLDebugMessageCallbackI> debugMessageCallbackSet = new CollectionSuppliers.SetSupplier<GLDebugMessageCallbackI>().get();
 
+	private Map<Integer, Set<Runnable>> keyPresses = new CollectionSuppliers.MapSupplier<Integer, Set<Runnable>>().get();
+
+	private final Map<Integer, Boolean> keyPressMap = new CollectionSuppliers.MapSupplier<Integer, Boolean>().get();
+	private final Map<Integer, Long> keyPressTicks = new CollectionSuppliers.MapSupplier<Integer, Long>().get();
+	private final Map<Integer, Boolean> mousePressMap = new CollectionSuppliers.MapSupplier<Integer, Boolean>().get();
+	private final Map<Integer, Long> mousePressTicks = new CollectionSuppliers.MapSupplier<Integer, Long>().get();
+
+	public void onKeypress(int key, Runnable handler) {
+		FrameUtils.addToSetMap(keyPresses, key, handler, new CollectionSuppliers.SetSupplier<>());
+	}
+
+	/**
+	 * returns true if the GLFW key is being pressed
+	 * @param key key represented by GLFW.GLFW_KEY_x
+	 * @return true if is being pressed 
+	 */
+	public boolean isKeyPressed(int key) {
+		
+		return keyPressMap.getOrDefault(key, false);
+	}
+
+	/**
+	 * returns true if the GLFW mouse button is being pressed
+	 * @param key key represented by GLFW.GLFW_MOUSE_BUTTON_x
+	 * @return true if is being pressed 
+	 */
+	public boolean isMouseBtnPressed(int mouseBtn) {
+		return mousePressMap.getOrDefault(mouseBtn, false);
+	}
+
+	public long getKeyPressTime(int key) {
+		return keyPressTicks.getOrDefault(key, 0l);
+	}
+
+	public long getMouseBtnPressTime(int key) {
+		return mousePressTicks.getOrDefault(key, 0l);
+	}
+
+	private void eventHandleKey(Map<Integer, Boolean> keyPressMap, long window, int key, int scancode, int action, int mods) {
+		keyPressMap.put(key, action != GLFW.GLFW_RELEASE);
+	}
+
+	private void eventHandleMouse(Map<Integer, Boolean> mousePressMap, long window, int mouseKey, int action, int mods) {
+		mousePressMap.put(mouseKey, action != GLFW.GLFW_RELEASE);
+	}
+
+	public void tick(long delta) {
+
+		Set<Entry<Integer, Boolean>> keySet = keyPressMap.entrySet();
+		synchronized (keyPressMap) {
+			for (Iterator<Entry<Integer, Boolean>> iterator = keySet.iterator(); iterator.hasNext();) {
+				Entry<Integer, Boolean> entry = iterator.next();
+				Integer key = entry.getKey();
+				Boolean isPressed = entry.getValue();
+
+				Long time = keyPressTicks.getOrDefault(key, 0l);
+				if (isPressed) {
+					keyPressTicks.put(key, time + delta);
+				} else {
+					keyPressTicks.put(key, 0l);
+				}
+			}
+
+		}
+
+		Set<Entry<Integer, Boolean>> mouseSet = mousePressMap.entrySet();
+		synchronized (mousePressMap) {
+			for (Iterator<Entry<Integer, Boolean>> iterator = mouseSet.iterator(); iterator.hasNext();) {
+				Entry<Integer, Boolean> entry = iterator.next();
+				Integer key = entry.getKey();
+				Boolean isPressed = entry.getValue();
+
+				Long time = mousePressTicks.getOrDefault(key, 0l);
+				if (isPressed) {
+					mousePressTicks.put(key, time + delta);
+				} else {
+					mousePressTicks.put(key, 0l);
+				}
+			}
+
+		}
+	}
+
 	public MirroredWindowCallbacks() {
+		//NOTE setup the mouse and key handling part of the callbacks
+		keyCallbackSet.add((long windowID, int key, int scancode, int action, int mods) -> eventHandleKey(keyPressMap, windowID, key, scancode, action, mods));
+		mouseButtonCallbackSet.add((long windowID, int key, int action, int mods) -> eventHandleMouse(mousePressMap, windowID, key, action, mods));
 
 		charCallback = new GLFWCharCallbackI() {
 
@@ -450,4 +540,44 @@ public class MirroredWindowCallbacks {
 			}
 		};
 	}
+
+	public void bindToWindow(long windowID) {
+
+		if (charCallback != null)
+			GLFW.glfwSetCharCallback(windowID, charCallback);
+		if (charModsCallback != null)
+			GLFW.glfwSetCharModsCallback(windowID, charModsCallback);
+		if (cursorEnterCallback != null)
+			GLFW.glfwSetCursorEnterCallback(windowID, cursorEnterCallback);
+		if (cursorPosCallback != null)
+			GLFW.glfwSetCursorPosCallback(windowID, cursorPosCallback);
+		if (dropCallback != null)
+			GLFW.glfwSetDropCallback(windowID, dropCallback);
+		if (frameBufferSizeCallback != null)
+			GLFW.glfwSetFramebufferSizeCallback(windowID, frameBufferSizeCallback);
+		if (keyCallback != null)
+			GLFW.glfwSetKeyCallback(windowID, keyCallback);
+		if (mouseButtonCallback != null)
+			GLFW.glfwSetMouseButtonCallback(windowID, mouseButtonCallback);
+		if (scrollCallback != null)
+			GLFW.glfwSetScrollCallback(windowID, scrollCallback);
+		if (windowCloseCallback != null)
+			GLFW.glfwSetWindowCloseCallback(windowID, windowCloseCallback);
+		if (windowContentScaleCallback != null)
+			GLFW.glfwSetWindowContentScaleCallback(windowID, windowContentScaleCallback);
+		if (windowFocusCallback != null)
+			GLFW.glfwSetWindowFocusCallback(windowID, windowFocusCallback);
+		if (windowIconifyCallback != null)
+			GLFW.glfwSetWindowIconifyCallback(windowID, windowIconifyCallback);
+		if (windowMaximizeCallback != null)
+			GLFW.glfwSetWindowMaximizeCallback(windowID, windowMaximizeCallback);
+		if (windowPosCallback != null)
+			GLFW.glfwSetWindowPosCallback(windowID, windowPosCallback);
+		if (windowRefreshCallback != null)
+			GLFW.glfwSetWindowRefreshCallback(windowID, windowRefreshCallback);
+		if (windowSizeCallback != null)
+			GLFW.glfwSetWindowSizeCallback(windowID, windowSizeCallback);
+
+	}
+
 }

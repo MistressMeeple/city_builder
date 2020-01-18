@@ -32,171 +32,9 @@ public class WindowManager implements AutoCloseable {
 	private static Logger logger = Logger.getLogger(GLFWManager.class);
 	private ActiveWindowsComponent internalActiveWindows = new ActiveWindowsComponent();
 
-	public void create(Window window) {
-		internalCreate(window, internalActiveWindows);
-	}
+	
 
-	private static void internalCreate(Window window, ActiveWindowsComponent active) {
-		if (!window.created) {
-			logger.trace("Creating new window '" + window.getName() + "'");
 
-			// Configure GLFW
-			GLFW.glfwDefaultWindowHints(); // optional, the current window hints are already the default
-			window.hints.process();
-			if (window.bounds.width == null || window.bounds.width < 0 || window.bounds.height == null || window.bounds.height < 0) {
-
-				// Get the resolution of the primary monitor
-				GLFWVidMode vidmode = GLFW.glfwGetVideoMode(GLFW.glfwGetPrimaryMonitor());
-				if (window.bounds.width == null || window.bounds.width < 0) {
-					window.bounds.width = (long) vidmode.width();
-				}
-				if (window.bounds.height == null || window.bounds.height < 0) {
-					window.bounds.height = (long) vidmode.width();
-				}
-			}
-
-			window.setID(GLFW.glfwCreateWindow(window.bounds.width.intValue(), window.bounds.height.intValue(), window.getName(), window.monitor, window.share));
-			if (window.getID() == MemoryUtil.NULL) {
-				throw new RuntimeException("Failed to create the GLFW window");
-			}
-
-			try (MemoryStack stack = stackPush()) {
-
-				//only do this if the posXY are null, 
-				if (window.bounds.posX == null || window.bounds.posY == null || window.bounds.posX < 0 || window.bounds.posY < 0) {
-
-					// Get the resolution of the primary monitor
-					GLFWVidMode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-					if (window.bounds.posX == null || window.bounds.posX <= 0) {
-						window.bounds.posX = (vidmode.width() - window.bounds.width) / 2;
-					}
-					if (window.bounds.posY == null || window.bounds.posY <= 0) {
-						window.bounds.posY = (vidmode.height() - window.bounds.height) / 2;
-					}
-
-				}
-				// position the window
-				glfwSetWindowPos(window.getID(), window.bounds.posX.intValue(), window.bounds.posY.intValue());
-			}
-
-			window.frameBufferSizeX = window.bounds.width.intValue();
-			window.frameBufferSizeY = window.bounds.height.intValue();
-			new WindowCallbackManager().setWindowCallbacks(window.getID(), window.callbacks);
-
-			window.created = true;
-		}
-		active.windows.add(window);
-	}
-
-	/*
-		*//**
-			* Creates a thread for the window and assigns it. <br>
-			* Returns a new thread that handles the window rendering. 
-			* (This function also assigns the window.loopThread so the thread can be retrieved from either there or this function);
-			* @param window
-			* @return
-			*//*
-				@Deprecated
-				private Thread setupWindowThread(Window window, FrameTimeComponent frameTimeManager) {
-				if (!window.created) {
-					System.out.println("Window has not been created, call create(Window) before calling this method.");
-					throw new RuntimeException(new WindowNotCreatedException(window));
-				}
-				
-				Thread t = new Thread(new Runnable() {
-				
-					@Override
-					public void run() {
-						System.out.println("Starting new thread for window '" + window.title + "'");
-				
-						FrameUtils.iterateRunnable(window.events.preCreation, false);
-						System.out.println(window.windowID);
-						glfwMakeContextCurrent(window.windowID);
-						window.capabilities = GL.createCapabilities();
-						glfwSwapInterval(window.vSync ? 1 : 0);
-						FrameUtils.iterateRunnable(window.events.postCreation, false);
-				
-						GL46.glDebugMessageCallback(window.callbacks.debugMessageCallback, window.windowID);
-				
-						while (!window.shouldClose && !window.loopThread.isInterrupted()) {
-							FrameUtils.iterateRunnable(window.events.frameStart, false);
-							glClearColor(window.clearColour.x, window.clearColour.y, window.clearColour.z, window.clearColour.w);
-							FrameUtils.iterateRunnable(window.events.preClear, false);
-							glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-				
-							// do rendering
-				
-							FrameUtils.iterateBiConsumer(window.events.render, null, null, false);
-							try (MemoryStack stack = stackPush()) {
-								glViewport(0, 0, window.frameBufferSizeX, window.frameBufferSizeY);
-							}
-				
-							glfwSwapBuffers(window.windowID);
-							FrameUtils.iterateRunnable(window.events.frameEnd, false);
-							if (frameTimeManager != null) {
-								frameTimeManager.timeManagement.run();
-							}
-						}
-						FrameUtils.iterateRunnable(window.events.preCleanup, false);
-						window.hasClosed = true;
-					}
-				});
-				
-				window.loopThread = t;
-				return t;
-				}*/
-
-	//
-	//	/**
-	//	 * This function blocks the current thread until either the primary window is closed, or all active windows are closed.<br>
-	//	 * Handles the event polling, creates new window threads if a new window is added and cleans up afterwards (with {@link #closeAll(ActiveWindowsComponent)}<br>
-	//	 * You do not need to call {@link #setupWindowThread(Window)} yourself, but it does allow better control over multi-threading
-	//	 * @param active The Component that holds all active windows
-	//	 */
-	//	public void startEventsLoop() {
-	//		Thread t = generateEventThread(null, new FrameTimeComponent(), null);
-	//		t.start();
-	//		try {
-	//			t.join();
-	//		} catch (InterruptedException err) {
-	//			// TODO Auto-generated catch block
-	//			err.printStackTrace();
-	//		}
-	//	}
-	//
-	//	/**
-	//	 * This function blocks the current thread until either the primary window is closed, or all active windows are closed.<br>
-	//	 * Handles the event polling, creates new window threads if a new window is added and cleans up afterwards (with {@link #closeAll(ActiveWindowsComponent)}<br>
-	//	 * You do not need to call {@link #setupWindowThread(Window)} yourself, but it does allow better control over multi-threading
-	//	 * @param active The Component that holds all active windows
-	//	 */
-	//	public void startEventsLoop(Runnable eventsHandling) {
-	//		Thread t = generateEventThread(eventsHandling, new FrameTimeComponent(), null);
-	//		t.start();
-	//		try {
-	//			t.join();
-	//		} catch (InterruptedException err) {
-	//			// TODO Auto-generated catch block
-	//			err.printStackTrace();
-	//		}
-	//	}
-	//
-	//	/**
-	//	 * This function blocks the current thread until either the primary window is closed, or all active windows are closed.<br>
-	//	 * Handles the event polling, creates new window threads if a new window is added and cleans up afterwards (with {@link #closeAll(ActiveWindowsComponent)}<br>
-	//	 * You do not need to call {@link #setupWindowThread(Window)} yourself, but it does allow better control over multi-threading
-	//	 * @param active The Component that holds all active windows
-	//	 */
-	//	public void startEventsLoop(Runnable eventsHandling, FrameTimeComponent frameTime) {
-	//		Thread t = generateEventThread(eventsHandling, frameTime, null);
-	//		t.start();
-	//		try {
-	//			t.join();
-	//		} catch (InterruptedException err) {
-	//			// TODO Auto-generated catch block
-	//			err.printStackTrace();
-	//		}
-	//	}
 
 	/**
 	 * This has to be called after the GLManager has been created 
@@ -251,7 +89,7 @@ public class WindowManager implements AutoCloseable {
 					while (i.hasNext()) {
 						Window w = i.next();
 
-						if (w.shouldClose || glfwWindowShouldClose(w.getID())) {
+						if (w.shouldClose || glfwWindowShouldClose(w.windowID)) {
 							//quit.decrementAndGet();
 							WindowManager.closeWindowUnmanaged(w);
 							FrameUtils.iterateRunnable(w.events.postCleanup, false);
@@ -274,7 +112,7 @@ public class WindowManager implements AutoCloseable {
 			@Override
 			public void run() {
 				if (primaryWindow != null) {
-					if (glfwWindowShouldClose(primaryWindow.getID()) || primaryWindow.shouldClose) {
+					if (glfwWindowShouldClose(primaryWindow.windowID) || primaryWindow.shouldClose) {
 						quit.set(0);
 					}
 				}
@@ -351,7 +189,7 @@ public class WindowManager implements AutoCloseable {
 	}
 
 	public static void closeWindowUnmanaged(Window window) {
-		logger.trace("Closing window with ID: " + window.getID());
+		logger.trace("Closing window with ID: " + window.windowID);
 		window.shouldClose = true;
 		Thread thread = window.loopThread;
 		if (thread != null) {
@@ -362,9 +200,9 @@ public class WindowManager implements AutoCloseable {
 				//interupted 
 			}
 		}
-		logger.debug("Closing window '" + window.getName() + "'");
-		Callbacks.glfwFreeCallbacks(window.getID());
-		GLFW.glfwDestroyWindow(window.getID());
+		logger.debug("Closing window '" + window.name+ "'");
+		Callbacks.glfwFreeCallbacks(window.windowID);
+		GLFW.glfwDestroyWindow(window.windowID);
 		FrameUtils.iterateRunnable(window.events.postCleanup, false);
 		window.hasClosed = true;
 	}

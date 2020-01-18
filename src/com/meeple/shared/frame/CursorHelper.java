@@ -29,7 +29,7 @@ public class CursorHelper {
 		if (true) {
 			//start at beginning
 			double[] xposArrD = new double[1], yposArrD = new double[1];
-			GLFW.glfwGetCursorPos(window.getID(), xposArrD, yposArrD);
+			GLFW.glfwGetCursorPos(window.windowID, xposArrD, yposArrD);
 			ret.x = (float) xposArrD[0];
 			ret.y = (float) yposArrD[0];
 		}
@@ -79,7 +79,7 @@ public class CursorHelper {
 		if (start.ordinal() < 0) {
 			//start at beginning
 			double[] xposArrD = new double[1], yposArrD = new double[1];
-			GLFW.glfwGetCursorPos(window.getID(), xposArrD, yposArrD);
+			GLFW.glfwGetCursorPos(window.windowID, xposArrD, yposArrD);
 			ret.x = (float) xposArrD[0];
 			ret.y = (float) yposArrD[0];
 		}

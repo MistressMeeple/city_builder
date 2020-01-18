@@ -2,6 +2,7 @@ package com.meeple.shared.frame.OGL;
 
 import java.lang.ref.WeakReference;
 import java.nio.Buffer;
+import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,10 @@ import org.lwjgl.opengl.GL43;
 import org.lwjgl.opengl.GL46;
 
 import com.meeple.shared.CollectionSuppliers;
+import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
+import com.meeple.shared.frame.OGL.ShaderProgram.BufferType;
+import com.meeple.shared.frame.OGL.ShaderProgram.BufferUsage;
+import com.meeple.shared.frame.OGL.ShaderProgram.GLDataType;
 
 public class ShaderProgram {
 
@@ -227,7 +232,14 @@ public class ShaderProgram {
 	public static class VAO {
 		public int VAOID = NULL;
 		public Set<BufferObject> VBOs = new CollectionSuppliers.SetSupplier<BufferObject>().get();
+
+		@Deprecated
 		public boolean singleFrameDiscard = false;
+
+		public VAO addBuffer(BufferObject buffer) {
+			VBOs.add(buffer);
+			return this;
+		}
 	}
 
 	public static enum BufferDataManagementType {
@@ -265,6 +277,59 @@ public class ShaderProgram {
 		 */
 		public Long bufferLen;
 
+		public BufferObject bufferType(BufferType bufferType) {
+			this.bufferType = bufferType;
+			return this;
+		}
+
+		public BufferObject bufferUsage(BufferUsage bufferUsage) {
+			this.bufferUsage = bufferUsage;
+			return this;
+		}
+
+		public BufferObject dataSize(int size) {
+			this.dataSize = size;
+			return this;
+		}
+
+		public BufferObject dataType(GLDataType type) {
+			this.dataType = type;
+			return this;
+		}
+
+		public BufferObject data(Number[] data) {
+			for (Number d : data) {
+				this.data.add(d);
+			}
+			this.bufferResourceType = BufferDataManagementType.List;
+			return this;
+		}
+
+		public BufferObject data(List<Number> data) {
+			this.data = data;
+			this.bufferResourceType = BufferDataManagementType.List;
+			return this;
+		}
+
+		public BufferObject data(Buffer data) {
+			this.buffer = data;
+			this.bufferResourceType = BufferDataManagementType.Buffer;
+			return this;
+		}
+
+		public BufferObject data(Long bufferAddress, Long bufferLen) {
+			this.bufferAddress = bufferAddress;
+			this.bufferLen = bufferLen;
+			this.bufferResourceType = BufferDataManagementType.Address;
+			return this;
+		}
+
+		public BufferObject data(long emptyLen) {
+			this.bufferLen = emptyLen;
+			this.bufferResourceType = BufferDataManagementType.Empty;
+			return this;
+		}
+
 	}
 
 	public static class Mesh extends VAO {
@@ -278,6 +343,49 @@ public class ShaderProgram {
 		public boolean visible = true;
 		public Runnable preRender;
 		public Runnable postRender;
+
+		public Mesh drawMode(GLDrawMode drawMode) {
+			this.modelRenderType = drawMode;
+			return this;
+		}
+
+		public Mesh index(BufferObject index) {
+			this.index = new WeakReference<>(index);
+			VBOs.add(index);
+			return this;
+		}
+
+		public Mesh vertexCount(int count) {
+			this.vertexCount = count;
+			return this;
+		}
+
+		public Mesh visible(boolean visible) {
+			this.visible = visible;
+			return this;
+		}
+
+		public Mesh renderCount(int count) {
+			this.renderCount = count;
+			return this;
+		}
+
+		public Mesh addAttribute(Attribute attribute) {
+			attributes.put(attribute.name, attribute);
+			VBOs.add(attribute);
+
+			return this;
+		}
+
+		public Attribute getAttribute(String name) {
+			Attribute a = attributes.get(name);
+			return a;
+		}
+
+		public Mesh addBuffer(BufferObject buffer) {
+			VBOs.add(buffer);
+			return this;
+		}
 	}
 
 	public static class Attribute extends BufferObject {
@@ -299,7 +407,76 @@ public class ShaderProgram {
 		 */
 		public boolean instanced = false;
 
-		public int instanceStride = 1;
+		public int instanceStride = 1;/*
+										
+										public Attribute enabled(boolean enabled) {
+										this.enabled = enabled;
+										return this;
+										}*/
+
+		public Attribute bufferType(BufferType bufferType) {
+			this.bufferType = bufferType;
+			return this;
+		}
+
+		public Attribute bufferUsage(BufferUsage bufferUsage) {
+			this.bufferUsage = bufferUsage;
+			return this;
+		}
+
+		public Attribute name(String name) {
+			this.name = name;
+			return this;
+		}
+
+		public Attribute instanced(boolean instanced, int stride) {
+			this.instanced = instanced;
+			this.instanceStride = stride;
+			return this;
+		}
+
+		public Attribute dataSize(int size) {
+			this.dataSize = size;
+			return this;
+		}
+
+		public Attribute dataType(GLDataType type) {
+			this.dataType = type;
+			return this;
+		}
+
+		public Attribute data(Number[] data) {
+			for (Number d : data) {
+				this.data.add(d);
+			}
+			this.bufferResourceType = BufferDataManagementType.List;
+			return this;
+		}
+
+		public Attribute data(List<Number> data) {
+			this.data = data;
+			this.bufferResourceType = BufferDataManagementType.List;
+			return this;
+		}
+
+		public Attribute data(Buffer data) {
+			this.buffer = data;
+			this.bufferResourceType = BufferDataManagementType.Buffer;
+			return this;
+		}
+
+		public Attribute data(Long bufferAddress, Long bufferLen) {
+			this.bufferAddress = bufferAddress;
+			this.bufferLen = bufferLen;
+			this.bufferResourceType = BufferDataManagementType.Address;
+			return this;
+		}
+
+		public Attribute data(long emptyLen) {
+			this.bufferLen = emptyLen;
+			this.bufferResourceType = BufferDataManagementType.Empty;
+			return this;
+		}
 
 	}
 

@@ -682,19 +682,19 @@ public class LevelRenderer {
 						float value = r.nextFloat() * count;
 						IslandSize size = map.higherEntry(value).getValue();
 
-						Island i = new Island(r, "test", size);
+						//						Island i = new Island(r, "test", size);
 
-						i.generate();
-						int msize = i.map.size();
-						FloatBuffer vertices = BufferUtils.createFloatBuffer(msize * 3);
-						FloatBuffer colours = BufferUtils.createFloatBuffer(msize * 4);
-						i.convertToMesh(vertices, colours);
-						vertices.flip();
-						colours.flip();
-						Mesh mesh = setup_3D_nolit_flat_mesh(vertices, colours, msize);
-						mesh.modelRenderType = GLDrawMode.Points;
+						//						i.generate();
+						//						int msize = i.map.size();
+						//						FloatBuffer vertices = BufferUtils.createFloatBuffer(msize * 3);
+						//						FloatBuffer colours = BufferUtils.createFloatBuffer(msize * 4);
+						//						i.convertToMesh(vertices, colours, 5, 2);
+						//						vertices.flip();
+						//						colours.flip();
+						//						Mesh mesh = setup_3D_nolit_flat_mesh(vertices, colours, msize);
+//						mesh.modelRenderType = GLDrawMode.Points;
 
-						ShaderProgramSystem2.loadVAO(cityBuilder.window.glContext, debugProgram, mesh);
+//						ShaderProgramSystem2.loadVAO(cityBuilder.window.glContext, debugProgram, mesh);
 
 						//							i.print();
 
@@ -740,7 +740,7 @@ public class LevelRenderer {
 			GL46.glPointSize(2f);
 			vpSystem.preMult(vpMatrix);
 			ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.multiUpload, puW.getWrapped(), vpMatrix);
-			
+
 			writeVPMatrix(matrixBuffer, vpMatrix.proj.getWrapped().cache, vpMatrix.view.getWrapped().cache, vpMatrix.cache);
 
 			keyInput.tick(cityBuilder.window.mousePressTicks, cityBuilder.window.mousePressMap, time.nanos);
