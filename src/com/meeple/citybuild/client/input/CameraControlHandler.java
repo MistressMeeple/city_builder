@@ -396,7 +396,7 @@ public class CameraControlHandler {
 		}
 
 	}
-
+	private static boolean once = false;
 	public void preRenderMouseUI(ClientWindow window, ProjectionMatrix proj, ShaderProgram program) {
 
 		GL46.glEnable(GL46.GL_DEPTH_TEST);

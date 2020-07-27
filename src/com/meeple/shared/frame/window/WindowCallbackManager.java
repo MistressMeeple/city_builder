@@ -1,11 +1,11 @@
 package com.meeple.shared.frame.window;
 
 import org.lwjgl.glfw.GLFW;
-
+@Deprecated
 public class WindowCallbackManager {
 
 	public void setWindowCallbacks(long windowID, MirroredWindowCallbacks callbacks) {
-		if (callbacks != null) {
+		/*if (callbacks != null) {
 			if (callbacks.charCallback != null)
 				GLFW.glfwSetCharCallback(windowID, callbacks.charCallback);
 			if (callbacks.charModsCallback != null)
@@ -40,8 +40,8 @@ public class WindowCallbackManager {
 				GLFW.glfwSetWindowRefreshCallback(windowID, callbacks.windowRefreshCallback);
 			if (callbacks.windowSizeCallback != null)
 				GLFW.glfwSetWindowSizeCallback(windowID, callbacks.windowSizeCallback);
-
-		}
+		
+		}*/
 	}
 
 }

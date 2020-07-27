@@ -14,7 +14,6 @@ import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.joml.Vector3f;
-import org.joml.Vector4f;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWKeyCallbackI;
 
@@ -37,8 +36,6 @@ import com.meeple.shared.frame.OGL.KeyInputSystem;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpringArm;
-import com.meeple.shared.frame.nuklear.IOUtil;
-import com.meeple.shared.frame.nuklear.NuklearManager;
 import com.meeple.shared.frame.nuklear.NuklearMenuSystem;
 import com.meeple.shared.frame.window.ClientWindowSystem;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
@@ -119,7 +116,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		window.events.preCleanup.add(() -> {
 			FrameUtils.shutdownService(executorService, 1l, TimeUnit.SECONDS);
 		});
-
+		
 		window.callbacks.keyCallbackSet.add(new GLFWKeyCallbackI() {
 
 			@Override

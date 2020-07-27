@@ -26,7 +26,7 @@ layout(location = 1) in vec4 vertex;
 layout(location = 2) in vec3 normal;
 //instanced
 layout(location = 3) in float materialIndex;
-layout(location = 4) in mat4  modelMatrix;
+layout(location = 4) in mat4  meshMatrix;
 layout(location = 8) in mat4  normalMatrix;
 
 
@@ -37,7 +37,7 @@ out int  vMaterialIndex;
 
 void main() {
 	vMaterialIndex = int(materialIndex);
-    vec4 position = modelMatrix * vertex;
+    vec4 position = meshMatrix * vertex;
     gl_Position =  vpfMatrix * position;
     vPosition = position.xyz;
 	vNormal = (normalMatrix * vec4(normal,1)).xyz;

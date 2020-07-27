@@ -130,19 +130,20 @@ public class FrameUtils {
 		values.add(value);
 	}
 
+	public static <K, V> void removeFromSetMap(Map<K, Set<V>> map, K key, V value) {
+		Set<V> set = map.get(key);
+		if (set != null) {
+			set.remove(value);
+		}
+	}
+
 	private static enum Severity {
 		High, Medium, Low, Notification, Other
 	}
 
 	public static GLDebugMessageCallbackI defaultDebugMessage = new GLDebugMessageCallbackI() {
 
-		String fmt =
-			"\r\n\tWindow %s" +
-				"\r\n\tSeverity: %s" +
-				"\r\n\tSource: %s" +
-				"\r\n\tType: %s" +
-				"\r\n\tError: %s" +
-				"\r\n\tMessage: %s";
+		String fmt = "\r\n\tWindow %s" + "\r\n\tSeverity: %s" + "\r\n\tSource: %s" + "\r\n\tType: %s" + "\r\n\tError: %s" + "\r\n\tMessage: %s";
 
 		@Override
 		public void invoke(int source, int type, int id, int severity, int length, long message, long userParam) {
@@ -153,162 +154,162 @@ public class FrameUtils {
 				String error = "";
 				Severity severityString = Severity.Other;
 				switch (source) {
-					case GL46.GL_DEBUG_SOURCE_API:
-						sourceString = "API";
-						break;
+				case GL46.GL_DEBUG_SOURCE_API:
+					sourceString = "API";
+					break;
 
-					case GL46.GL_DEBUG_SOURCE_WINDOW_SYSTEM:
-						sourceString = "WINDOW SYSTEM";
-						break;
+				case GL46.GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+					sourceString = "WINDOW SYSTEM";
+					break;
 
-					case GL46.GL_DEBUG_SOURCE_SHADER_COMPILER:
-						sourceString = "SHADER COMPILER";
-						break;
+				case GL46.GL_DEBUG_SOURCE_SHADER_COMPILER:
+					sourceString = "SHADER COMPILER";
+					break;
 
-					case GL46.GL_DEBUG_SOURCE_THIRD_PARTY:
-						sourceString = "THIRD PARTY";
-						break;
+				case GL46.GL_DEBUG_SOURCE_THIRD_PARTY:
+					sourceString = "THIRD PARTY";
+					break;
 
-					case GL46.GL_DEBUG_SOURCE_APPLICATION:
-						sourceString = "APPLICATION";
-						break;
+				case GL46.GL_DEBUG_SOURCE_APPLICATION:
+					sourceString = "APPLICATION";
+					break;
 
-					case GL46.GL_DEBUG_SOURCE_OTHER:
-						sourceString = "UNKNOWN";
-						break;
+				case GL46.GL_DEBUG_SOURCE_OTHER:
+					sourceString = "UNKNOWN";
+					break;
 
-					default:
-						sourceString = "UNKNOWN";
-						break;
+				default:
+					sourceString = "UNKNOWN";
+					break;
 				}
 
 				switch (id) {
-					case GL46.GL_INVALID_ENUM:
-						error = "INVALID_ENUM";
-						break;
-					case GL46.GL_INVALID_VALUE:
-						error = "INVALID_VALUE";
-						break;
-					case GL46.GL_INVALID_OPERATION:
-						error = "INVALID_OPERATION";
-						break;
-					case GL46.GL_STACK_OVERFLOW:
-						error = "STACK_OVERFLOW";
-						break;
-					case GL46.GL_STACK_UNDERFLOW:
-						error = "STACK_UNDERFLOW";
-						break;
-					case GL46.GL_OUT_OF_MEMORY:
-						error = "OUT_OF_MEMORY";
-						break;
-					case GL46.GL_INVALID_FRAMEBUFFER_OPERATION:
-						error = "INVALID_FRAMEBUFFER_OPERATION";
-						break;
+				case GL46.GL_INVALID_ENUM:
+					error = "INVALID_ENUM";
+					break;
+				case GL46.GL_INVALID_VALUE:
+					error = "INVALID_VALUE";
+					break;
+				case GL46.GL_INVALID_OPERATION:
+					error = "INVALID_OPERATION";
+					break;
+				case GL46.GL_STACK_OVERFLOW:
+					error = "STACK_OVERFLOW";
+					break;
+				case GL46.GL_STACK_UNDERFLOW:
+					error = "STACK_UNDERFLOW";
+					break;
+				case GL46.GL_OUT_OF_MEMORY:
+					error = "OUT_OF_MEMORY";
+					break;
+				case GL46.GL_INVALID_FRAMEBUFFER_OPERATION:
+					error = "INVALID_FRAMEBUFFER_OPERATION";
+					break;
 				}
 				switch (severity) {
-					case GL46.GL_DEBUG_SEVERITY_HIGH:
-						severityString = Severity.High;
-						break;
+				case GL46.GL_DEBUG_SEVERITY_HIGH:
+					severityString = Severity.High;
+					break;
 
-					case GL46.GL_DEBUG_SEVERITY_MEDIUM:
-						severityString = Severity.Medium;
-						break;
+				case GL46.GL_DEBUG_SEVERITY_MEDIUM:
+					severityString = Severity.Medium;
+					break;
 
-					case GL46.GL_DEBUG_SEVERITY_LOW:
-						severityString = Severity.Low;
-						break;
+				case GL46.GL_DEBUG_SEVERITY_LOW:
+					severityString = Severity.Low;
+					break;
 
-					case GL46.GL_DEBUG_SEVERITY_NOTIFICATION:
-						severityString = Severity.Notification;
-						break;
+				case GL46.GL_DEBUG_SEVERITY_NOTIFICATION:
+					severityString = Severity.Notification;
+					break;
 
 				}
 
 				switch (type) {
-					case GL46.GL_DEBUG_TYPE_ERROR:
-						typeString = "Error";
-						break;
-					case GL46.GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
-						typeString = "Depricated";
-						break;
-					case GL46.GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
-						typeString = "Undefined";
-						break;
-					case GL46.GL_DEBUG_TYPE_PORTABILITY:
-						typeString = "Non-portable";
-						break;
-					case GL46.GL_DEBUG_TYPE_PERFORMANCE:
-						typeString = "Performance";
-						break;
-					case GL46.GL_DEBUG_TYPE_MARKER:
-						typeString = "Marker";
-						break;
-					case GL46.GL_DEBUG_TYPE_PUSH_GROUP:
-						typeString = "Push";
-						break;
-					case GL46.GL_DEBUG_TYPE_POP_GROUP:
-						typeString = "Pop";
-						break;
-					case GL46.GL_DEBUG_TYPE_OTHER:
-						typeString = "Other";
-						break;
+				case GL46.GL_DEBUG_TYPE_ERROR:
+					typeString = "Error";
+					break;
+				case GL46.GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+					typeString = "Depricated";
+					break;
+				case GL46.GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+					typeString = "Undefined";
+					break;
+				case GL46.GL_DEBUG_TYPE_PORTABILITY:
+					typeString = "Non-portable";
+					break;
+				case GL46.GL_DEBUG_TYPE_PERFORMANCE:
+					typeString = "Performance";
+					break;
+				case GL46.GL_DEBUG_TYPE_MARKER:
+					typeString = "Marker";
+					break;
+				case GL46.GL_DEBUG_TYPE_PUSH_GROUP:
+					typeString = "Push";
+					break;
+				case GL46.GL_DEBUG_TYPE_POP_GROUP:
+					typeString = "Pop";
+					break;
+				case GL46.GL_DEBUG_TYPE_OTHER:
+					typeString = "Other";
+					break;
 				}
 
-				//discard notifications
+				// discard notifications
 				switch (severityString) {
-					case High:
-						logger.error(String.format(fmt, "" + userParam, severityString, sourceString, typeString, error, messageString));
-						break;
-					case Medium:
-						logger.warn(String.format(fmt, "" + userParam, severityString, sourceString, typeString, error, messageString));
-						break;
-					case Low:
-						logger.info(String.format(fmt, "" + userParam, severityString, sourceString, typeString, error, messageString));
-						break;
-					case Notification:
-						logger.trace(String.format(fmt, "" + userParam, severityString, sourceString, typeString, error, messageString));
-						break;
-					case Other:
-						break;
-					default:
-						break;
+				case High:
+					logger.error(String.format(fmt, "" + userParam, severityString, sourceString, typeString, error, messageString));
+					break;
+				case Medium:
+					logger.warn(String.format(fmt, "" + userParam, severityString, sourceString, typeString, error, messageString));
+					break;
+				case Low:
+					logger.info(String.format(fmt, "" + userParam, severityString, sourceString, typeString, error, messageString));
+					break;
+				case Notification:
+					logger.trace(String.format(fmt, "" + userParam, severityString, sourceString, typeString, error, messageString));
+					break;
+				case Other:
+					break;
+				default:
+					break;
 
 				}
 			}
 		}
 	};
 
+	public static final long nanoToMilli = 1000 * 1000;
+	public static final long nanoToSeconds = 1000 * nanoToMilli;
+
 	public static long secondsToNanos(float seconds) {
-		return (long) (seconds * (1000 * 1000 * 1000));
+		return (long) (seconds * nanoToSeconds);
 	}
 
 	public static float nanosToSeconds(long ticks) {
-		return ticks / (float) (1000 * 1000 * 1000);
+		return ticks / (float) nanoToSeconds;
 	}
 
 	public static float nanosToSecondsInacurate(long ticks) {
-		return ((ticks >> 25) << 25) / (float) (1000 * 1000 * 1000);
+		return ((ticks >> 25) << 25) / (float) nanoToSeconds;
 	}
 
 	public static Vector3f getCurrentForwardVector(Matrix4f matrix) {
 		Vector3f ret = new Vector3f();
 		matrix.getRow(2, ret);
-		return new Vector3f(-ret.x, ret.z, -ret.y);
+		return new Vector3f(-ret.x, -ret.y, ret.z);
 	}
 
 	public static Vector3f getCurrentUpVector(Matrix4f matrix) {
 		Vector3f ret = new Vector3f();
 		matrix.getRow(1, ret);
-		return new Vector3f(ret.x, -ret.z, ret.y);
+		return new Vector3f(ret.x, ret.y, -ret.z);
 	}
 
 	public static Vector3f getCurrentRightVector(Matrix4f matrix) {
 		Vector3f ret = new Vector3f();
 		matrix.getRow(0, ret);
-		ret.x = ret.x;
-		ret.y = ret.y;
-		ret.z = ret.z;
-		return new Vector3f(ret.x, -ret.z, -ret.y);
+		return new Vector3f(ret.x, ret.y, ret.z);
 	}
 
 	public static void appendToArray(Number[] data, int offset, Matrix4f matrix) {
@@ -330,7 +331,7 @@ public class FrameUtils {
 		data[offset + 15] = (matrix.m33());
 	}
 
-	public static void appendToBuffer(Number[] array, int offset, Matrix3f matrix) {
+	public static void appendToArray(Number[] array, int offset, Matrix3f matrix) {
 		array[offset + 0] = (matrix.m00());
 		array[offset + 1] = (matrix.m01());
 		array[offset + 2] = (matrix.m02());
@@ -342,7 +343,7 @@ public class FrameUtils {
 		array[offset + 8] = (matrix.m22());
 	}
 
-	public static void appendToBuffer(Number[] array, int offset, Vector4f vector) {
+	public static void appendToArray(Number[] array, int offset, Vector4f vector) {
 		array[offset + 0] = (vector.x);
 		array[offset + 1] = vector.y;
 		array[offset + 2] = vector.z;
@@ -350,7 +351,7 @@ public class FrameUtils {
 
 	}
 
-	public static void appendToBuffer(Number[] array, int offset, Vector3f vector) {
+	public static void appendToArray(Number[] array, int offset, Vector3f vector) {
 		array[offset + 0] = vector.x;
 		array[offset + 1] = vector.y;
 		array[offset + 2] = vector.z;
@@ -438,62 +439,28 @@ public class FrameUtils {
 	}
 
 	public static FloatBuffer toBuffer(MemoryStack stack, Matrix4f matrix) {
-		return stack
-			.floats(
-				matrix.m00(),
-				matrix.m01(),
-				matrix.m02(),
-				matrix.m03(),
-				matrix.m10(),
-				matrix.m11(),
-				matrix.m12(),
-				matrix.m13(),
-				matrix.m20(),
-				matrix.m21(),
-				matrix.m22(),
-				matrix.m23(),
-				matrix.m30(),
-				matrix.m31(),
-				matrix.m32(),
-				matrix.m33());
+		return stack.floats(
+			matrix.m00(), matrix.m01(), matrix.m02(), matrix.m03(), matrix.m10(), matrix.m11(), matrix.m12(), matrix.m13(), matrix.m20(), matrix.m21(), matrix.m22(), matrix.m23(), matrix.m30(), matrix.m31(), matrix.m32(), matrix.m33());
 	}
 
 	public static FloatBuffer toBuffer(MemoryStack stack, Matrix3f matrix) {
-		return stack
-			.floats(
-				matrix.m00(),
-				matrix.m01(),
-				matrix.m02(),
-				matrix.m10(),
-				matrix.m11(),
-				matrix.m12(),
-				matrix.m20(),
-				matrix.m21(),
-				matrix.m22());
+		return stack.floats(
+			matrix.m00(), matrix.m01(), matrix.m02(), matrix.m10(), matrix.m11(), matrix.m12(), matrix.m20(), matrix.m21(), matrix.m22());
 	}
 
 	public static FloatBuffer toBuffer(MemoryStack stack, Vector4f vector) {
-		return stack
-			.floats(
-				vector.x,
-				vector.y,
-				vector.z,
-				vector.w);
+		return stack.floats(
+			vector.x, vector.y, vector.z, vector.w);
 	}
 
 	public static FloatBuffer toBuffer(MemoryStack stack, Vector3f vector) {
-		return stack
-			.floats(
-				vector.x,
-				vector.y,
-				vector.z);
+		return stack.floats(
+			vector.x, vector.y, vector.z);
 	}
 
 	public static FloatBuffer toBuffer(MemoryStack stack, Vector2f vector) {
-		return stack
-			.floats(
-				vector.x,
-				vector.y);
+		return stack.floats(
+			vector.x, vector.y);
 	}
 
 	public static <T> T getOrNull(T[][][] array, int x, int y, int z) {
@@ -637,6 +604,14 @@ public class FrameUtils {
 		return Math.min(Math.max(min, curr), max);
 	}
 
+	public static Vector2f rotate(float x, float y, float angle) {
+		float sin = (float) Math.sin(angle);
+		float cos = (float) Math.cosFromSin(sin, angle);
+		float nx = x * cos - y * sin;
+		float ny = x * sin + y * cos;
+		return new Vector2f(nx, ny);
+	}
+
 	public static void rotateThis(Vector2f vec, float angle) {
 
 		float sin = (float) Math.sin(angle);
@@ -656,34 +631,141 @@ public class FrameUtils {
 	}
 
 	/**
-	 * Attempts to shut down a {@link ExecutorService} peacefully first and if still doesnt shutdown then attempts to do so forcefully<br>
-	 * <b>This may block the calling thread if service does not shutdown instantly</b><br>
-	 * This is achieved by calling these functions in order. 
+	 * Attempts to shut down a {@link ExecutorService} peacefully first and if still
+	 * doesnt shutdown then attempts to do so forcefully<br>
+	 * <b>This may block the calling thread if service does not shutdown
+	 * instantly</b><br>
+	 * This is achieved by calling these functions in order.
 	 * <ol>
 	 * <li>{@link ExecutorService#shutdown()}</li>
 	 * <li>{@link ExecutorService#awaitTermination(long, TimeUnit)}</li>
 	 * <li>{@link ExecutorService#shutdownNow()}</li>
-	 * </ol> 
-	 * {@link ExecutorService#isShutdown()} is called before each other call to not waste time
+	 * </ol>
+	 * {@link ExecutorService#isShutdown()} is called before each other call to not
+	 * waste time
 	 * 
-	 * @param executorService service to shutdown 
-	 * @param time the maximum time to wait 
-	 * @param unit the time unit of the timeout argument
+	 * @param executorService service to shutdown
+	 * @param time            the maximum time to wait
+	 * @param unit            the time unit of the timeout argument
 	 */
 	public static void shutdownService(ExecutorService executorService, long time, TimeUnit unit) {
 
 		if (!executorService.isShutdown()) {
 			executorService.shutdown();
-			//try to shut peacefully
+			// try to shut peacefully
 			while (!executorService.isShutdown()) {
 				try {
 					executorService.awaitTermination(time, unit);
 				} catch (InterruptedException err) {
 				}
-				//forcefully shutdown
+				// forcefully shutdown
 				executorService.shutdownNow();
 			}
 		}
 	}
 
+	/**
+	 * Performs int/int but negative numbers will result be shifted by -1.
+	 * <ul>
+	 * <li>0 / 10 = 0</li>
+	 * <li>11 / 10 = 1</li>
+	 * <li>-5 / 10 = -1</li>
+	 * </ul>
+	 * 
+	 * @param index
+	 * @param division
+	 * @return
+	 */
+	public static int actualIndex(int index, int division) {
+		if (index < 0) {
+			return (index / division) - 1;
+		}
+		return (index / division);
+	}
+
+	/**
+	 * Attempts to retrieve a value from a map. This method will return the default
+	 * value provided instead of throwing and NPE.
+	 * 
+	 * @param <K>      Map key type
+	 * @param <V>      Map value type
+	 * @param map      To retrieve a value from
+	 * @param key      key to check
+	 * @param _default value to provide if anything was null
+	 * @return _default if the either the map, key or the result are null, otherwise
+	 *         the actual result of the maps keyed value
+	 */
+	public static <K, V> V getOrDefault(Map<K, V> map, K key, V _default) {
+		try {
+			V result = map.get(key);
+			if (result != null) {
+				return result;
+			} else {
+				return _default;
+			}
+		} catch (NullPointerException npe) {
+			npe.printStackTrace();
+			return _default;
+		}
+	}
+
+	public static Matrix4f normalFromTransform(Matrix4f transform) {
+
+		Matrix3f normal = new Matrix3f();
+		normal.set(transform).invert().transpose();
+		Matrix4f normalMat = new Matrix4f(normal);
+		return normalMat;
+	}
+
+	public static enum GridMovement {
+		UP, DOWN, LEFT, RIGHT;
+		public GridMovement next() {
+
+			switch (this) {
+			case RIGHT:
+				return DOWN;
+			case DOWN:
+				return LEFT;
+			case LEFT:
+				return UP;
+			case UP:
+				return RIGHT;
+			default:
+				return this;
+
+			}
+		}
+	}
+
+	public static void spiralSearchTemplate() {
+		Vector2i pos = new Vector2i();
+		boolean flip = true;// leave alone
+		GridMovement move = GridMovement.RIGHT;
+		for (float range = 0; range < 100;) {
+
+			for (int i = 0; i < range; i++) {
+				// output(startX + x, startY + y);
+				switch (move) {
+				case RIGHT:// right
+					pos.x += 1;
+					break;
+				case DOWN:// down
+					pos.y += 1;
+					break;
+				case LEFT: // left
+					pos.x -= 1;
+					break;
+				case UP: // up
+					pos.y -= 1;
+					break;
+				}
+			}
+			// NOTE controls.
+			{
+				range += 0.5f;
+				flip = !flip;
+				move = move.next();
+			}
+		}
+	}
 }

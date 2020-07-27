@@ -43,7 +43,7 @@ import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.Platform;
 
 import com.meeple.shared.frame.window.MirroredWindowCallbacks;
-import com.meeple.shared.frame.window.Window;
+import com.meeple.shared.frame.window.UserInput;
 
 public class NkContextSingleton implements Closeable {
 
@@ -116,29 +116,43 @@ public class NkContextSingleton implements Closeable {
 		float[] vals = new float[4];
 		glGetFloatv(GL46.GL_VIEWPORT, vals);
 
+		GL46.glPushAttrib(GL46.GL_VIEWPORT_BIT);
+		//NOTE includes blend
+		GL46.glPushAttrib(GL46.GL_COLOR_BUFFER_BIT);
+		//NOTE all depth 
+		GL46.glPushAttrib(GL46.GL_DEPTH_BUFFER_BIT);
+		//NOTE cull faces
+		GL46.glPushAttrib(GL46.GL_POLYGON_BIT);
+		//NOTE scissor test and cull face
+		GL46.glPushAttrib(GL46.GL_ENABLE_BIT);
+
 		internalRender(frameBufferX, frameBufferY, windowWidth, windowHeight, NK_ANTI_ALIASING_ON, NkContextSingleton.MAX_VERTEX_BUFFER, NkContextSingleton.MAX_ELEMENT_BUFFER);
-
-		if (blend) {
-			glEnable(GL_BLEND);
-		} else {
-			glDisable(GL_BLEND);
-		}
-		if (cull) {
-			glEnable(GL_CULL_FACE);
-		} else {
-			glDisable(GL_CULL_FACE);
-		}
-		if (depth) {
-			glEnable(GL_DEPTH_TEST);
-		} else {
-			glDisable(GL_DEPTH_TEST);
-		}
-
-		if (scissor) {
-			glEnable(GL_SCISSOR_TEST);
-		} else {
-			glDisable(GL_SCISSOR_TEST);
-		}
+		GL46.glPopAttrib();
+		GL46.glPopAttrib();
+		GL46.glPopAttrib();
+		GL46.glPopAttrib();
+		GL46.glPopAttrib();/*
+							if (blend) {
+							glEnable(GL_BLEND);
+							} else {
+							glDisable(GL_BLEND);
+							}
+							if (cull) {
+							glEnable(GL_CULL_FACE);
+							} else {
+							glDisable(GL_CULL_FACE);
+							}
+							if (depth) {
+							glEnable(GL_DEPTH_TEST);
+							} else {
+							glDisable(GL_DEPTH_TEST);
+							}
+							
+							if (scissor) {
+							glEnable(GL_SCISSOR_TEST);
+							} else {
+							glDisable(GL_SCISSOR_TEST);
+							}*/
 		//		glViewport((int) vals[0], (int) vals[1], (int) vals[2], (int) vals[3]);
 	}
 
@@ -163,14 +177,14 @@ public class NkContextSingleton implements Closeable {
 		nk_input_end(context);
 	}
 
-	public void setup(long windowID, MirroredWindowCallbacks callbacks) {
+	public void setup(long windowID, UserInput callbacks) {
 
 		setupContext(windowID);
 		addWindowCallbacks(callbacks);
 		setupFont(NkContextSingleton.fontFolder + "FiraSans" + NkContextSingleton.fontExtension);
 	}
 
-	private void addWindowCallbacks(MirroredWindowCallbacks cb) {
+	private void addWindowCallbacks(UserInput cb) {
 
 		cb.scrollCallbackSet.add(new GLFWScrollCallbackI() {
 
@@ -296,7 +310,7 @@ public class NkContextSingleton implements Closeable {
 		int fontTexID = glGenTextures();
 
 		STBTTFontinfo fontInfo = STBTTFontinfo.create();
-		STBTTPackedchar.Buffer cdata = STBTTPackedchar.create(95);
+		STBTTPackedchar.Buffer cdata = STBTTPackedchar.create(150);
 
 		float scale;
 		float descent;
@@ -500,28 +514,26 @@ public class NkContextSingleton implements Closeable {
 
 		nk_init(context, NkContextSingleton.ALLOCATOR, null);
 
-		context
-			.clip(
-				it -> it
-					.copy((handle, text, len) -> {
-						if (len == 0) {
-							return;
-						}
+		context.clip()
+        .copy((handle, text, len) -> {
+            if (len == 0) {
+                return;
+            }
 
-						try (MemoryStack stack = stackPush()) {
-							ByteBuffer str = stack.malloc(len + 1);
-							memCopy(text, memAddress(str), len);
-							str.put(len, (byte) 0);
+            try (MemoryStack stack = stackPush()) {
+                ByteBuffer str = stack.malloc(len + 1);
+                memCopy(text, memAddress(str), len);
+                str.put(len, (byte)0);
 
-							glfwSetClipboardString(winID, str);
-						}
-					})
-					.paste((handle, edit) -> {
-						long text = nglfwGetClipboardString(winID);
-						if (text != NULL) {
-							nnk_textedit_paste(edit, text, nnk_strlen(text));
-						}
-					}));
+                glfwSetClipboardString(winID, str);
+            }
+        })
+        .paste((handle, edit) -> {
+            long text = nglfwGetClipboardString(winID);
+            if (text != NULL) {
+                nnk_textedit_paste(edit, text, nnk_strlen(text));
+            }
+        });
 	}
 
 	private void internalRender(float frameBufferX, float frameBufferY, float windowWidth, float windowHeight, int AA, int max_vertex_buffer, int max_element_buffer) {

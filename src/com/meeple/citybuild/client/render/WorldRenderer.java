@@ -1,6 +1,6 @@
 package com.meeple.citybuild.client.render;
 
-import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
+import com.meeple.shared.frame.OGL.ShaderProgram.VertexAttribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferType;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferUsage;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDataType;
@@ -10,11 +10,11 @@ import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
 public class WorldRenderer extends RendererBase {
 
 	public static class MeshExt {
-		public Attribute positionAttrib = new Attribute();
-		public Attribute colourAttrib = new Attribute();
-		public Attribute offsetAttrib = new Attribute();
-		public Attribute rotationAttrib = new Attribute();
-		public Attribute zIndexAttrib = new Attribute();
+		public VertexAttribute positionAttrib = new VertexAttribute();
+		public VertexAttribute colourAttrib = new VertexAttribute();
+		public VertexAttribute offsetAttrib = new VertexAttribute();
+		public VertexAttribute rotationAttrib = new VertexAttribute();
+		public VertexAttribute zIndexAttrib = new VertexAttribute();
 		public Mesh mesh = new Mesh();
 	}
 

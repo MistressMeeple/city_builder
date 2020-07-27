@@ -1,7 +1,19 @@
 package com.meeple.citybuild.client.gui;
 
-import static org.lwjgl.nuklear.Nuklear.*;
-import static org.lwjgl.system.MemoryStack.*;
+import static org.lwjgl.nuklear.Nuklear.NK_WINDOW_BORDER;
+import static org.lwjgl.nuklear.Nuklear.NK_WINDOW_NO_SCROLLBAR;
+import static org.lwjgl.nuklear.Nuklear.NK_WINDOW_TITLE;
+import static org.lwjgl.nuklear.Nuklear.nk_begin;
+import static org.lwjgl.nuklear.Nuklear.nk_button_text;
+import static org.lwjgl.nuklear.Nuklear.nk_end;
+import static org.lwjgl.nuklear.Nuklear.nk_group_begin;
+import static org.lwjgl.nuklear.Nuklear.nk_group_end;
+import static org.lwjgl.nuklear.Nuklear.nk_layout_row_dynamic;
+import static org.lwjgl.nuklear.Nuklear.nk_layout_space_begin;
+import static org.lwjgl.nuklear.Nuklear.nk_layout_space_end;
+import static org.lwjgl.nuklear.Nuklear.nk_layout_space_push;
+import static org.lwjgl.nuklear.Nuklear.nk_rect;
+import static org.lwjgl.system.MemoryStack.stackPush;
 
 import java.util.Iterator;
 import java.util.Set;
@@ -20,6 +32,8 @@ import org.lwjgl.nuklear.Nuklear;
 import org.lwjgl.opengl.GL46;
 import org.lwjgl.system.MemoryStack;
 
+import com.meeple.backend.ShaderPrograms;
+import com.meeple.backend.ShaderPrograms.Program;
 import com.meeple.citybuild.RayHelper;
 import com.meeple.citybuild.client.render.Screen;
 import com.meeple.citybuild.client.render.WorldRenderer;
@@ -34,10 +48,9 @@ import com.meeple.shared.frame.CursorHelper;
 import com.meeple.shared.frame.CursorHelper.SpaceState;
 import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.OGL.ShaderProgram;
-import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
-import com.meeple.shared.frame.OGL.ShaderProgramSystem;
+import com.meeple.shared.frame.OGL.ShaderProgram.VertexAttribute;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraMode;
@@ -235,6 +248,7 @@ public class GameUI extends Screen {
 		this.vpMatrix = vpMatrix;
 		this.orthoProjection = orthoProj;
 		this.rayHelper = rayHelper;
+		
 		window.callbacks.scrollCallbackSet.add(scrollCallback);
 		window.callbacks.mouseButtonCallbackSet.add(mouseButtonCallback);
 		window.callbacks.cursorPosCallbackSet.add(cursorposCallback);
@@ -426,7 +440,7 @@ public class GameUI extends Screen {
 
 	}
 
-	public void preRenderMouseUI(ClientWindow window, ProjectionMatrix proj, ShaderProgram program, Mesh compasMesh, Attribute compasMeshOffset, Mesh lineMesh, Attribute lineMeshVPos) {
+	public void preRenderMouseUI(ClientWindow window, ProjectionMatrix proj, ShaderProgram program, Mesh compasMesh, VertexAttribute compasMeshOffset, Mesh lineMesh, VertexAttribute lineMeshVPos) {
 
 		GL46.glEnable(GL46.GL_DEPTH_TEST);
 
@@ -517,9 +531,12 @@ public class GameUI extends Screen {
 
 		lineMesh.visible = compasMesh.visible;
 	}
-
+private static boolean once = false;
 	public void preRenderMouseUI(ClientWindow window, ProjectionMatrix proj, ShaderProgram program) {
-
+		if(!once) {
+			once=true;
+			logger.warn("Disabled using shader system for mouse UI");
+		}
 		GL46.glEnable(GL46.GL_DEPTH_TEST);
 
 		//rebake chunk that has been referenced by ray helper
@@ -573,7 +590,9 @@ public class GameUI extends Screen {
 								FrameUtils.appendToList(mcompas.colourAttrib.data, new Vector4f(1, 0, 1, 1));
 								mcompas.mesh.name = "compas";
 								mcompas.zIndexAttrib.data.add(-1f);
-								ShaderProgramSystem.loadVAO(program, mcompas.mesh);
+								
+
+								//ShaderProgramSystem.loadVAO(program, mcompas.mesh);
 							}
 							Vector2f line = new Vector2f(mouseDir.x, mouseDir.y);
 							Vector2f lineStart = line.mul(panRadi, new Vector2f());
@@ -589,7 +608,8 @@ public class GameUI extends Screen {
 							FrameUtils.appendToList(m.colourAttrib.data, new Vector4f(1, 1, 0, 1));
 							m.mesh.name = "compasLine";
 							m.zIndexAttrib.data.add(-1f);
-							ShaderProgramSystem.loadVAO(program, m.mesh);
+							
+							//ShaderProgramSystem.loadVAO(program, m.mesh);
 						}
 
 					}

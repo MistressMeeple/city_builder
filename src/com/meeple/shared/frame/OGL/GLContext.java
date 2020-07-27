@@ -1,8 +1,10 @@
 package com.meeple.shared.frame.OGL;
 
+import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL31.*;
+import static org.lwjgl.system.MemoryUtil.*;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -16,6 +18,8 @@ import com.meeple.shared.CollectionSuppliers.SetSupplier;
 
 public class GLContext implements AutoCloseable {
 	public GLCapabilities capabilities;
+
+	public Set<Long> windows = new SetSupplier<Long>().get();
 	public Set<Integer> vertexArrays = new SetSupplier<Integer>().get();
 	public Set<Integer> buffers = new SetSupplier<Integer>().get();
 
@@ -47,6 +51,14 @@ public class GLContext implements AutoCloseable {
 		//binds the buffer to a binding index
 		glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, buffer);
 		return buffer;
+	}
+
+	public long generateWindow(int width, int height, String title) {
+		long windowID = glfwCreateWindow(width, height, title, NULL, NULL);
+		if (windowID == NULL)
+			throw new RuntimeException("Failed to create the GLFW window");
+		windows.add(windowID);
+		return windowID;
 	}
 
 	/**
@@ -125,12 +137,6 @@ public class GLContext implements AutoCloseable {
 				i.remove();
 			}
 		}
-	}
-
-	public int genShader(ShaderProgram.GLShaderType type, String source) {
-		int id = ShaderProgramSystem.compileShader(source, type.getGLID());
-		shaders.add(id);
-		return id;
 	}
 
 	public void deleteShader(int id) {

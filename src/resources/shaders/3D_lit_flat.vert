@@ -12,23 +12,18 @@ layout (std140) uniform LightBlock{
 
 layout (std140) uniform Matrices
 {
-	mat4 fixMatrix;
 	mat4 projectionMatrix;
 	mat4 viewMatrix;
 	mat4 vpMatrix;
-	mat4 vpfMatrix;
 };
 
 
-
-
-
-layout(location = 1) in vec4 vertex;
-layout(location = 2) in vec3 normal;
+layout(location = 1) in highp vec4 vertex;
+layout(location = 2) in highp vec3 normal;
 //instanced
-layout(location = 3) in vec4 colour;
-layout(location = 4) in mat4  modelMatrix;
-layout(location = 8) in mat4  normalMatrix;
+layout(location = 3) in lowp vec4 colour;
+layout(location = 4) in highp mat4 meshMatrix;
+layout(location = 8) in highp mat4 normalMatrix;
 
 
 out vec3 vPosition;
@@ -38,8 +33,8 @@ out vec4 vColour;
 
 void main() {
 	vColour = colour;
-    vec4 position = modelMatrix * vertex;
-    gl_Position =  vpfMatrix * position;
+    vec4 position = meshMatrix * vertex;
+    gl_Position =  vpMatrix * position;
     vPosition = position.xyz;
 	vNormal = (normalMatrix * vec4(normal,1)).xyz;
 	for(int i = 0; i < {maxlights}; i++){		

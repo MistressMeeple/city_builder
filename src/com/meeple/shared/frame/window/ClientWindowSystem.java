@@ -61,25 +61,22 @@ import com.meeple.shared.frame.wrapper.WrapperImpl;
 
 public interface ClientWindowSystem {
 
-	/*class InputEvent {
-	
-	}
-	
-	enum ButtonEventType {
-		Press, Hold, Release
-	}
-	
-	class ButtonEvent extends InputEvent {
-		int glfw_button;
-		ButtonEvent eventType;
-		long ticks;
-	}*/
+	/*
+	 * class InputEvent {
+	 * 
+	 * }
+	 * 
+	 * enum ButtonEventType { Press, Hold, Release }
+	 * 
+	 * class ButtonEvent extends InputEvent { int glfw_button; ButtonEvent
+	 * eventType; long ticks; }
+	 */
 
 	static Logger logger = Logger.getLogger(ClientWindowSystem.class);
 
 	public enum WindowEvent {
 		/**
-		 * Attempts to start the game (from menus) 
+		 * Attempts to start the game (from menus)
 		 */
 		GameStart,
 		/**
@@ -116,16 +113,21 @@ public interface ClientWindowSystem {
 		ClientClose
 
 	}
-
+	
+	/**
+	 * @deprecated I think?
+	 * @author Megan
+	 *
+	 */
 	public static class ClientWindow extends Window {
 
 		public final Map<Integer, Boolean> keyPressMap = new CollectionSuppliers.MapSupplier<Integer, Boolean>().get();
 		public final Map<Integer, Long> keyPressTicks = new CollectionSuppliers.MapSupplier<Integer, Long>().get();
 		public final Map<Integer, Boolean> mousePressMap = new CollectionSuppliers.MapSupplier<Integer, Boolean>().get();
 		public final Map<Integer, Long> mousePressTicks = new CollectionSuppliers.MapSupplier<Integer, Long>().get();
-		//		KeyInputSystem keyInput = new KeyInputSystem();
-		//		NkContextSingleton nkContext = new NkContextSingleton();
-		//		CustomMenuSystem menuSystem = new CustomMenuSystem();
+		// KeyInputSystem keyInput = new KeyInputSystem();
+		// NkContextSingleton nkContext = new NkContextSingleton();
+		// CustomMenuSystem menuSystem = new CustomMenuSystem();
 		public Map<String, NuklearUIComponent> registeredNuklear = new CollectionSuppliers.MapSupplier<String, NuklearUIComponent>().get();
 		public List<NuklearUIComponent> menuQueue = new CollectionSuppliers.ListSupplier<NuklearUIComponent>().get();
 		public final FrameTimeManager eventTimeManager = new FrameTimeManager();
@@ -168,10 +170,10 @@ public interface ClientWindowSystem {
 		public int index = 0;
 		public String name;
 		public boolean playable = true;
-		//nkimage
+		// nkimage
 	}
 
-	//shortcut finals:
+	// shortcut finals:
 	static final int MONO = 1, STEREO = 2;
 
 	public static AudioData createBufferData(String file) throws UnsupportedAudioFileException {
@@ -193,29 +195,29 @@ public interface ClientWindowSystem {
 			if (format.isBigEndian())
 				throw new UnsupportedAudioFileException("Can't handle Big Endian formats yet");
 
-			//load stream into byte buffer
+			// load stream into byte buffer
 			int openALFormat = -1;
 			switch (format.getChannels()) {
-				case MONO:
-					switch (format.getSampleSizeInBits()) {
-						case 8:
-							openALFormat = AL10.AL_FORMAT_MONO8;
-							break;
-						case 16:
-							openALFormat = AL10.AL_FORMAT_MONO16;
-							break;
-					}
+			case MONO:
+				switch (format.getSampleSizeInBits()) {
+				case 8:
+					openALFormat = AL10.AL_FORMAT_MONO8;
 					break;
-				case STEREO:
-					switch (format.getSampleSizeInBits()) {
-						case 8:
-							openALFormat = AL10.AL_FORMAT_STEREO8;
-							break;
-						case 16:
-							openALFormat = AL10.AL_FORMAT_STEREO16;
-							break;
-					}
+				case 16:
+					openALFormat = AL10.AL_FORMAT_MONO16;
 					break;
+				}
+				break;
+			case STEREO:
+				switch (format.getSampleSizeInBits()) {
+				case 8:
+					openALFormat = AL10.AL_FORMAT_STEREO8;
+					break;
+				case 16:
+					openALFormat = AL10.AL_FORMAT_STEREO16;
+					break;
+				}
+				break;
 			}
 
 			ByteBuffer data = BufferUtils.createByteBuffer(stream.available());
@@ -223,7 +225,7 @@ public interface ClientWindowSystem {
 			data.flip();
 
 			int id = AL10.alGenBuffers();
-			//load audio data into appropriate system space....
+			// load audio data into appropriate system space....
 			AL10.alBufferData(id, openALFormat, data, (int) format.getSampleRate());
 			logger.trace(file + " using id " + id);
 
@@ -236,8 +238,7 @@ public interface ClientWindowSystem {
 		return audio;
 	}
 
-	public default NuklearUIComponent setupLevelSelectMenu(ClientWindow window, NuklearMenuSystem menuSystem, Wrapper<LevelPreview[]> levelPreviewWrapper,
-		Wrapper<Consumer<LevelPreview>> levelSelect) {
+	public default NuklearUIComponent setupLevelSelectMenu(ClientWindow window, NuklearMenuSystem menuSystem, Wrapper<LevelPreview[]> levelPreviewWrapper, Wrapper<Consumer<LevelPreview>> levelSelect) {
 
 		Wrapper<Integer> levelSelectIndex = new WrapperImpl<>();
 		Menu levelDetails = new Menu() {
@@ -302,7 +303,8 @@ public interface ClientWindowSystem {
 					if (lp.playable) {
 						int id = i;
 						if (sel == i) {
-							NuklearManager.styledButton(context, active, () -> {
+							NuklearManager.styledButton(context, active, () ->
+							{
 								nk_button_label(context, lp.name);
 							});
 						} else {
@@ -314,7 +316,7 @@ public interface ClientWindowSystem {
 						NuklearManager.styledButton(context, NuklearMenuSystem.getDisabled(context, stack), () -> nk_button_label(context, "[Locked] " + lp.name));
 
 						if (sel == i) {
-							//if disabled cannot be selected 
+							// if disabled cannot be selected
 							levelSelectIndex.setWrapped(-1);
 						}
 					}
@@ -338,7 +340,8 @@ public interface ClientWindowSystem {
 	}
 
 	static void setupAudioSystem(ClientWindow window) {
-		window.events.postCreation.add(() -> {
+		window.events.postCreation.add(() ->
+		{
 			window.audioDevice = ALC10.alcOpenDevice((ByteBuffer) null);
 
 			ALCCapabilities deviceCaps = ALC.createCapabilities(window.audioDevice);
@@ -364,12 +367,13 @@ public interface ClientWindowSystem {
 
 			AL.createCapabilities(deviceCaps);
 
-			//define listener
+			// define listener
 			AL10.alListener3f(AL10.AL_VELOCITY, 0f, 0f, 0f);
 			AL10.alListener3f(AL10.AL_ORIENTATION, 0f, 0f, -1f);
 			window.hasAudio = true;
 		});
-		window.events.preCleanup.add(() -> {
+		window.events.preCleanup.add(() ->
+		{
 
 			for (Integer source : window.audioSources) {
 				AL10.alSourceStop(source);
@@ -382,7 +386,8 @@ public interface ClientWindowSystem {
 
 	/**
 	 * This starts the main thread worker and runs setup up most things.<br>
-	 * this will block the current thread. 
+	 * this will block the current thread.
+	 * 
 	 * @param windowManager
 	 * @param window
 	 * @param nkContext
@@ -391,12 +396,12 @@ public interface ClientWindowSystem {
 	 */
 	public static void start(WindowManager windowManager, ClientWindow window, AtomicInteger quitCountdown, ExecutorService service) {
 		/*
-				setupAudioSystem(window);
-				closeAudioSystem(window);*/
+		 * setupAudioSystem(window); closeAudioSystem(window);
+		 */
 		WindowMonitorBoundsSystem wmbs = new WindowMonitorBoundsSystem();
 		wmbs.centerBoundsInMonitor(0, window.bounds);
 
-		window.loopThread = new GLFWThread(window,  window.renderTimeManager, true, new Runnable[] {});
+		window.loopThread = new GLFWThread(window, window.renderTimeManager, true, new Runnable[] {});
 		window.events.preCleanup.add(() -> window.sendEvent(WindowEvent.ClientClose));
 		Thread.currentThread().setUncaughtExceptionHandler(new UncaughtExceptionHandler() {
 
@@ -409,7 +414,7 @@ public interface ClientWindowSystem {
 
 					message += "\tat " + b + " \r\n";
 
-					//					message += "\t" + b + "\r\n";
+					// message += "\t" + b + "\r\n";
 				}
 
 				// Print cause, if any
@@ -440,7 +445,7 @@ public interface ClientWindowSystem {
 
 					message += "\tat " + b + " \r\n";
 
-					//					message += "\t" + b + "\r\n";
+					// message += "\t" + b + "\r\n";
 				}
 
 				// Print cause, if any
@@ -465,18 +470,17 @@ public interface ClientWindowSystem {
 //		Builder t = windowManager.generateManagerRunnable(quitCountdown, NuklearManager.globalEventsHandler(window.nkContext, windowManager.getActiveWindows()), window.eventTimeManager, window);
 		service.execute(() -> window.loopThread.start());
 //		t.build().run();
-		//		service.execute(t.build());
-		//		window.loopThread.run();
+		// service.execute(t.build());
+		// window.loopThread.run();
 
 	}
 
-	public static void setupWindow(ClientWindow window, KeyInputSystem keyInput, NkContextSingleton nkContext,
-		ClientOptionSystem clientOptionSystem) {
+	public static void setupWindow(ClientWindow window, KeyInputSystem keyInput, NkContextSingleton nkContext, ClientOptionSystem clientOptionSystem) {
 
 		clientOptionSystem.readSettingsFile(window.clientOptions);
 
 		WindowHints.debug = true;
-		window.name=("Main Window");
+		window.name = ("Main Window");
 		window.vSync = true;
 		WindowHints hints = new WindowHints().setVisible(false).setDoublebuffer(true).setResizable(false);
 		window.hints.copyFrom(hints, false);
@@ -496,29 +500,31 @@ public interface ClientWindowSystem {
 			}
 		});
 
-		window.events.frameStart.add(() -> {
+		window.events.frameStart.add(() ->
+		{
 			if (window.queueChangeCursorType.getWrapped() != null) {
 				switch (window.queueChangeCursorType.getWrapped()) {
-					case Disabled:
-						glfwSetInputMode(window.windowID, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-						window.currentCursorType.setWrapped(GLFWCursorType.Disabled);
-						break;
-					case Hidden:
-						glfwSetInputMode(window.windowID, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-						window.currentCursorType.setWrapped(GLFWCursorType.Hidden);
-						break;
-					case Normal:
-						glfwSetInputMode(window.windowID, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-						window.currentCursorType.setWrapped(GLFWCursorType.Normal);
-						break;
-					default:
-						break;
+				case Disabled:
+					glfwSetInputMode(window.windowID, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+					window.currentCursorType.setWrapped(GLFWCursorType.Disabled);
+					break;
+				case Hidden:
+					glfwSetInputMode(window.windowID, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+					window.currentCursorType.setWrapped(GLFWCursorType.Hidden);
+					break;
+				case Normal:
+					glfwSetInputMode(window.windowID, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+					window.currentCursorType.setWrapped(GLFWCursorType.Normal);
+					break;
+				default:
+					break;
 
 				}
 			}
 		});
 
-		window.events.postCreation.add(() -> {
+		window.events.postCreation.add(() ->
+		{
 			logger.debug("Started new window thread: " + Thread.currentThread().getName());
 			glfwShowWindow(window.windowID);
 		});
@@ -536,9 +542,9 @@ public interface ClientWindowSystem {
 			window.renderTimeManager.desiredFrameRate = 60;
 		}
 		window.vSync = false;
-
-		window.callbacks.keyCallbackSet.add((long windowID, int key, int scancode, int action, int mods) -> keyInput.eventHandleKey(window.keyPressMap, windowID, key, scancode, action, mods));
-		window.callbacks.mouseButtonCallbackSet.add((long windowID, int key, int action, int mods) -> keyInput.eventHandleMouse(window.mousePressMap, windowID, key, action, mods));
+		
+		//window.callbacks.keyCallbackSet.add((long windowID, int key, int scancode, int action, int mods) -> keyInput.eventHandleKey(window.keyPressMap, windowID, key, scancode, action, mods));
+		//window.callbacks.mouseButtonCallbackSet.add((long windowID, int key, int action, int mods) -> keyInput.eventHandleMouse(window.mousePressMap, windowID, key, action, mods));
 
 	}
 

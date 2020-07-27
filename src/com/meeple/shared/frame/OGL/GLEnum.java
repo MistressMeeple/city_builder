@@ -4,7 +4,8 @@ public interface GLEnum {
 
 	/**
 	 * 
-	 * @returnthe openGL int representation of the enum
+	 * @return the openGL int representation of the enum
 	 */
 	public int getGLID();
+	
 }

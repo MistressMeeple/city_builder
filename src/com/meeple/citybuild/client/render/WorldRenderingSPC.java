@@ -14,7 +14,7 @@ import org.lwjgl.opengl.GL46;
 import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.OGL.ShaderProgram;
-import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
+import com.meeple.shared.frame.OGL.ShaderProgram.VertexAttribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferType;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferUsage;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDataType;
@@ -189,7 +189,7 @@ public class WorldRenderingSPC {
 			case WorldLitFlat: {
 				ret = new Mesh();
 				{
-					Attribute vPositionAttrib = new Attribute();
+					VertexAttribute vPositionAttrib = new VertexAttribute();
 					vPositionAttrib.name = "vPosition";
 					vPositionAttrib.bufferType = BufferType.ArrayBuffer;
 					vPositionAttrib.dataType = GLDataType.Float;
@@ -198,10 +198,10 @@ public class WorldRenderingSPC {
 					vPositionAttrib.normalised = false;
 
 					ret.VBOs.add(vPositionAttrib);
-					ret.attributes.put("vPosition", vPositionAttrib);
+					ret.addAttribute( vPositionAttrib);
 				}
 				{
-					Attribute vNormalAttrib = new Attribute();
+					VertexAttribute vNormalAttrib = new VertexAttribute();
 					vNormalAttrib.name = "vNormal";
 					vNormalAttrib.bufferType = BufferType.ArrayBuffer;
 					vNormalAttrib.dataType = GLDataType.Float;
@@ -210,11 +210,11 @@ public class WorldRenderingSPC {
 					vNormalAttrib.normalised = false;
 
 					ret.VBOs.add(vNormalAttrib);
-					ret.attributes.put("vNormal", vNormalAttrib);
+					ret.addAttribute(vNormalAttrib);
 				}
 
 				{
-					Attribute colourAttrib = new Attribute();
+					VertexAttribute colourAttrib = new VertexAttribute();
 					colourAttrib.name = "colour";
 					colourAttrib.bufferType = BufferType.ArrayBuffer;
 					colourAttrib.dataType = GLDataType.Float;
@@ -225,11 +225,11 @@ public class WorldRenderingSPC {
 					colourAttrib.instanceStride = 1;
 
 					ret.VBOs.add(colourAttrib);
-					ret.attributes.put("colour", colourAttrib);
+					ret.addAttribute( colourAttrib);
 				}
 
 				{
-					Attribute modelMatrixAttrib = new Attribute();
+					VertexAttribute modelMatrixAttrib = new VertexAttribute();
 					modelMatrixAttrib.name = "modelMatrix";
 					modelMatrixAttrib.bufferType = BufferType.ArrayBuffer;
 					modelMatrixAttrib.dataType = GLDataType.Float;
@@ -240,10 +240,10 @@ public class WorldRenderingSPC {
 					modelMatrixAttrib.instanceStride = 1;
 
 					ret.VBOs.add(modelMatrixAttrib);
-					ret.attributes.put("modelMatrix", modelMatrixAttrib);
+					ret.addAttribute( modelMatrixAttrib);
 				}
 				{
-					Attribute modelNormalMatrixAttrib = new Attribute();
+					VertexAttribute modelNormalMatrixAttrib = new VertexAttribute();
 					modelNormalMatrixAttrib.name = "normalMatrix";
 					modelNormalMatrixAttrib.bufferType = BufferType.ArrayBuffer;
 					modelNormalMatrixAttrib.dataType = GLDataType.Float;
@@ -254,7 +254,7 @@ public class WorldRenderingSPC {
 					modelNormalMatrixAttrib.instanceStride = 1;
 
 					ret.VBOs.add(modelNormalMatrixAttrib);
-					ret.attributes.put("normalMatrix", modelNormalMatrixAttrib);
+					ret.addAttribute( modelNormalMatrixAttrib);
 				}
 				ret.modelRenderType = GLDrawMode.Triangles;
 
@@ -264,7 +264,7 @@ public class WorldRenderingSPC {
 
 				ret = new Mesh();
 				{
-					Attribute vPositionAttrib = new Attribute();
+					VertexAttribute vPositionAttrib = new VertexAttribute();
 					vPositionAttrib.name = "vPosition";
 					vPositionAttrib.bufferType = BufferType.ArrayBuffer;
 					vPositionAttrib.dataType = GLDataType.Float;
@@ -273,10 +273,10 @@ public class WorldRenderingSPC {
 					vPositionAttrib.normalised = false;
 
 					ret.VBOs.add(vPositionAttrib);
-					ret.attributes.put("vPosition", vPositionAttrib);
+					ret.addAttribute(vPositionAttrib);
 				}
 				{
-					Attribute vNormalAttrib = new Attribute();
+					VertexAttribute vNormalAttrib = new VertexAttribute();
 					vNormalAttrib.name = "vNormal";
 					vNormalAttrib.bufferType = BufferType.ArrayBuffer;
 					vNormalAttrib.dataType = GLDataType.Float;
@@ -285,11 +285,11 @@ public class WorldRenderingSPC {
 					vNormalAttrib.normalised = false;
 
 					ret.VBOs.add(vNormalAttrib);
-					ret.attributes.put("vNormal", vNormalAttrib);
+					ret.addAttribute( vNormalAttrib);
 				}
 
 				{
-					Attribute matIndexAttrib = new Attribute();
+					VertexAttribute matIndexAttrib = new VertexAttribute();
 					matIndexAttrib.name = "materialIndex";
 					matIndexAttrib.bufferType = BufferType.ArrayBuffer;
 					matIndexAttrib.dataType = GLDataType.Float;
@@ -300,11 +300,11 @@ public class WorldRenderingSPC {
 					matIndexAttrib.instanceStride = 1;
 
 					ret.VBOs.add(matIndexAttrib);
-					ret.attributes.put("colour", matIndexAttrib);
+					ret.addAttribute(matIndexAttrib);
 				}
 
 				{
-					Attribute modelMatrixAttrib = new Attribute();
+					VertexAttribute modelMatrixAttrib = new VertexAttribute();
 					modelMatrixAttrib.name = "modelMatrix";
 					modelMatrixAttrib.bufferType = BufferType.ArrayBuffer;
 					modelMatrixAttrib.dataType = GLDataType.Float;
@@ -315,10 +315,10 @@ public class WorldRenderingSPC {
 					modelMatrixAttrib.instanceStride = 1;
 
 					ret.VBOs.add(modelMatrixAttrib);
-					ret.attributes.put("modelMatrix", modelMatrixAttrib);
+					ret.addAttribute(modelMatrixAttrib);
 				}
 				{
-					Attribute modelNormalMatrixAttrib = new Attribute();
+					VertexAttribute modelNormalMatrixAttrib = new VertexAttribute();
 					modelNormalMatrixAttrib.name = "normalMatrix";
 					modelNormalMatrixAttrib.bufferType = BufferType.ArrayBuffer;
 					modelNormalMatrixAttrib.dataType = GLDataType.Float;
@@ -329,7 +329,7 @@ public class WorldRenderingSPC {
 					modelNormalMatrixAttrib.instanceStride = 1;
 
 					ret.VBOs.add(modelNormalMatrixAttrib);
-					ret.attributes.put("normalMatrix", modelNormalMatrixAttrib);
+					ret.addAttribute(modelNormalMatrixAttrib);
 				}
 				ret.modelRenderType = GLDrawMode.Triangles;
 				break;
@@ -338,7 +338,7 @@ public class WorldRenderingSPC {
 			case WorldUnlitFlat: {
 				ret = new Mesh();
 				{
-					Attribute vPositionAttrib = new Attribute();
+					VertexAttribute vPositionAttrib = new VertexAttribute();
 					vPositionAttrib.name = "vPosition";
 					vPositionAttrib.bufferType = BufferType.ArrayBuffer;
 					vPositionAttrib.dataType = GLDataType.Float;
@@ -347,10 +347,10 @@ public class WorldRenderingSPC {
 					vPositionAttrib.normalised = false;
 
 					ret.VBOs.add(vPositionAttrib);
-					ret.attributes.put("vPosition", vPositionAttrib);
+					ret.addAttribute(vPositionAttrib);
 				}
 				{
-					Attribute colourAttrib = new Attribute();
+					VertexAttribute colourAttrib = new VertexAttribute();
 					colourAttrib.name = "colour";
 					colourAttrib.bufferType = BufferType.ArrayBuffer;
 					colourAttrib.dataType = GLDataType.Float;
@@ -361,7 +361,7 @@ public class WorldRenderingSPC {
 					colourAttrib.instanceStride = 1;
 
 					ret.VBOs.add(colourAttrib);
-					ret.attributes.put("colour", colourAttrib);
+					ret.addAttribute( colourAttrib);
 				}
 				ret.modelRenderType = GLDrawMode.Triangles;
 

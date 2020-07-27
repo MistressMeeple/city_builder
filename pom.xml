@@ -21,7 +21,7 @@
 	</build>
 
 	<properties>
-		<lwjgl.version>3.2.1</lwjgl.version>
+		<lwjgl.version>3.2.3</lwjgl.version>
 		<joml.version>1.9.13</joml.version>
 		<steamworks4j.version>1.8.0</steamworks4j.version>
 		<steamworks4j-server.version>1.8.0</steamworks4j-server.version>

@@ -53,7 +53,7 @@ import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.OGL.ShaderProgram;
-import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
+import com.meeple.shared.frame.OGL.ShaderProgram.VertexAttribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferDataManagementType;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferObject;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferType;
@@ -61,6 +61,7 @@ import com.meeple.shared.frame.OGL.ShaderProgram.BufferUsage;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDataType;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
+import com.meeple.shared.frame.OGL.ShaderProgram.IndexBufferObject;
 import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2.ShaderClosable;
@@ -83,7 +84,7 @@ public class ModelLoader {
 	/**
 	 * Names of the attributes, these are stored in the mesh instanced map with these values as keys
 	 */
-	private static final String transformMatName = "meshTransformMatrix", materialIndexName = "meshMaterialIndex", normalMatName = "meshNormalMatrix", colourName = "colour";
+	private static final String transformMatName = "modelMatrix", materialIndexName = "materialIndex", normalMatName = "normalMatrix", colourName = "colour";
 
 	public static void main(String[] args) {
 
@@ -239,7 +240,11 @@ public class ModelLoader {
 				update();
 				render(program);
 
-				ShaderProgramSystem2.tryRender(debugProgram);
+				try(ShaderClosable prog = ShaderProgramSystem2.useProgram(debugProgram)){
+					ShaderProgramSystem2.renderMesh(axis);
+				}
+				
+				
 				glfwSwapBuffers(window);
 			}
 
@@ -605,7 +610,11 @@ public class ModelLoader {
 			glUniform1f(ambientBrightnessLocation, 0.0125f);
 		}
 
-		ShaderProgramSystem2.tryRender(program);
+		try(ShaderClosable prog = ShaderProgramSystem2.useProgram(program)){
+			
+		}
+		logger.warn("havent setup the rendering sstem again");
+		
 
 	}
 
@@ -652,7 +661,7 @@ public class ModelLoader {
 	 */
 	private void writeBuffer(MeshInstance instance, String name, float[] data) throws Exception {
 
-		Attribute attrib = instance.mesh.get().attributes.get(name);
+		VertexAttribute attrib = instance.mesh.get().getAttribute(name);
 		long offset = instance.meshDataIndex * (attrib.dataSize * attrib.dataType.getBytes());
 
 		GL46.glBindBuffer(attrib.bufferType.getGLID(), attrib.VBOID);
@@ -724,7 +733,7 @@ public class ModelLoader {
 	private ShaderProgram.Mesh setupMesh(AIMesh aim, long maxMeshes) {
 		ShaderProgram.Mesh mesh = new ShaderProgram.Mesh();
 		{
-			Attribute vertexAttrib = new Attribute();
+			VertexAttribute vertexAttrib = new VertexAttribute();
 			vertexAttrib.name = "vertex";
 			vertexAttrib.bufferType = BufferType.ArrayBuffer;
 			vertexAttrib.dataType = GLDataType.Float;
@@ -742,7 +751,7 @@ public class ModelLoader {
 			mesh.VBOs.add(vertexAttrib);
 		}
 		{
-			Attribute normalAttrib = new Attribute();
+			VertexAttribute normalAttrib = new VertexAttribute();
 			normalAttrib.name = "normal";
 			normalAttrib.bufferType = BufferType.ArrayBuffer;
 			normalAttrib.dataType = GLDataType.Float;
@@ -757,7 +766,7 @@ public class ModelLoader {
 			mesh.VBOs.add(normalAttrib);
 		}
 		{
-			BufferObject elementAttrib = new BufferObject();
+			IndexBufferObject elementAttrib = new IndexBufferObject();
 			elementAttrib.bufferType = BufferType.ElementArrayBuffer;
 			elementAttrib.bufferUsage = BufferUsage.StaticDraw;
 			elementAttrib.dataType = GLDataType.UnsignedInt;
@@ -771,13 +780,13 @@ public class ModelLoader {
 			IntBuffer elementArrayBufferData = convertElementBuffer(facesBuffer, faceCount, elementCount);
 			elementAttrib.buffer = elementArrayBufferData;
 
-			mesh.index = new WeakReference<ShaderProgram.BufferObject>(elementAttrib);
+			mesh.index = new WeakReference<ShaderProgram.IndexBufferObject>(elementAttrib);
 			mesh.vertexCount = elementCount;
 		}
 
 		{
-			Attribute materialIndexAttrib = new Attribute();
-			materialIndexAttrib.name = "materialIndex";
+			VertexAttribute materialIndexAttrib = new VertexAttribute();
+			materialIndexAttrib.name = materialIndexName;//
 			materialIndexAttrib.bufferType = BufferType.ArrayBuffer;
 			materialIndexAttrib.dataType = GLDataType.Float;
 			materialIndexAttrib.bufferUsage = BufferUsage.DynamicDraw;
@@ -788,12 +797,12 @@ public class ModelLoader {
 			materialIndexAttrib.bufferResourceType = BufferDataManagementType.Empty;
 			materialIndexAttrib.bufferLen = maxMeshes;
 			mesh.VBOs.add(materialIndexAttrib);
-			mesh.attributes.put(materialIndexName, materialIndexAttrib);
+			mesh.addAttribute(materialIndexAttrib);
 		}
 
 		{
-			Attribute meshTransformAttrib = new Attribute();
-			meshTransformAttrib.name = "modelMatrix";
+			VertexAttribute meshTransformAttrib = new VertexAttribute();
+			meshTransformAttrib.name = transformMatName;
 			meshTransformAttrib.bufferType = BufferType.ArrayBuffer;
 			meshTransformAttrib.dataType = GLDataType.Float;
 			meshTransformAttrib.bufferUsage = BufferUsage.DynamicDraw;
@@ -805,15 +814,15 @@ public class ModelLoader {
 			meshTransformAttrib.bufferLen = maxMeshes;
 			mesh.VBOs.add(meshTransformAttrib);
 			//			FrameUtils.appendToList(meshTransformAttrib.data, modelMatrix);
-			mesh.attributes.put(transformMatName, meshTransformAttrib);
+			mesh.addAttribute(meshTransformAttrib);
 		}
 		/**
 		 * It is important to use a data size of 16 rather than 9 because for some reason the buffer adds padding to vec3 to 4 floats
 		 * easier to just make it a 4 float array
 		 */
 		{
-			Attribute meshNormalMatrixAttrib = new Attribute();
-			meshNormalMatrixAttrib.name = "normalMatrix";
+			VertexAttribute meshNormalMatrixAttrib = new VertexAttribute();
+			meshNormalMatrixAttrib.name = normalMatName;// "normalMatrix";
 			meshNormalMatrixAttrib.bufferType = BufferType.ArrayBuffer;
 			meshNormalMatrixAttrib.dataType = GLDataType.Float;
 			meshNormalMatrixAttrib.bufferUsage = BufferUsage.DynamicDraw;
@@ -825,7 +834,7 @@ public class ModelLoader {
 			meshNormalMatrixAttrib.bufferLen = maxMeshes;
 			mesh.VBOs.add(meshNormalMatrixAttrib);
 			//			FrameUtils.appendToList(meshTransformAttrib.data, modelMatrix);
-			mesh.attributes.put(normalMatName, meshNormalMatrixAttrib);
+			mesh.addAttribute(meshNormalMatrixAttrib);
 		}
 		mesh.modelRenderType = GLDrawMode.Triangles;
 
@@ -842,7 +851,7 @@ public class ModelLoader {
 	private ShaderProgram.Mesh setup_3D_nolit_flat_mesh(FloatBuffer vertices, FloatBuffer colours, int count) {
 		ShaderProgram.Mesh mesh = new ShaderProgram.Mesh();
 		{
-			Attribute vertexAttrib = new Attribute();
+			VertexAttribute vertexAttrib = new VertexAttribute();
 			vertexAttrib.name = "vertex";
 			vertexAttrib.bufferType = BufferType.ArrayBuffer;
 			vertexAttrib.dataType = GLDataType.Float;
@@ -857,8 +866,8 @@ public class ModelLoader {
 		}
 
 		{
-			Attribute colourAttrib = new Attribute();
-			colourAttrib.name = "colour";
+			VertexAttribute colourAttrib = new VertexAttribute();
+			colourAttrib.name = colourName;
 			colourAttrib.bufferType = BufferType.ArrayBuffer;
 			colourAttrib.dataType = GLDataType.Float;
 			colourAttrib.bufferUsage = BufferUsage.StaticDraw;
@@ -870,7 +879,7 @@ public class ModelLoader {
 			colourAttrib.buffer = colours;
 
 			mesh.VBOs.add(colourAttrib);
-			mesh.attributes.put(colourName, colourAttrib);
+			mesh.addAttribute(colourAttrib);
 		}
 
 		mesh.vertexCount = count;

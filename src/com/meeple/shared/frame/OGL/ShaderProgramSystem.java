@@ -31,10 +31,11 @@ import org.lwjgl.system.MemoryStack;
 
 import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.FileLoader;
-import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
+import com.meeple.shared.frame.OGL.ShaderProgram.VertexAttribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferObject;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLStatus;
+import com.meeple.shared.frame.OGL.ShaderProgram.IndexBufferObject;
 import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
 import com.meeple.shared.frame.OGL.ShaderProgram.VAO;
 
@@ -65,33 +66,43 @@ public class ShaderProgramSystem {
 	/**
 	 * Single upload uniform manager instance
 	 */
+
 	public static UniformManager<String, Integer> singleUpload = new SingleUniformSystem();
 	/**
 	 * Multiple upload uniform manager instance
 	 */
+
 	public static UniformManager<String[], Integer[]> multiUpload = new MultiUniformSystem();
 	/**
 	 * Single matrix uploading system
 	 */
-	public IShaderUniformUploadSystem<Matrix4f, Integer> mat4SingleUploader = (upload, uniformID, stack) -> {
+
+	public IShaderUniformUploadSystem<Matrix4f, Integer> mat4SingleUploader = (upload, uniformID, stack) ->
+	{
 		GL46.glUniformMatrix4fv(uniformID, false, IShaderUniformUploadSystem.generateMatrix4fBuffer(stack, upload));
 	};
 
 	/**
 	 * Sets up the program by<br>
 	 * <ol>
-	 * <li>Generating and setting program ID ({@link  GL46#glCreateProgram()})</li>
+	 * <li>Generating and setting program ID ({@link GL46#glCreateProgram()})</li>
 	 * <li>Compiling any shader sources ({@link #compileShaders(Map)})</li>
-	 * <li>Merging any shaders IDs just compiled with the programs shader IDs ({@link #merge(Map, Map)}</li>
+	 * <li>Merging any shaders IDs just compiled with the programs shader IDs
+	 * ({@link #merge(Map, Map)}</li>
 	 * <li>Attaching shader IDs to the program ({@link #bindShaders(int, Map)})</li>
-	 * <li>Getting/setting indexes of all attributes attached to program ({@link #bindAttributeLocations(int, Map)})</li>
+	 * <li>Getting/setting indexes of all attributes attached to program
+	 * ({@link #bindAttributeLocations(int, Map)})</li>
 	 * <li>Linking the program ({@link GL46#glLinkProgram(int)})</li>
 	 * <li>Validating the program {@link GL46#glValidateProgram(int)}</li>
-	 * <li>Getting/setting indexes of all uniforms attached to program< ({@link #bindUniformLocations(int, Map)})</li>
+	 * <li>Getting/setting indexes of all uniforms attached to program<
+	 * ({@link #bindUniformLocations(int, Map)})</li>
 	 * </ol>
+	 * 
 	 * @param program Shader program to create/setup
-	 * @throws Exception when the program fails error checks. if thrown auto closes and deletes resources
+	 * @throws Exception when the program fails error checks. if thrown auto closes
+	 *                   and deletes resources
 	 */
+
 	public static void create(ShaderProgram program) {
 		program.programID = GL46.glCreateProgram();
 		logger.trace("Creating new Shader program with ID: " + program.programID);
@@ -100,7 +111,7 @@ public class ShaderProgramSystem {
 		merge(shaderIDs, program.shaderIDs);
 		program.shaderIDs.putAll(shaderIDs);
 		bindShaders(program.programID, program.shaderIDs.values());
-		//bindAttributeLocations(program.programID, program.attributes);
+//bindAttributeLocations(program.programID, program.attributes);
 		String log = "";
 		try {
 			GL46.glLinkProgram(program.programID);
@@ -139,11 +150,13 @@ public class ShaderProgramSystem {
 	}
 
 	/**
-	 * Compile a single shader from source and given type, prints any errors 
+	 * Compile a single shader from source and given type, prints any errors
+	 * 
 	 * @param source shader source to compile
-	 * @param type shader type of shader to compile
+	 * @param type   shader type of shader to compile
 	 * @return generated ID of shader
 	 */
+
 	public static int compileShader(String source, int type) {
 		int shaderID = GL46.glCreateShader(type);
 		GL46.glShaderSource(shaderID, source);
@@ -172,7 +185,7 @@ public class ShaderProgramSystem {
 			Entry<GLShaderType, Integer> entry = iterator.next();
 			GLShaderType shaderType = entry.getKey();
 			Integer oldID = mergeTo.get(shaderType);
-			//only assign if not existing
+			// only assign if not existing
 			if (oldID == null) {
 				mergeTo.put(shaderType, entry.getValue());
 			}
@@ -180,10 +193,13 @@ public class ShaderProgramSystem {
 	}
 
 	/**
-	 * Compiles all the shaders from their sources provided in the map values (keyed by shader type)
+	 * Compiles all the shaders from their sources provided in the map values (keyed
+	 * by shader type)
+	 * 
 	 * @param shaderMap map of shaders to compile
 	 * @return shader type - shader ID map
 	 */
+
 	public static Map<GLShaderType, Integer> compileShaders(Map<GLShaderType, String> shaderMap) {
 		Set<Entry<GLShaderType, String>> sources = shaderMap.entrySet();
 		Map<GLShaderType, Integer> shaderIDs = new CollectionSuppliers.MapSupplier<GLShaderType, Integer>().get();
@@ -201,9 +217,11 @@ public class ShaderProgramSystem {
 
 	/**
 	 * Attaches all the Shaders (ID's stored in values) to the given program ID
-	 * @param makeQuadProgram ID to bind to 
-	 * @param shaderMap map of shader type-ID's to bind
+	 * 
+	 * @param makeQuadProgram ID to bind to
+	 * @param shaderMap       map of shader type-ID's to bind
 	 */
+
 	private static void bindShaders(int programID, Collection<Integer> shaderMapSet) {
 
 		synchronized (shaderMapSet) {
@@ -217,10 +235,13 @@ public class ShaderProgramSystem {
 
 	/**
 	 * Sets the correct index for all uniforms provided. <br>
-	 * Internally uses {@link GL46#glGetUniformLocation(int, CharSequence)} to set Integer of entry using the entry key as the name. 
+	 * Internally uses {@link GL46#glGetUniformLocation(int, CharSequence)} to set
+	 * Integer of entry using the entry key as the name.
+	 * 
 	 * @param programID
 	 * @param uniformSystems
 	 */
+
 	private static void bindUniformLocations(int programID, Map<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>> uniformSystems) {
 
 		synchronized (uniformSystems) {
@@ -236,11 +257,15 @@ public class ShaderProgramSystem {
 
 	/**
 	 * Loads a string that represents a shader from the file system. <br>
-	 * calls {@link FileLoader#loadFile(String)} to get the file resource stream then convers the file into a string by reading line by line
-	 * @param name file name to load in either the packaged jar file or external file
+	 * calls {@link FileLoader#loadFile(String)} to get the file resource stream
+	 * then convers the file into a string by reading line by line
+	 * 
+	 * @param name file name to load in either the packaged jar file or external
+	 *             file
 	 * @return string of loaded shader
-	 * @see FileLoader#loadFile(String) 
+	 * @see FileLoader#loadFile(String)
 	 */
+
 	public static String loadShaderSourceFromFile(String name) {
 		Reader stream = FileLoader.loadFile(name);
 		StringBuilder shaderSource = new StringBuilder();
@@ -260,21 +285,23 @@ public class ShaderProgramSystem {
 	/**
 	 * Sets up the VAO to be used by the shader program<br>
 	 * generates the ID, iterates and binds all VBO data and unbinds at the end
+	 * 
 	 * @param program to bind to
-	 * @param vao to setup
+	 * @param vao     to setup
 	 * @see #bindBuffer(ShaderProgram, BufferObject)
 	 */
+
 	public static void loadVAO(ShaderProgram program, VAO vao) {
 		if (program.programID == 0) {
 			logger.warn("Shader program has not been initialized. Do that first before loading any VAOs");
 		}
 		int vaoID = GL46.glGenVertexArrays();
-		/*		Mesh mesh = null;
-				if (vao instanceof Mesh) {
-					mesh = (Mesh) vao;
-				}
-		
-				logger.trace("Generating new VAO with ID " + vaoID + (mesh != null ? " for mesh " + mesh.name : ""));*/
+		Mesh mesh = null;
+		if (vao instanceof Mesh) {
+			mesh = (Mesh) vao;
+		}
+
+		logger.trace("Generating new VAO with ID " + vaoID + (mesh != null ? " for mesh " + mesh.name : ""));
 		GL46.glBindVertexArray(vaoID);
 		vao.VAOID = vaoID;
 		Collection<BufferObject> vboSet = vao.VBOs;
@@ -282,7 +309,7 @@ public class ShaderProgramSystem {
 			BufferObject vbo = iterator.next();
 			bindBuffer(program, vbo);
 		}
-		//unbind afterwards
+//unbind afterwards
 		GL46.glBindVertexArray(0);
 		program.VAOs.add(vao);
 	}
@@ -290,19 +317,21 @@ public class ShaderProgramSystem {
 	/**
 	 * generates buffer id and attaches to program. <br>
 	 * also writes the buffer data into a OGL stream<br>
-	 * If this is an attribute it will also bind the attribute
+	 * If this is an VertexAttribute it will also bind the VertexAttribute
+	 * 
 	 * @param program
 	 * @param vbo
-	 * @see #bindAttribute(int, Attribute)
+	 * @see #bindAttribute(int, VertexAttribute)
 	 */
+
 	private static void bindBuffer(ShaderProgram program, BufferObject vbo) {
 		int vboID = GL46.glGenBuffers();
 		GL46.glBindBuffer(vbo.bufferType.getGLID(), vboID);
 		vbo.VBOID = vboID;
 		writeDataToBuffer(vbo);
 
-		if (vbo instanceof Attribute) {
-			Attribute attrib = (Attribute) vbo;
+		if (vbo instanceof VertexAttribute) {
+			VertexAttribute attrib = (VertexAttribute) vbo;
 			bindAttribute(program.programID, attrib);
 
 		}
@@ -310,141 +339,143 @@ public class ShaderProgramSystem {
 
 	/**
 	 * Writes the VBO data into the VBO buffer and then sends the buffer off to OGL
-	 * @param vbo to write data to OGL 
+	 * 
+	 * @param vbo to write data to OGL
 	 */
+
 	public static void writeDataToBuffer(BufferObject vbo) {
 
 		switch (vbo.bufferResourceType) {
-			case Address:
-				GL46.nglBufferData(vbo.bufferType.getGLID(), vbo.bufferLen, vbo.bufferAddress, vbo.bufferUsage.getGLID());
-				break;
-			case List:
+		case Address:
+			GL46.nglBufferData(vbo.bufferType.getGLID(), vbo.bufferLen, vbo.bufferAddress, vbo.bufferUsage.getGLID());
+			break;
+		case List:
 
-				int arraySize = vbo.data.size();
+			int arraySize = vbo.data.size();
 
-				//TODO check actual buffer size vs expected
-				//		logger.trace("todo: check acutal size vs expected size");
-				switch (vbo.dataType) {
-					case Byte:
-					case UnsignedByte: {
-						ByteBuffer byteBuffer = ((ByteBuffer) vbo.buffer);
-						if (byteBuffer == null || byteBuffer.capacity() != arraySize) {
-							vbo.buffer = byteBuffer = BufferUtils.createByteBuffer(arraySize);
-						}
-						for (Number b : vbo.data) {
-							byteBuffer.put(b.byteValue());
-						}
-						byteBuffer.flip();
-
-						break;
-					}
-					case Short:
-					case UnsignedShort: {
-
-						ShortBuffer shortBuffer = ((ShortBuffer) vbo.buffer);
-						if (shortBuffer == null || shortBuffer.capacity() != arraySize) {
-							vbo.buffer = shortBuffer = BufferUtils.createShortBuffer(arraySize);
-						}
-						for (Number b : vbo.data) {
-							shortBuffer.put(b.shortValue());
-						}
-						shortBuffer.flip();
-						break;
-					}
-					case Int:
-					case UnsignedInt: {
-
-						IntBuffer intBuffer = ((IntBuffer) vbo.buffer);
-						if (intBuffer == null || intBuffer.capacity() != arraySize) {
-							vbo.buffer = intBuffer = BufferUtils.createIntBuffer(arraySize);
-						}
-						for (Number b : vbo.data) {
-							intBuffer.put(b.intValue());
-						}
-						intBuffer.flip();
-						break;
-					}
-					case HalfFloat:
-					case Float: {
-						FloatBuffer floatBuffer = ((FloatBuffer) vbo.buffer);
-						if (floatBuffer == null || floatBuffer.capacity() != arraySize) {
-							vbo.buffer = floatBuffer = BufferUtils.createFloatBuffer(arraySize);
-						}
-						for (Number b : vbo.data) {
-							floatBuffer.put(b.floatValue());
-						}
-						floatBuffer.flip();
-						break;
-					}
-					case Double: {
-						DoubleBuffer doubleBuffer = ((DoubleBuffer) vbo.buffer);
-						if (doubleBuffer == null || doubleBuffer.capacity() != arraySize) {
-							vbo.buffer = doubleBuffer = BufferUtils.createDoubleBuffer(arraySize);
-						}
-						for (Number b : vbo.data) {
-							doubleBuffer.put(b.doubleValue());
-						}
-						doubleBuffer.flip();
-						break;
-					}
-					case Fixed: {
-						System.out.println("Sorry I have no idea how to represent fixed in java... ");
-						throw new RuntimeException(new UnsupportedDataTypeException());
-					}
+			// TODO check actual buffer size vs expected
+			// logger.trace("todo: check acutal size vs expected size");
+			switch (vbo.dataType) {
+			case Byte:
+			case UnsignedByte: {
+				ByteBuffer byteBuffer = ((ByteBuffer) vbo.buffer);
+				if (byteBuffer == null || byteBuffer.capacity() != arraySize) {
+					vbo.buffer = byteBuffer = BufferUtils.createByteBuffer(arraySize);
 				}
-
-			case Buffer:
-				switch (vbo.dataType) {
-					case Byte:
-					case UnsignedByte: {
-						ByteBuffer byteBuffer = ((ByteBuffer) vbo.buffer);
-						GL46.glBufferData(vbo.bufferType.getGLID(), byteBuffer, vbo.bufferUsage.getGLID());
-
-						break;
-					}
-					case Short:
-					case UnsignedShort: {
-
-						ShortBuffer shortBuffer = ((ShortBuffer) vbo.buffer);
-						GL46.glBufferData(vbo.bufferType.getGLID(), shortBuffer, vbo.bufferUsage.getGLID());
-						break;
-					}
-					case Int:
-					case UnsignedInt: {
-
-						IntBuffer intBuffer = ((IntBuffer) vbo.buffer);
-						GL46.glBufferData(vbo.bufferType.getGLID(), intBuffer, vbo.bufferUsage.getGLID());
-						break;
-					}
-					case HalfFloat:
-					case Float: {
-						FloatBuffer floatBuffer = ((FloatBuffer) vbo.buffer);
-						GL46.glBufferData(vbo.bufferType.getGLID(), floatBuffer, vbo.bufferUsage.getGLID());
-						break;
-					}
-					case Double: {
-						DoubleBuffer doubleBuffer = ((DoubleBuffer) vbo.buffer);
-						GL46.glBufferData(vbo.bufferType.getGLID(), doubleBuffer, vbo.bufferUsage.getGLID());
-						break;
-					}
-					case Fixed: {
-						System.out.println("Sorry I have no idea how to represent fixed in java... ");
-						throw new RuntimeException(new UnsupportedDataTypeException());
-					}
-					default: {
-						break;
-
-					}
+				for (Number b : vbo.data) {
+					byteBuffer.put(b.byteValue());
 				}
+				byteBuffer.flip();
+
 				break;
-			case Empty:
-				GL46.glBufferData(vbo.bufferType.getGLID(), vbo.bufferLen * vbo.dataType.getBytes() * vbo.dataSize, vbo.bufferUsage.getGLID());
+			}
+			case Short:
+			case UnsignedShort: {
+
+				ShortBuffer shortBuffer = ((ShortBuffer) vbo.buffer);
+				if (shortBuffer == null || shortBuffer.capacity() != arraySize) {
+					vbo.buffer = shortBuffer = BufferUtils.createShortBuffer(arraySize);
+				}
+				for (Number b : vbo.data) {
+					shortBuffer.put(b.shortValue());
+				}
+				shortBuffer.flip();
 				break;
-			case Manual:
-				logger.warn("manual management of vbo data. ");
+			}
+			case Int:
+			case UnsignedInt: {
+
+				IntBuffer intBuffer = ((IntBuffer) vbo.buffer);
+				if (intBuffer == null || intBuffer.capacity() != arraySize) {
+					vbo.buffer = intBuffer = BufferUtils.createIntBuffer(arraySize);
+				}
+				for (Number b : vbo.data) {
+					intBuffer.put(b.intValue());
+				}
+				intBuffer.flip();
 				break;
-			default:
+			}
+			case HalfFloat:
+			case Float: {
+				FloatBuffer floatBuffer = ((FloatBuffer) vbo.buffer);
+				if (floatBuffer == null || floatBuffer.capacity() != arraySize) {
+					vbo.buffer = floatBuffer = BufferUtils.createFloatBuffer(arraySize);
+				}
+				for (Number b : vbo.data) {
+					floatBuffer.put(b.floatValue());
+				}
+				floatBuffer.flip();
 				break;
+			}
+			case Double: {
+				DoubleBuffer doubleBuffer = ((DoubleBuffer) vbo.buffer);
+				if (doubleBuffer == null || doubleBuffer.capacity() != arraySize) {
+					vbo.buffer = doubleBuffer = BufferUtils.createDoubleBuffer(arraySize);
+				}
+				for (Number b : vbo.data) {
+					doubleBuffer.put(b.doubleValue());
+				}
+				doubleBuffer.flip();
+				break;
+			}
+			case Fixed: {
+				System.out.println("Sorry I have no idea how to represent fixed in java... ");
+				throw new RuntimeException(new UnsupportedDataTypeException());
+			}
+			}
+
+		case Buffer:
+			switch (vbo.dataType) {
+			case Byte:
+			case UnsignedByte: {
+				ByteBuffer byteBuffer = ((ByteBuffer) vbo.buffer);
+				GL46.glBufferData(vbo.bufferType.getGLID(), byteBuffer, vbo.bufferUsage.getGLID());
+
+				break;
+			}
+			case Short:
+			case UnsignedShort: {
+
+				ShortBuffer shortBuffer = ((ShortBuffer) vbo.buffer);
+				GL46.glBufferData(vbo.bufferType.getGLID(), shortBuffer, vbo.bufferUsage.getGLID());
+				break;
+			}
+			case Int:
+			case UnsignedInt: {
+
+				IntBuffer intBuffer = ((IntBuffer) vbo.buffer);
+				GL46.glBufferData(vbo.bufferType.getGLID(), intBuffer, vbo.bufferUsage.getGLID());
+				break;
+			}
+			case HalfFloat:
+			case Float: {
+				FloatBuffer floatBuffer = ((FloatBuffer) vbo.buffer);
+				GL46.glBufferData(vbo.bufferType.getGLID(), floatBuffer, vbo.bufferUsage.getGLID());
+				break;
+			}
+			case Double: {
+				DoubleBuffer doubleBuffer = ((DoubleBuffer) vbo.buffer);
+				GL46.glBufferData(vbo.bufferType.getGLID(), doubleBuffer, vbo.bufferUsage.getGLID());
+				break;
+			}
+			case Fixed: {
+				System.out.println("Sorry I have no idea how to represent fixed in java... ");
+				throw new RuntimeException(new UnsupportedDataTypeException());
+			}
+			default: {
+				break;
+
+			}
+			}
+			break;
+		case Empty:
+			GL46.glBufferData(vbo.bufferType.getGLID(), vbo.bufferLen * vbo.dataType.getBytes() * vbo.dataSize, vbo.bufferUsage.getGLID());
+			break;
+		case Manual:
+			logger.warn("manual management of vbo data. ");
+			break;
+		default:
+			break;
 		}
 	}
 
@@ -454,18 +485,22 @@ public class ShaderProgramSystem {
 	}
 
 	/**
-	 * gets the attribute ID from the shader program<br>
-	 * this WILL handle any instanced attributes and any attributes with data size over 4  
-	 * calls {@link GL46#glVertexAttribPointer(int, int, int, boolean, int, long)} to setup the pointer<br>
-	 * if attribute is instanced the diviser is setup with {@link GL46#glVertexAttribDivisor(int, int)}  
+	 * gets the VertexAttribute ID from the shader program<br>
+	 * this WILL handle any instanced attributes and any attributes with data size
+	 * over 4 calls
+	 * {@link GL46#glVertexAttribPointer(int, int, int, boolean, int, long)} to
+	 * setup the pointer<br>
+	 * if VertexAttribute is instanced the diviser is setup with
+	 * {@link GL46#glVertexAttribDivisor(int, int)}
 	 * 
 	 * @param shaderProgramID
 	 * @param attrib
 	 */
-	private static void bindAttribute(int shaderProgramID, Attribute attrib) {
+
+	private static void bindAttribute(int shaderProgramID, VertexAttribute attrib) {
 		attrib.index = GL46.glGetAttribLocation(shaderProgramID, attrib.name);
 		if (attrib.index == -1) {
-			logger.warn("[Aborting Attribute Binding] Attribute '" + attrib.name + "' could not be found in the source for program with ID " + shaderProgramID);
+			logger.warn("[Aborting VertexAttribute Binding] VertexAttribute '" + attrib.name + "' could not be found in the source for program with ID " + shaderProgramID);
 			return;
 		}
 		int id = attrib.index;
@@ -474,14 +509,8 @@ public class ShaderProgramSystem {
 			int runningTotal = 0;
 			for (int i = 0; i < attrib.dataSize; i += ShaderProgram.maxAttribDataSize) {
 				int currDiff = currentDiff(index, attrib.dataSize);
-				GL46
-					.glVertexAttribPointer(
-						id + index,
-						currDiff,
-						attrib.dataType.getGLID(),
-						attrib.normalised,
-						attrib.dataSize * attrib.dataType.getBytes(),
-						runningTotal * attrib.dataType.getBytes());
+				GL46.glVertexAttribPointer(
+					id + index, currDiff, attrib.dataType.getGLID(), attrib.normalised, attrib.dataSize * attrib.dataType.getBytes(), runningTotal * attrib.dataType.getBytes());
 				if (attrib.instanced) {
 					GL46.glVertexAttribDivisor(id + index, attrib.instanceStride);
 
@@ -490,17 +519,19 @@ public class ShaderProgramSystem {
 				runningTotal += currDiff;
 			}
 
-			//			logger.trace("Attrib '" + attrib.name + "' has indexes " + id + " through " + (id + index - 1) + " with data size of " + attrib.dataSize);
+			// logger.trace("Attrib '" + attrib.name + "' has indexes " + id + " through " +
+			// (id + index - 1) + " with data size of " + attrib.dataSize);
 		} else {
 
-			//			logger.trace("Attrib '" + attrib.name + "' has index " + id + " with data size of " + attrib.dataSize);
+			// logger.trace("Attrib '" + attrib.name + "' has index " + id + " with data
+			// size of " + attrib.dataSize);
 			GL46.glVertexAttribPointer(id, attrib.dataSize, attrib.dataType.getGLID(), attrib.normalised, 0, 0);
 			if (attrib.instanced) {
 				GL46.glVertexAttribDivisor(id, attrib.instanceStride);
 			}
 
 		}
-		//GL46.glBindBuffer(attrib.target, 0);
+//GL46.glBindBuffer(attrib.target, 0);
 	}
 
 	public static <Name, ID> void addUniform(ShaderProgram program, UniformManager<Name, ID> system, UniformManager<Name, ID>.Uniform<?> uniform) {
@@ -535,9 +566,11 @@ public class ShaderProgramSystem {
 	}
 
 	/**
-	 * Iterates all the queued uniforms for upload and uploads them. 
+	 * Iterates all the queued uniforms for upload and uploads them.
+	 * 
 	 * @param program shader program to iterate all uniforms and upload
 	 */
+
 	public static void uploadUniforms(ShaderProgram program) {
 		synchronized (program.uniformSystems) {
 			try (MemoryStack stack = stackPush()) {
@@ -575,7 +608,7 @@ public class ShaderProgramSystem {
 		return new ShaderClosable() {
 			@Override
 			public void close() {
-				//unbind vertex array
+				// unbind vertex array
 				GL46.glBindVertexArray(0);
 			}
 		};
@@ -593,12 +626,12 @@ public class ShaderProgramSystem {
 		};
 	}
 
-	public static void enableAttribute(Attribute attribute) {
-		//enables all the vertex attrib indexes
+	public static void enableAttribute(VertexAttribute VertexAttribute) {
+//enables all the vertex attrib indexes
 		int index = 0;
-		int id = attribute.index;
+		int id = VertexAttribute.index;
 		if (id != -1) {
-			for (int i = 0; i < attribute.dataSize; i += ShaderProgram.maxAttribDataSize) {
+			for (int i = 0; i < VertexAttribute.dataSize; i += ShaderProgram.maxAttribDataSize) {
 				GL46.glEnableVertexAttribArray(id + index);
 				index++;
 			}
@@ -606,12 +639,12 @@ public class ShaderProgramSystem {
 		}
 	}
 
-	public static void disableAttribute(Attribute attribute) {
-		//enables all the vertex attrib indexes
+	public static void disableAttribute(VertexAttribute VertexAttribute) {
+//enables all the vertex attrib indexes
 		int index = 0;
-		int id = attribute.index;
+		int id = VertexAttribute.index;
 		if (id != -1) {
-			for (int i = 0; i < attribute.dataSize; i += ShaderProgram.maxAttribDataSize) {
+			for (int i = 0; i < VertexAttribute.dataSize; i += ShaderProgram.maxAttribDataSize) {
 				GL46.glEnableVertexAttribArray(id + index);
 				index++;
 			}
@@ -621,8 +654,8 @@ public class ShaderProgramSystem {
 
 	public static void renderMesh(Mesh mesh) {
 
-		//check for index buffer
-		WeakReference<BufferObject> indexVboRef = mesh.index;
+//check for index buffer
+		WeakReference<IndexBufferObject> indexVboRef = mesh.index;
 		BufferObject indexVBO = null;
 
 		if (indexVboRef != null) {
@@ -630,16 +663,16 @@ public class ShaderProgramSystem {
 		}
 
 		if (indexVBO != null) {
-			//if any index buffer then bind 
+			// if any index buffer then bind
 			GL46.glBindBuffer(indexVBO.bufferType.getGLID(), indexVBO.VBOID);
-			//render count more than one = instanced
+			// render count more than one = instanced
 			if (mesh.renderCount > 1) {
 				GL46.glDrawElementsInstanced(mesh.modelRenderType.drawType, mesh.vertexCount, indexVBO.dataType.getGLID(), 0, mesh.renderCount);
 			} else if (mesh.renderCount == 1) {
 				GL46.glDrawElements(mesh.modelRenderType.drawType, mesh.vertexCount, indexVBO.dataType.getGLID(), 0);
 			}
 		} else {
-			//render count more than one = instanced
+			// render count more than one = instanced
 			if (mesh.renderCount > 1) {
 				GL46.glDrawArraysInstanced(mesh.modelRenderType.drawType, 0, mesh.vertexCount, mesh.renderCount);
 			} else if (mesh.renderCount == 1) {
@@ -652,7 +685,7 @@ public class ShaderProgramSystem {
 	public static void tryRender(ShaderProgram program, Collection<Mesh> meshes) {
 		try (ShaderClosable cl = useProgram(program)) {
 
-			//sync - important
+			// sync - important
 			synchronized (program.VAOs) {
 
 				for (Iterator<Mesh> meshI = meshes.iterator(); meshI.hasNext();) {
@@ -662,15 +695,15 @@ public class ShaderProgramSystem {
 						Collection<BufferObject> vboSet = mesh.VBOs;
 						for (Iterator<BufferObject> iterator = vboSet.iterator(); iterator.hasNext();) {
 							BufferObject vbo = iterator.next();
-							//check if need to write to the buffer data to OGL
+							// check if need to write to the buffer data to OGL
 							boolean write = vbo.update.compareAndSet(true, false);
 							if (write) {
 								try (ShaderClosable vboc = useVBO(vbo)) {
 									writeDataToBuffer(vbo);
 								}
 							}
-							if (vbo instanceof Attribute) {
-								Attribute att = (Attribute) vbo;
+							if (vbo instanceof VertexAttribute) {
+								VertexAttribute att = (VertexAttribute) vbo;
 								if (att.enabled) {
 									enableAttribute(att);
 								}
@@ -680,15 +713,15 @@ public class ShaderProgramSystem {
 
 						for (Iterator<BufferObject> iterator = vboSet.iterator(); iterator.hasNext();) {
 							BufferObject vbo = (BufferObject) iterator.next();
-							if (vbo instanceof Attribute) {
-								Attribute attribute = (Attribute) vbo;
-								disableAttribute(attribute);
+							if (vbo instanceof VertexAttribute) {
+								VertexAttribute VertexAttribute = (VertexAttribute) vbo;
+								disableAttribute(VertexAttribute);
 							}
 
 						}
 					}
 
-					//only discard if actually rendered
+					// only discard if actually rendered
 					if (mesh.singleFrameDiscard) {
 						deleteMesh(mesh);
 						meshI.remove();
@@ -703,7 +736,7 @@ public class ShaderProgramSystem {
 	public static void tryRender(ShaderProgram program) {
 		try (ShaderClosable cl = useProgram(program)) {
 
-			//sync - important
+			// sync - important
 			synchronized (program.VAOs) {
 
 				for (Iterator<VAO> vaoI = program.VAOs.iterator(); vaoI.hasNext();) {
@@ -711,21 +744,21 @@ public class ShaderProgramSystem {
 					if (vao instanceof Mesh) {
 						Mesh mesh = (Mesh) vao;
 
-						//only render if visible
+						// only render if visible
 						if (mesh.visible) {
 							try (ShaderClosable vaoc = useModel(mesh)) {
 								Collection<BufferObject> vboSet = mesh.VBOs;
 								for (Iterator<BufferObject> iterator = vboSet.iterator(); iterator.hasNext();) {
 									BufferObject vbo = iterator.next();
-									//check if need to write to the buffer data to OGL
+									// check if need to write to the buffer data to OGL
 									boolean write = vbo.update.compareAndSet(true, false);
 									if (write) {
 										try (ShaderClosable vboc = useVBO(vbo)) {
 											writeDataToBuffer(vbo);
 										}
 									}
-									if (vbo instanceof Attribute) {
-										Attribute att = (Attribute) vbo;
+									if (vbo instanceof VertexAttribute) {
+										VertexAttribute att = (VertexAttribute) vbo;
 										if (att.enabled) {
 											enableAttribute(att);
 										}
@@ -735,15 +768,15 @@ public class ShaderProgramSystem {
 
 								for (Iterator<BufferObject> iterator = vboSet.iterator(); iterator.hasNext();) {
 									BufferObject vbo = (BufferObject) iterator.next();
-									if (vbo instanceof Attribute) {
-										Attribute attribute = (Attribute) vbo;
-										disableAttribute(attribute);
+									if (vbo instanceof VertexAttribute) {
+										VertexAttribute VertexAttribute = (VertexAttribute) vbo;
+										disableAttribute(VertexAttribute);
 									}
 
 								}
 							}
 
-							//only discard if actually rendered
+							// only discard if actually rendered
 							if (vao.singleFrameDiscard) {
 								deleteMesh(vao);
 								vaoI.remove();
@@ -756,39 +789,39 @@ public class ShaderProgramSystem {
 
 	}
 
-	//----------------------------------------------- RENDER METHODS -----------------------------------//TODO 
+//----------------------------------------------- RENDER METHODS -----------------------------------//TODO 
 	public static void render(ShaderProgram program) {
 
-		//bind shader program
+//bind shader program
 		GL46.glUseProgram(program.programID);
-		//upload all the queued uniform uploads
+//upload all the queued uniform uploads
 		uploadUniforms(program);
-		//sync - important
+//sync - important
 		synchronized (program.VAOs) {
 
 			for (Iterator<VAO> vaoI = program.VAOs.iterator(); vaoI.hasNext();) {
 				VAO vao = vaoI.next();
 				if (vao instanceof Mesh) {
 					Mesh model = (Mesh) vao;
-					//only render if visible
+					// only render if visible
 					if (model.visible) {
 						GL46.glBindVertexArray(model.VAOID);
 						Collection<BufferObject> vboSet = model.VBOs;
 						for (Iterator<BufferObject> iterator = vboSet.iterator(); iterator.hasNext();) {
 							BufferObject vbo = (BufferObject) iterator.next();
-							//check if need to write to the buffer data to OGL
+							// check if need to write to the buffer data to OGL
 							boolean write = vbo.update.compareAndSet(true, false);
 							if (write) {
 								GL46.glBindBuffer(vbo.bufferType.getGLID(), vbo.VBOID);
 								writeDataToBuffer(vbo);
 								GL46.glBindBuffer(vbo.bufferType.getGLID(), 0);
 							}
-							//check if is attribute and if should be enabled
-							if (vbo instanceof Attribute) {
-								Attribute att = (Attribute) vbo;
+							// check if is VertexAttribute and if should be enabled
+							if (vbo instanceof VertexAttribute) {
+								VertexAttribute att = (VertexAttribute) vbo;
 
 								if (att.enabled) {
-									//enables all the vertex attrib indexes
+									// enables all the vertex attrib indexes
 									int index = 0;
 									int id = att.index;
 									if (id != -1) {
@@ -801,8 +834,8 @@ public class ShaderProgramSystem {
 							}
 
 						}
-						//check for index buffer
-						WeakReference<BufferObject> indexVboRef = model.index;
+						// check for index buffer
+						WeakReference<IndexBufferObject> indexVboRef = model.index;
 						BufferObject indexVBO = null;
 
 						if (indexVboRef != null) {
@@ -810,16 +843,16 @@ public class ShaderProgramSystem {
 						}
 
 						if (indexVBO != null) {
-							//if any index buffer then bind 
+							// if any index buffer then bind
 							GL46.glBindBuffer(indexVBO.bufferType.getGLID(), indexVBO.VBOID);
-							//render count more than one = instanced
+							// render count more than one = instanced
 							if (model.renderCount > 1) {
 								GL46.glDrawElementsInstanced(model.modelRenderType.drawType, model.vertexCount, indexVBO.dataType.getGLID(), 0, model.renderCount);
 							} else if (model.renderCount == 1) {
 								GL46.glDrawElements(model.modelRenderType.drawType, model.vertexCount, indexVBO.dataType.getGLID(), 0);
 							}
 						} else {
-							//render count more than one = instanced
+							// render count more than one = instanced
 							if (model.renderCount > 1) {
 								GL46.glDrawArraysInstanced(model.modelRenderType.drawType, 0, model.vertexCount, model.renderCount);
 							} else if (model.renderCount == 1) {
@@ -829,9 +862,9 @@ public class ShaderProgramSystem {
 						}
 						for (Iterator<BufferObject> iterator = vboSet.iterator(); iterator.hasNext();) {
 							BufferObject vbo = (BufferObject) iterator.next();
-							if (vbo instanceof Attribute) {
-								Attribute att = (Attribute) vbo;
-								//disable all vertex attributes
+							if (vbo instanceof VertexAttribute) {
+								VertexAttribute att = (VertexAttribute) vbo;
+								// disable all vertex attributes
 								int index = 0;
 								int id = att.index;
 								if (id != -1) {
@@ -843,10 +876,10 @@ public class ShaderProgramSystem {
 							}
 
 						}
-						//unbind vertex array
+						// unbind vertex array
 						GL46.glBindVertexArray(0);
 					}
-					//only discard if actually rendered
+					// only discard if actually rendered
 					if (vao.singleFrameDiscard) {
 						deleteMesh(vao);
 						vaoI.remove();
@@ -855,12 +888,12 @@ public class ShaderProgramSystem {
 			}
 
 		}
-		//unbind shader program
+//unbind shader program
 		GL46.glUseProgram(0);
 
 	}
 
-	//----------------------------------------------- CLOSE METHODS -----------------------------------//TODO 
+//----------------------------------------------- CLOSE METHODS -----------------------------------//TODO 
 
 	public static void deleteMesh(VAO model) {
 		if (model != null) {
@@ -878,7 +911,9 @@ public class ShaderProgramSystem {
 	}
 
 	/**
-	 * Detaches and deletes all shader's for this program, then deletes the program from memory 
+	 * Detaches and deletes all shader's for this program, then deletes the program
+	 * from memory
+	 * 
 	 * @param program program to detach and delete
 	 */
 	public static void detatchAndDeleteShaders(ShaderProgram program) {

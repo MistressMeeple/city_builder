@@ -46,7 +46,7 @@ import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.OGL.KeyInputSystem;
 import com.meeple.shared.frame.OGL.ShaderProgram;
-import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
+import com.meeple.shared.frame.OGL.ShaderProgram.VertexAttribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferDataManagementType;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferType;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferUsage;
@@ -56,6 +56,7 @@ import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
 import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
+import com.meeple.shared.frame.OGL.ShaderProgramSystem2.ShaderClosable;
 import com.meeple.shared.frame.OGL.UniformManager;
 import com.meeple.shared.frame.camera.VPMatrixSystem;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem;
@@ -72,8 +73,8 @@ public class LevelRenderer {
 	public static Logger logger = Logger.getLogger(LevelRenderer.class);
 
 	static class CubeMesh {
-		Attribute colourAttrib = new Attribute();
-		Attribute translationAttrib = new Attribute();
+		VertexAttribute colourAttrib = new VertexAttribute();
+		VertexAttribute translationAttrib = new VertexAttribute();
 	}
 
 	public static boolean disableAlphaTest = false;
@@ -265,7 +266,7 @@ public class LevelRenderer {
 	private ShaderProgram.Mesh setup_2D_UI(FloatBuffer vertices, FloatBuffer colours, float zIndex, int count) {
 		ShaderProgram.Mesh mesh = new ShaderProgram.Mesh();
 		{
-			Attribute vertexAttrib = new Attribute();
+			VertexAttribute vertexAttrib = new VertexAttribute();
 			vertexAttrib.name = "position";
 			vertexAttrib.bufferType = BufferType.ArrayBuffer;
 			vertexAttrib.dataType = GLDataType.Float;
@@ -279,7 +280,7 @@ public class LevelRenderer {
 		}
 
 		{
-			Attribute colourAttrib = new Attribute();
+			VertexAttribute colourAttrib = new VertexAttribute();
 			colourAttrib.name = colourName;
 			colourAttrib.bufferType = BufferType.ArrayBuffer;
 			colourAttrib.dataType = GLDataType.Float;
@@ -292,11 +293,11 @@ public class LevelRenderer {
 			colourAttrib.buffer = colours;
 
 			mesh.VBOs.add(colourAttrib);
-			mesh.attributes.put(colourName, colourAttrib);
+			mesh.addAttribute(colourAttrib);
 		}
 
 		{
-			Attribute zIndexAttrib = new Attribute();
+			VertexAttribute zIndexAttrib = new VertexAttribute();
 			zIndexAttrib.name = zIndexName;
 			zIndexAttrib.bufferType = BufferType.ArrayBuffer;
 			zIndexAttrib.dataType = GLDataType.Float;
@@ -309,11 +310,11 @@ public class LevelRenderer {
 			zIndexAttrib.data.add(zIndex);
 
 			mesh.VBOs.add(zIndexAttrib);
-			mesh.attributes.put(zIndexName, zIndexAttrib);
+			mesh.addAttribute(zIndexAttrib);
 		}
 
 		{
-			Attribute offsetAttrib = new Attribute();
+			VertexAttribute offsetAttrib = new VertexAttribute();
 			offsetAttrib.name = offsetName;
 			offsetAttrib.bufferType = BufferType.ArrayBuffer;
 			offsetAttrib.dataType = GLDataType.Float;
@@ -327,7 +328,7 @@ public class LevelRenderer {
 			offsetAttrib.data.add(0);
 
 			mesh.VBOs.add(offsetAttrib);
-			mesh.attributes.put(offsetName, offsetAttrib);
+			mesh.addAttribute(offsetAttrib);
 		}
 
 		mesh.vertexCount = count;
@@ -340,7 +341,7 @@ public class LevelRenderer {
 	private ShaderProgram.Mesh setup_3D_nolit_flat_mesh(FloatBuffer vertices, FloatBuffer colours, int count) {
 		ShaderProgram.Mesh mesh = new ShaderProgram.Mesh();
 		{
-			Attribute vertexAttrib = new Attribute();
+			VertexAttribute vertexAttrib = new VertexAttribute();
 			vertexAttrib.name = "vertex";
 			vertexAttrib.bufferType = BufferType.ArrayBuffer;
 			vertexAttrib.dataType = GLDataType.Float;
@@ -355,7 +356,7 @@ public class LevelRenderer {
 		}
 
 		{
-			Attribute colourAttrib = new Attribute();
+			VertexAttribute colourAttrib = new VertexAttribute();
 			colourAttrib.name = "colour";
 			colourAttrib.bufferType = BufferType.ArrayBuffer;
 			colourAttrib.dataType = GLDataType.Float;
@@ -368,7 +369,7 @@ public class LevelRenderer {
 			colourAttrib.buffer = colours;
 
 			mesh.VBOs.add(colourAttrib);
-			mesh.attributes.put(colourName, colourAttrib);
+			mesh.addAttribute(colourAttrib);
 		}
 
 		mesh.vertexCount = count;
@@ -416,7 +417,7 @@ public class LevelRenderer {
 		colour.flip();
 		ShaderProgram.Mesh mcompas = new ShaderProgram.Mesh();
 		{
-			Attribute vertexAttrib = new Attribute();
+			VertexAttribute vertexAttrib = new VertexAttribute();
 			vertexAttrib.name = "position";
 			vertexAttrib.bufferType = BufferType.ArrayBuffer;
 			vertexAttrib.dataType = GLDataType.Float;
@@ -426,11 +427,11 @@ public class LevelRenderer {
 
 			vertexAttrib.bufferResourceType = BufferDataManagementType.List;
 			mcompas.VBOs.add(vertexAttrib);
-			mcompas.attributes.put(vPosName, vertexAttrib);
+			mcompas.addAttribute(vertexAttrib);
 		}
 
 		{
-			Attribute colourAttrib = new Attribute();
+			VertexAttribute colourAttrib = new VertexAttribute();
 			colourAttrib.name = colourName;
 			colourAttrib.bufferType = BufferType.ArrayBuffer;
 			colourAttrib.dataType = GLDataType.Float;
@@ -443,11 +444,11 @@ public class LevelRenderer {
 			colourAttrib.buffer = colour;
 
 			mcompas.VBOs.add(colourAttrib);
-			mcompas.attributes.put(colourName, colourAttrib);
+			mcompas.addAttribute(colourAttrib);
 		}
 
 		{
-			Attribute zIndexAttrib = new Attribute();
+			VertexAttribute zIndexAttrib = new VertexAttribute();
 			zIndexAttrib.name = zIndexName;
 			zIndexAttrib.bufferType = BufferType.ArrayBuffer;
 			zIndexAttrib.dataType = GLDataType.Float;
@@ -460,11 +461,11 @@ public class LevelRenderer {
 			zIndexAttrib.data.add(-2f);
 
 			mcompas.VBOs.add(zIndexAttrib);
-			mcompas.attributes.put(zIndexName, zIndexAttrib);
+			mcompas.addAttribute(zIndexAttrib);
 		}
 
 		{
-			Attribute offsetAttrib = new Attribute();
+			VertexAttribute offsetAttrib = new VertexAttribute();
 			offsetAttrib.name = offsetName;
 			offsetAttrib.bufferType = BufferType.ArrayBuffer;
 			offsetAttrib.dataType = GLDataType.Float;
@@ -478,7 +479,7 @@ public class LevelRenderer {
 			offsetAttrib.data.add(0);
 
 			mcompas.VBOs.add(offsetAttrib);
-			mcompas.attributes.put(offsetName, offsetAttrib);
+			mcompas.addAttribute(offsetAttrib);
 		}
 
 		mcompas.vertexCount = 2;
@@ -487,23 +488,20 @@ public class LevelRenderer {
 
 		//NOTE messy way to push pop line width
 		Wrapper<Integer> prevWidth = new WrapperImpl<>();
-		mcompas.preRender = new Runnable() {
-
-			@Override
-			public void run() {
-				prevWidth.setWrapped(GL46.glGetInteger(GL46.GL_LINE_WIDTH));
-				GL46.glLineWidth(3f);
-
-			}
-		};
-		mcompas.postRender = new Runnable() {
-
-			@Override
-			public void run() {
-				GL46.glLineWidth(prevWidth.getWrappedOrDefault(1));
-			}
-
-		};
+		/*
+		 * mcompas.preRender = new Runnable() {
+		 * 
+		 * @Override public void run() {
+		 * prevWidth.setWrapped(GL46.glGetInteger(GL46.GL_LINE_WIDTH));
+		 * GL46.glLineWidth(3f);
+		 * 
+		 * } }; mcompas.postRender = new Runnable() {
+		 * 
+		 * @Override public void run() {
+		 * GL46.glLineWidth(prevWidth.getWrappedOrDefault(1)); }
+		 * 
+		 * };
+		 */
 		return mcompas;
 
 	}
@@ -527,25 +525,21 @@ public class LevelRenderer {
 		Mesh mcompas = setup_2D_UI(verts, colour, -1f, points.length);
 
 		//NOTE messy way to push pop line width
-		Wrapper<Integer> prevWidth = new WrapperImpl<>();
-		mcompas.preRender = new Runnable() {
-
-			@Override
-			public void run() {
-				prevWidth.setWrapped(GL46.glGetInteger(GL46.GL_LINE_WIDTH));
-				GL46.glLineWidth(3f);
-
-			}
-		};
-		mcompas.postRender = new Runnable() {
-
-			@Override
-			public void run() {
-
-				GL46.glLineWidth(prevWidth.getWrappedOrDefault(1));
-			}
-
-		};
+		Wrapper<Integer> prevWidth = new WrapperImpl<>();/*
+															 * mcompas.preRender = new Runnable() {
+															 * 
+															 * @Override public void run() {
+															 * prevWidth.setWrapped(GL46.glGetInteger(GL46.GL_LINE_WIDTH));
+															 * GL46.glLineWidth(3f);
+															 * 
+															 * } }; mcompas.postRender = new Runnable() {
+															 * 
+															 * @Override public void run() {
+															 * 
+															 * GL46.glLineWidth(prevWidth.getWrappedOrDefault(1)); }
+															 * 
+															 * };
+															 */
 		return mcompas;
 
 	}
@@ -692,9 +686,9 @@ public class LevelRenderer {
 						//						vertices.flip();
 						//						colours.flip();
 						//						Mesh mesh = setup_3D_nolit_flat_mesh(vertices, colours, msize);
-//						mesh.modelRenderType = GLDrawMode.Points;
+						//						mesh.modelRenderType = GLDrawMode.Points;
 
-//						ShaderProgramSystem2.loadVAO(cityBuilder.window.glContext, debugProgram, mesh);
+						//						ShaderProgramSystem2.loadVAO(cityBuilder.window.glContext, debugProgram, mesh);
 
 						//							i.print();
 
@@ -762,7 +756,7 @@ public class LevelRenderer {
 				cityBuilder.window.clearColour.set(0f, 0f, 0f, 0f);
 				//TODO do chunk building for faster mesh drawing
 				preRender(cityBuilder.window.glContext, cityBuilder.level, vpMatrix, program);
-				cityBuilder.gameUI.preRenderMouseUI(cityBuilder.window, ortho, uiProgram2, compas, compas.attributes.get(offsetName), compasLine, compasLine.attributes.get(vPosName));
+				cityBuilder.gameUI.preRenderMouseUI(cityBuilder.window, ortho, uiProgram2, compas, compas.getAttribute(offsetName), compasLine, compasLine.getAttribute(vPosName));
 
 			}
 			//NOTE uploading the ortho UI projection matrix to the UI program
@@ -771,12 +765,19 @@ public class LevelRenderer {
 			GL46.glProgramUniformMatrix4fv(uiProgram2.programID, location, false, ortho.cache.get(new float[16]));
 
 			//TODO fix "single frame discarding"
-			ShaderProgramSystem2.render(program);
+//			ShaderProgramSystem2.render(program);
 			//			ShaderProgramSystem2.render(uiProgram);
+			try(ShaderClosable prog = ShaderProgramSystem2.useProgram(uiProgram2)) {
+				ShaderProgramSystem2.renderMesh(compasLine);
+				ShaderProgramSystem2.renderMesh(compas);
+				
+			}
+			try(ShaderClosable prog = ShaderProgramSystem2.useProgram(debugProgram)) {
 
-			ShaderProgramSystem2.tryRender(uiProgram2);
+				ShaderProgramSystem2.renderMesh(axisMesh);
+			}
+			
 
-			ShaderProgramSystem2.tryRender(debugProgram);
 			//this is the cube test rendering program
 			//						ShaderProgramSystem.render(mainProgram);
 			return false;

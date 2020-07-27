@@ -1,58 +1,27 @@
 package com.meeple.shared.frame.nuklear;
 
-import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.nuklear.Nuklear.*;
-import static org.lwjgl.opengl.GL11C.*;
-import static org.lwjgl.opengl.GL12C.*;
-import static org.lwjgl.opengl.GL13C.*;
-import static org.lwjgl.opengl.GL14C.*;
-import static org.lwjgl.opengl.GL15C.*;
-import static org.lwjgl.opengl.GL20C.*;
-import static org.lwjgl.opengl.GL30C.*;
-import static org.lwjgl.stb.STBTruetype.*;
-import static org.lwjgl.system.MemoryStack.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.DoubleBuffer;
-import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.function.Function;
 
 import org.apache.log4j.Logger;
-import org.lwjgl.glfw.GLFWCharCallbackI;
-import org.lwjgl.glfw.GLFWScrollCallbackI;
-import org.lwjgl.nuklear.NkBuffer;
+import org.joml.Rectanglef;
+import org.joml.Vector2f;
 import org.lwjgl.nuklear.NkColor;
+import org.lwjgl.nuklear.NkCommandBuffer;
 import org.lwjgl.nuklear.NkContext;
-import org.lwjgl.nuklear.NkConvertConfig;
-import org.lwjgl.nuklear.NkDrawCommand;
 import org.lwjgl.nuklear.NkImage;
-import org.lwjgl.nuklear.NkMouse;
 import org.lwjgl.nuklear.NkPluginFilterI;
-import org.lwjgl.nuklear.NkUserFont;
-import org.lwjgl.nuklear.NkUserFontGlyph;
+import org.lwjgl.nuklear.NkRect;
 import org.lwjgl.nuklear.NkVec2;
+import org.lwjgl.nuklear.Nuklear;
 import org.lwjgl.opengl.GL46;
 import org.lwjgl.stb.STBImage;
-import org.lwjgl.stb.STBTTAlignedQuad;
-import org.lwjgl.stb.STBTTFontinfo;
-import org.lwjgl.stb.STBTTPackContext;
-import org.lwjgl.stb.STBTTPackedchar;
 import org.lwjgl.system.MemoryStack;
-import org.lwjgl.system.Platform;
-
-import com.meeple.shared.frame.FrameUtils;
-import com.meeple.shared.frame.window.ActiveWindowsComponent;
-import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
-import com.meeple.shared.frame.window.MirroredWindowCallbacks;
-import com.meeple.shared.frame.window.Window;
-import com.meeple.shared.frame.wrapper.Wrapper;
 
 public class NuklearManager {
 
@@ -583,6 +552,28 @@ public class NuklearManager {
 		}
 	
 	*/
+
+	public static boolean collapsableGroup(NkContext ctx, String title, int btnHeight, boolean show, int subMenuHeight, Runnable inner) {
+
+		if (show) {
+			nk_layout_row_dynamic(ctx, btnHeight, 1);
+			if (nk_button_symbol_label(ctx, NK_SYMBOL_TRIANGLE_UP, title, NK_TEXT_ALIGN_LEFT)) {
+				show = false;
+			}
+			nk_layout_row_dynamic(ctx, subMenuHeight, 1);
+			if (nk_group_begin(ctx, title + "submenu", NK_WINDOW_BORDER)) {
+				inner.run();
+				nk_group_end(ctx);
+			}
+		} else {
+			nk_layout_row_dynamic(ctx, btnHeight, 1);
+			if (nk_button_symbol_label(ctx, NK_SYMBOL_TRIANGLE_DOWN, title, NK_TEXT_ALIGN_LEFT)) {
+				show = true;
+			}
+		}
+		return show;
+	}
+
 	public NkImage createImage(String imageLocation) {
 		ByteBuffer imageBuffer;
 		try {
@@ -645,8 +636,8 @@ public class NuklearManager {
 		nk_style_pop_color(context);
 	}
 
-	public static void textAreaPre(ByteBuffer textBuffer, Wrapper<String> text, int max) {
-
+	/*public static void textAreaPre(ByteBuffer textBuffer, Wrapper<String> text, int max) {
+	
 		textBuffer.clear();
 		byte[] arr = text.getWrapped().getBytes();
 		if (arr.length > max) {
@@ -658,13 +649,12 @@ public class NuklearManager {
 		}
 		textBuffer.flip();
 	}
-
+	*/
 	public static String textArea(NkContext ctx, MemoryStack stack, String string, int maxLen, int flags, NkPluginFilterI filter) {
 		ByteBuffer buffer = stack.calloc(maxLen);
-		int length = memASCII(string, false, buffer);
-		IntBuffer len = stack.ints(length);
-		nk_edit_string(ctx, flags, buffer, len, maxLen - 1, filter);
-		return memASCII(buffer, len.get(0));
+		memASCII(string, true, buffer);
+		Nuklear.nk_edit_string_zero_terminated(ctx, flags, buffer, maxLen - 1, filter);
+		return memASCII(buffer);
 	}
 
 	public static void setNkColour(NkColor colour, int r, int g, int b) {
@@ -680,5 +670,121 @@ public class NuklearManager {
 			bb = (byte) b,
 			ba = (byte) a;
 		colour.r(br).g(bg).b(bb).a(ba);
+	}
+
+	private static boolean nkGraphBehaivior(NkContext ctx, Vector2f position, Rectanglef graphValues) {
+		boolean update = false;
+		NkRect bounds = NkRect.create();
+		boolean canMove = false;
+		boolean reset = false;
+		Nuklear.nk_widget_bounds(ctx, bounds);
+		if (Nuklear.nk_widget_has_mouse_click_down(ctx, NK_BUTTON_LEFT, true)) {
+			canMove = true;
+		}
+		if (Nuklear.nk_widget_has_mouse_click_down(ctx, NK_BUTTON_MIDDLE, true)) {
+			reset = true;
+		}
+		float x = position.y;
+		float y = position.x;
+
+		/* update location */
+		if (Nuklear.nk_input_is_mouse_down(ctx.input(), NK_BUTTON_LEFT) && canMove || reset) {
+
+			float ax = (ctx.input().mouse().pos().x() - bounds.x()) / bounds.w();
+			float ay = (ctx.input().mouse().pos().y() - bounds.y()) / bounds.h();
+			x = ax;
+			y = ay;
+			if (reset) {
+				x = 0.5f;
+				y = 0.5f;
+				update |= true;
+			} else
+
+			if (Nuklear.nk_input_is_mouse_hovering_rect(ctx.input(), bounds)) {
+				update = update | true;
+			} else {
+				//clamp instead
+
+				//min %
+				if (x < 0) {
+					x = 0;
+				}
+				if (x > 1) {
+					x = 1;
+				}
+				if (y < 0) {
+					y = 0;
+				}
+				if (y > 1) {
+					y = 1;
+				}
+
+				update = update | true;
+			}
+			x = graphValues.minX + (graphValues.maxX - graphValues.minX) * x;
+			y = graphValues.minY + (graphValues.maxY - graphValues.minY) * y;
+
+		}
+		if (update && (position.x != x || position.y != y)) {
+
+			position.x = x;
+			position.y = y;
+		}
+		return update;
+	}
+
+	private static void nkGraphDraw(NkContext ctx, Vector2f position, Rectanglef graphValues) {
+		try (MemoryStack stack = MemoryStack.stackPush()) {
+
+			NkRect bounds = NkRect.callocStack(stack);
+			Nuklear.nk_widget(bounds, ctx);
+			NkCommandBuffer o = Nuklear.nk_window_get_canvas(ctx);
+			nk_fill_rect(o, bounds, ctx.style().chart().rounding(), ctx.style().chart().background().data().color());
+			nk_stroke_rect(o, bounds, ctx.style().chart().rounding(), ctx.style().chart().border(), ctx.style().chart().border_color());
+
+			nk_stroke_line(
+				o,
+				bounds.w() / 2 + bounds.x(),
+				bounds.y(),
+				bounds.w() / 2 + bounds.x(),
+				bounds.y() + bounds.w(),
+				1.0f,
+				ctx.style().chart().border_color());
+			nk_stroke_line(o, bounds.x(), bounds.h() / 2 + bounds.y(), bounds.x() + bounds.w(), bounds.h() / 2 + bounds.y(), 1.0f, ctx.style().chart().border_color());
+
+			/* draw cross-hair */
+
+			{
+				float midX = (graphValues.maxX - graphValues.minX);
+				float midY = (graphValues.maxY - graphValues.minY);
+
+				float dx = (position.x - graphValues.minX) / midX;
+				float dy = (position.y - graphValues.minY) / midY;
+
+				Vector2f draw = new Vector2f();
+				draw.x = ((bounds.w() * dx) + bounds.x());
+				draw.y = ((bounds.h() * dy) + bounds.y());
+
+				float crosshair_size = 7.0f;
+				NkColor white = NkColor.create();
+				NuklearManager.setNkColour(white, 255, 255, 255, 255);
+				NuklearManager.nk_crosshair(ctx, draw, crosshair_size, white);
+			}
+		}
+	}
+
+	public static boolean nk_graph(NkContext ctx, Vector2f position, Rectanglef graphValues) {
+		boolean update = nkGraphBehaivior(ctx, position, graphValues);
+		nkGraphDraw(ctx, position, graphValues);
+		return update;
+	}
+
+
+	public static void nk_crosshair(NkContext ctx, Vector2f position, float crosshair_size, NkColor colour) {
+		NkCommandBuffer o = Nuklear.nk_window_get_canvas(ctx);
+		nk_stroke_line(o, position.x() - crosshair_size, position.y(), position.x() - 2, position.y(), 1.0f, colour);
+		nk_stroke_line(o, position.x() + crosshair_size + 1, position.y(), position.x() + 3, position.y(), 1.0f, colour);
+		nk_stroke_line(o, position.x(), position.y() + crosshair_size + 1, position.x(), position.y() + 3, 1.0f, colour);
+		nk_stroke_line(o, position.x(), position.y() - crosshair_size, position.x(), position.y() - 2, 1.0f, colour);
 	}
 }

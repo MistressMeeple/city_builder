@@ -47,6 +47,16 @@ public class WorldHeights {
 		mountainLevel = ValueRange.of(21, 22);
 		//we dont use max for this so the actual generation isnt affected
 		snowCapLevel = ValueRange.of(22, 23);
+		
+		
+		/*
+				deepSeaLevel = ValueRange.of((long) (-1 * scale), 0);
+				seaLevel = ValueRange.of(0, 1);
+				shoreLevel = ValueRange.of(1, 2);
+				grassLevel = ValueRange.of(2, 3);
+				mountainLevel = ValueRange.of(3, 4);
+				//we dont use max for this so the actual generation isnt affected
+				snowCapLevel = ValueRange.of(4, 5);*/
 
 		System.out.println("");
 	}
