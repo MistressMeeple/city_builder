@@ -24,7 +24,7 @@ import com.meeple.shared.frame.FrameUtils;
 public final class UserInput extends GLFWWrapper {
 	private static Logger logger = Logger.getLogger(UserInput.class);
 
-	private class GLFWKeyOrMouse {
+	public class GLFWKeyOrMouse {
 		private final int key;
 		private final EventOrigin origin;
 
@@ -49,6 +49,230 @@ public final class UserInput extends GLFWWrapper {
 			boolean sameKey = other.key == this.key;
 			boolean sameOrigin = other.origin.equals(this.origin);
 			return sameKey && sameOrigin;
+		}
+
+		@Override
+		public String toString() {
+
+			String name = "";
+			if (origin == EventOrigin.Keyboard) {
+				name = GLFW.glfwGetKeyName(key, 0);
+				if (name == null) {
+					switch (key) {
+					case GLFW.GLFW_KEY_UNKNOWN:
+						name = "Unknown";
+						break;
+					case GLFW.GLFW_KEY_SPACE:
+						name = "Space";
+						break;
+					case GLFW.GLFW_KEY_GRAVE_ACCENT:
+						name = "Grave";
+						break;
+					case GLFW.GLFW_KEY_ESCAPE:
+						name = "Escape";
+						break;
+					case GLFW.GLFW_KEY_ENTER:
+						name = "Enter";
+						break;
+					case GLFW.GLFW_KEY_TAB:
+						name = "Tab";
+						break;
+					case GLFW.GLFW_KEY_BACKSPACE:
+						name = "Backspace";
+						break;
+					case GLFW.GLFW_KEY_INSERT:
+						name = "Insert";
+						break;
+					case GLFW.GLFW_KEY_DELETE:
+						name = "Delete";
+						break;
+					case GLFW.GLFW_KEY_RIGHT:
+						name = "Right";
+						break;
+					case GLFW.GLFW_KEY_LEFT:
+						name = "Left";
+						break;
+					case GLFW.GLFW_KEY_DOWN:
+						name = "Down";
+						break;
+					case GLFW.GLFW_KEY_UP:
+						name = "Up";
+						break;
+					case GLFW.GLFW_KEY_PAGE_UP:
+						name = "Page-Up";
+						break;
+					case GLFW.GLFW_KEY_PAGE_DOWN:
+						name = "Page-Down";
+						break;
+					case GLFW.GLFW_KEY_HOME:
+						name = "Home";
+						break;
+					case GLFW.GLFW_KEY_END:
+						name = "End";
+						break;
+					case GLFW.GLFW_KEY_CAPS_LOCK:
+						name = "Caps Lock";
+						break;
+					case GLFW.GLFW_KEY_SCROLL_LOCK:
+						name = "Scroll Lock";
+						break;
+					case GLFW.GLFW_KEY_NUM_LOCK:
+						name = "Num Lock";
+						break;
+					case GLFW.GLFW_KEY_PRINT_SCREEN:
+						name = "Print Screen";
+						break;
+					case GLFW.GLFW_KEY_PAUSE:
+						name = "Pause";
+						break;
+					case GLFW.GLFW_KEY_F1:
+						name = "F1";
+						break;
+					case GLFW.GLFW_KEY_F2:
+						name = "F2";
+						break;
+					case GLFW.GLFW_KEY_F3:
+						name = "F3";
+						break;
+					case GLFW.GLFW_KEY_F4:
+						name = "F4";
+						break;
+					case GLFW.GLFW_KEY_F5:
+						name = "F5";
+						break;
+					case GLFW.GLFW_KEY_F6:
+						name = "F6";
+						break;
+					case GLFW.GLFW_KEY_F7:
+						name = "F7";
+						break;
+					case GLFW.GLFW_KEY_F8:
+						name = "F8";
+						break;
+					case GLFW.GLFW_KEY_F9:
+						name = "F9";
+						break;
+					case GLFW.GLFW_KEY_F10:
+						name = "F10";
+						break;
+					case GLFW.GLFW_KEY_F11:
+						name = "F11";
+						break;
+					case GLFW.GLFW_KEY_F12:
+						name = "F12";
+						break;
+					case GLFW.GLFW_KEY_F13:
+						name = "F13";
+						break;
+					case GLFW.GLFW_KEY_F14:
+						name = "F14";
+						break;
+					case GLFW.GLFW_KEY_F15:
+						name = "F15";
+						break;
+					case GLFW.GLFW_KEY_F16:
+						name = "F16";
+						break;
+					case GLFW.GLFW_KEY_F17:
+						name = "F17";
+						break;
+					case GLFW.GLFW_KEY_F18:
+						name = "F18";
+						break;
+					case GLFW.GLFW_KEY_F19:
+						name = "F19";
+						break;
+					case GLFW.GLFW_KEY_F20:
+						name = "F20";
+						break;
+					case GLFW.GLFW_KEY_F21:
+						name = "F21";
+						break;
+					case GLFW.GLFW_KEY_F22:
+						name = "F22";
+						break;
+					case GLFW.GLFW_KEY_F23:
+						name = "F23";
+						break;
+					case GLFW.GLFW_KEY_F24:
+						name = "F24";
+						break;
+					case GLFW.GLFW_KEY_F25:
+						name = "F25";
+						break;
+					case GLFW.GLFW_KEY_KP_ENTER:
+						name = "Keypad-Enter";
+						break;
+					case GLFW.GLFW_KEY_LEFT_SHIFT:
+						name = "Left Shift";
+						break;
+					case GLFW.GLFW_KEY_LEFT_CONTROL:
+						name = "Left Control";
+						break;
+					case GLFW.GLFW_KEY_LEFT_ALT:
+						name = "Left Alt";
+						break;
+					case GLFW.GLFW_KEY_LEFT_SUPER:
+						name = "Left Super";
+						break;
+					case GLFW.GLFW_KEY_RIGHT_SHIFT:
+						name = "Right Shift";
+						break;
+					case GLFW.GLFW_KEY_RIGHT_CONTROL:
+						name = "Right Control";
+						break;
+					case GLFW.GLFW_KEY_RIGHT_ALT:
+						name = "Right Alt";
+						break;
+					case GLFW.GLFW_KEY_RIGHT_SUPER:
+						name = "Right Super";
+						break;
+					case GLFW.GLFW_KEY_MENU:
+						name = "Menu";
+						break;
+
+					}
+				}
+
+			} else if (origin == EventOrigin.Mouse) {
+				switch (key) {
+				case GLFW.GLFW_MOUSE_BUTTON_LEFT:
+					name = "Left click";
+					break;
+				case GLFW.GLFW_MOUSE_BUTTON_RIGHT:
+					name = "Right click";
+					break;
+				case GLFW.GLFW_MOUSE_BUTTON_MIDDLE:
+					name = "Middle click";
+					break;
+				case GLFW.GLFW_MOUSE_BUTTON_4:
+					name = "Mouse 4";
+					break;
+				case GLFW.GLFW_MOUSE_BUTTON_5:
+					name = "Mouse 5";
+					break;
+				case GLFW.GLFW_MOUSE_BUTTON_6:
+					name = "Mouse 6";
+					break;
+				case GLFW.GLFW_MOUSE_BUTTON_7:
+					name = "Mouse 7";
+					break;
+				case GLFW.GLFW_MOUSE_BUTTON_8:
+					name = "Mouse 8";
+					break;
+				default:
+					break;
+				}
+			}
+			try {
+				if (name == null) {
+					name = "Unregistered";
+				}
+				return origin.toString() + ": " + name;
+			} catch (Exception e) {
+				return super.toString();
+			}
+
 		}
 	}
 
@@ -149,8 +373,8 @@ public final class UserInput extends GLFWWrapper {
 	 * 
 	 * @return true if is being triggered
 	 */
-	public boolean isPressed(GLFWKeyOrMouse query) {
-		return FrameUtils.getOrDefault(eventPressMap, query, false);
+	public boolean isPressed(KeyBinding query) {
+		return FrameUtils.getOrDefault(eventPressMap, query.getKey(), false);
 	}
 
 	/**
@@ -161,24 +385,40 @@ public final class UserInput extends GLFWWrapper {
 	 * 
 	 * @return true if is being triggered
 	 */
-	public boolean isPressed(String query) {
-		return isPressed(keyBindings.get(query));
+	/*
+	 * public boolean isPressed(String query) { return
+	 * isPressed(keyBindings.get(query)); }
+	 */
+
+	/**
+	 * Checks whether the key/mouse button has been pressed this frame, and this
+	 * frame <b>only</b>
+	 * 
+	 * @param query
+	 * @return
+	 */
+	public Boolean hasPressed(KeyBinding query) {
+		return FrameUtils.getOrDefault(eventSinglePressMap, query.getKey(), false);
 	}
 
-	public Boolean hasPressed(GLFWKeyOrMouse query) {
-		return eventSinglePressMap.get(query);
-	}
-	public Boolean hasPressed(String query) {
-		return hasPressed(keyBindings.get(query));
-	}
+	/*
+	 * //temporarily removed because im not using string events but just using
+	 * direct keybinding queries
+	 * 
+	 * private Boolean hasPressed(GLFWKeyOrMouse query) { return
+	 * FrameUtils.getOrDefault(eventSinglePressMap, query, false); } public Boolean
+	 * hasPressed(String query) { return hasPressed(keyBindings.get(query)); }
+	 */
 
 	public long getPressTime(GLFWKeyOrMouse key) {
 		return FrameUtils.getOrDefault(eventPressTicks, key, 0l);
 	}
 
-	public long getPressTime(String key) {
-		return getPressTime(keyBindings.get(key));
-	}
+	/*
+	 * //temporarily removed because im not using string events but just using
+	 * direct keybinding queries public long getPressTime(String eventName) { return
+	 * getPressTime(keyBindings.get(eventName)); }
+	 */
 
 	/**
 	 * This checks whether a keyboard key is being pressed.
@@ -251,12 +491,11 @@ public final class UserInput extends GLFWWrapper {
 	public class KeyBinding {
 
 		private final String eventName;
+		private GLFWKeyOrMouse key;
 
 		public KeyBinding(String event, int key, EventOrigin origin) {
 			this.eventName = event;
-			if (keyBindings.put(event, new GLFWKeyOrMouse(key, origin)) != null) {
-				logger.warn("Event '" + event + "' has already been registered and is being overrided");
-			}
+			rebind(new GLFWKeyOrMouse(key, origin));
 		}
 
 		public String getEventName() {
@@ -264,11 +503,17 @@ public final class UserInput extends GLFWWrapper {
 		}
 
 		public void rebind(GLFWKeyOrMouse key) {
-			keyBindings.put(this.eventName, key);
+			GLFWKeyOrMouse old = keyBindings.put(eventName, key);
+			if (old != null) {
+				logger.warn("Event '" + eventName + "' has already been registered and is being overrided");
+				logger.warn(old.toString() + " is being replaced by " + key.toString());
+			}
+			this.key = key;
 		}
 
 		public GLFWKeyOrMouse getKey() {
-			return keyBindings.get(eventName);
+			//return keyBindings.get(eventName);
+			return key;
 		}
 	}
 
@@ -296,6 +541,7 @@ public final class UserInput extends GLFWWrapper {
 						eventSinglePressMap.remove(key);
 					}
 					time = 0l;
+					i.remove();
 				}
 				eventPressTicks.put(key, time);
 

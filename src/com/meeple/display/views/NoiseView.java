@@ -68,6 +68,8 @@ import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2.ShaderClosable;
 import com.meeple.shared.frame.nuklear.NkContextSingleton;
 import com.meeple.shared.frame.nuklear.NuklearManager;
+import com.meeple.shared.frame.window.UserInput.EventOrigin;
+import com.meeple.shared.frame.window.UserInput.KeyBinding;
 import com.meeple.shared.frame.wrapper.Wrapper;
 import com.meeple.shared.frame.wrapper.WrapperImpl;
 import com.meeple.temp.IslandOrig.IslandSize;
@@ -124,6 +126,9 @@ public class NoiseView {
 	float sampleSRadi = 10f;
 	float sampleSMeshSize = 1000;
 	Island i = new Island();
+	
+	KeyBinding zoomInKeybind;
+	KeyBinding zoomOutKeybind;
 
 	public void setup(Client client, VPMatrix vpMatrix) {
 		primary = vpMatrix.newCamera();
@@ -139,6 +144,10 @@ public class NoiseView {
 		seaLevelMesh = setupSeaLevel(new float[] { background.r(), background.g(), background.b(), background.a() }, seaLevel - shallowDepth);
 		ShaderProgramSystem2.loadVAO(client.glContext, Program._3D_Unlit_Flat.program, seaLevelMesh);
 		noiseNames = new String[] { "Circle", "Multi_circle", "Octaved" };
+		
+		
+		zoomInKeybind = client.userInput.new KeyBinding("camera-zoom-in", GLFW.GLFW_KEY_MINUS, EventOrigin.Keyboard);
+		zoomOutKeybind = client.userInput.new KeyBinding("camera-zoom-in", GLFW.GLFW_KEY_EQUAL, EventOrigin.Keyboard);
 	}
 
 	public void renderShared(VPMatrix vpMatrix, Client client, FrameTimings delta) {
@@ -170,9 +179,11 @@ public class NoiseView {
 
 		// NOTE this denotes that GL is using a new frame.
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		if (client.userInput.isKeyPressed(GLFW.GLFW_KEY_MINUS)) {
+		
+		
+		if (client.userInput.isPressed(zoomInKeybind)) {
 			viewHeight -= 0.1;
-		} else if (client.userInput.isKeyPressed(GLFW.GLFW_KEY_EQUAL)) {
+		} else if (client.userInput.isPressed(zoomOutKeybind)) {
 			viewHeight += 0.1f;
 		}
 

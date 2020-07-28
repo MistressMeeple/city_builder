@@ -53,8 +53,9 @@ public class FreeFlyCameraController extends BaseCameraController {
 
 	protected void handleCameraEscape(Client client, UserInput userInput) {
 
-		Boolean pressed = userInput.keyPress(GLFW.GLFW_KEY_ESCAPE);
-		if (pressed != null && !pressed) {
+		Boolean pressed = userInput.hasPressed(client.options.openMenu);
+		
+		if (pressed != null && pressed) {
 			if (mouseEnabled) {
 				double midx = client.fbWidth / 2;
 				double midy = client.fbHeight / 2;
@@ -82,26 +83,26 @@ public class FreeFlyCameraController extends BaseCameraController {
 		Vector3f movement = new Vector3f();
 		float up = 0f;
 
-		if (userInput.isPressed(client.options.playerFoward.getKey())) {
+		if (userInput.isPressed(client.options.playerFoward)) {
 			movement.x += 1f;
 		}
-		if (userInput.isPressed(client.options.playerBack.getKey())) {
+		if (userInput.isPressed(client.options.playerBack)) {
 			movement.x -= 1f;
 		}
 
-		if (userInput.isPressed(client.options.playerLeft.getKey())) {
+		if (userInput.isPressed(client.options.playerLeft)) {
 			movement.y -= 1f;
 		}
-		if (userInput.isPressed(client.options.playerRight.getKey())) {
+		if (userInput.isPressed(client.options.playerRight)) {
 			movement.y += 1f;
 		}
 
-		if (userInput.isPressed(client.options.playerJump.getKey())) {
+		if (userInput.isPressed(client.options.playerJump)) {
 			// up
 			up += hightClimb;
 		}
 
-		if (userInput.isPressed(client.options.playerCrouch.getKey())) {
+		if (userInput.isPressed(client.options.playerCrouch)) {
 			// down
 			up -= hightClimb;
 		}
@@ -115,7 +116,7 @@ public class FreeFlyCameraController extends BaseCameraController {
 			float rot = (float) (Math.atan2(foward.x, -foward.y) + Math.toRadians(270));
 			Vector2f rotated = FrameUtils.rotateNew(new Vector2f(movement.x, movement.y), rot);
 			rotated.mul(normalSpeed, rotated);
-			if (userInput.isPressed(client.options.playerSprint.getEventName())) {
+			if (userInput.isPressed(client.options.playerSprint)) {
 				rotated.mul(this.speedMult * this.speedMult, rotated);
 			}
 			position.add(rotated.x, rotated.y, 0);

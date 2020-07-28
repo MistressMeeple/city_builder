@@ -140,7 +140,7 @@ public class WorldView {
 			}
 		}
 		{
-			Boolean switchCamera = client.userInput.keyPress(GLFW.GLFW_KEY_F5);
+			Boolean switchCamera = client.userInput.keyPress(GLFW.GLFW_KEY_TAB);
 			if (switchCamera != null && switchCamera == true) {
 
 				if (playerController.getBound() == null) {

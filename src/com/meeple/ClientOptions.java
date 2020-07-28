@@ -8,9 +8,11 @@ import com.meeple.shared.frame.window.UserInput.EventOrigin;
 public class ClientOptions {
 	private static final String settingsFile = "";
 	private static final String _player = "player";
+	private static final String _menu = "menu";
 	private static final String connect = ".";
 
-	public final UserInput.KeyBinding playerFoward, playerBack, playerLeft, playerRight, playerCrouch, playerJump, playerSprint, playerInteract;
+	public final UserInput.KeyBinding playerFoward, playerBack, playerLeft, playerRight, playerCrouch, playerJump, playerSprint, playerInteract,openMenu;
+	
 
 	public ClientOptions(UserInput userInput) {
 		//generic camera controls
@@ -25,6 +27,8 @@ public class ClientOptions {
 		playerSprint = userInput.new KeyBinding(_player + connect + "sprint", GLFW.GLFW_KEY_LEFT_SHIFT, EventOrigin.Keyboard);
 
 		playerInteract = userInput.new KeyBinding(_player + connect + "interact", GLFW.GLFW_MOUSE_BUTTON_LEFT, EventOrigin.Mouse);
+		
+		openMenu = userInput.new KeyBinding(_menu+connect+"pause", GLFW.GLFW_KEY_ESCAPE, EventOrigin.Keyboard);
 
 	}
 

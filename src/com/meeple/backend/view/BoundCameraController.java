@@ -90,25 +90,25 @@ public class BoundCameraController extends FreeFlyCameraController {
 		Vector3f movement = new Vector3f();
 		float up = 0f;
 
-		if (userInput.isPressed(client.options.playerFoward.getKey())) {
+		if (userInput.isPressed(client.options.playerFoward)) {
 			movement.x += 1f;
 		}
-		if (userInput.isPressed(client.options.playerBack.getKey())) {
+		if (userInput.isPressed(client.options.playerBack)) {
 			movement.x -= 1f;
 		}
 
-		if (userInput.isPressed(client.options.playerLeft.getKey())) {
+		if (userInput.isPressed(client.options.playerLeft)) {
 			movement.y -= 1f;
 		}
-		if (userInput.isPressed(client.options.playerRight.getKey())) {
+		if (userInput.isPressed(client.options.playerRight)) {
 			movement.y += 1f;
 		}
-		Boolean pressed = userInput.hasPressed(client.options.playerJump.getKey());
-		if ((pressed != null && pressed == true) || (userInput.isPressed(client.options.playerJump.getKey()) && boundEntity.velocity().z == 0)) {
+		Boolean pressed = userInput.hasPressed(client.options.playerJump);
+		if ((pressed != null && pressed == true) || (userInput.isPressed(client.options.playerJump) && boundEntity.velocity().z == 0)) {
 			boundEntity.tryJump();
 		}
 
-		if (userInput.isPressed(client.options.playerCrouch.getKey())) {
+		if (userInput.isPressed(client.options.playerCrouch)) {
 			// down
 			up -= hightClimb;
 		}
@@ -134,7 +134,7 @@ public class BoundCameraController extends FreeFlyCameraController {
 
 			Vector2f rotated = FrameUtils.rotateNew(new Vector2f(movement.x, movement.y), rot);
 			rotated.mul(normalSpeed, rotated);
-			if (userInput.isPressed(client.options.playerSprint.getEventName())) {
+			if (userInput.isPressed(client.options.playerSprint)) {
 				rotated.mul(this.speedMult * this.speedMult, rotated);
 			}
 			deltaMovement.add(rotated.x, rotated.y, 0);
