@@ -28,7 +28,7 @@ public final class UserInput extends GLFWWrapper {
 		private final int key;
 		private final EventOrigin origin;
 
-		public GLFWKeyOrMouse(int key, EventOrigin origin) {
+		private GLFWKeyOrMouse(int key, EventOrigin origin) {
 			this.key = key;
 			this.origin = origin;
 		}
