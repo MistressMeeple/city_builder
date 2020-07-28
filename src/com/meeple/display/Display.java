@@ -50,13 +50,21 @@ public class Display extends Client {
 		try (Display d = new Display()) {
 			d.setup(1400, 800, "Noise and island generator");
 			d.show();
-
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 
-	public final static float[] planeVertices = { -1.f, 1.f, 1.f, // Front-top-left
+	private static final float sz = 0.5f;
+	public final static float[] planeVertices = {
+		-sz,sz,sz,
+		sz,sz,sz,
+		sz,-sz,sz,
+		-sz,-sz,sz
+	};
+
+	public final static float[] cubeVertices = {
+		-1.f, 1.f, 1.f, // Front-top-left
 		1.f, 1.f, 1.f, // Front-top-right
 		-1.f, -1.f, 1.f, // Front-bottom-left
 		1.f, -1.f, 1.f, // Front-bottom-right

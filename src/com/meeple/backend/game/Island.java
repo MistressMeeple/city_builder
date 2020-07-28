@@ -11,6 +11,7 @@ import org.joml.Matrix4f;
 import org.joml.Vector2i;
 import org.joml.Vector3f;
 
+import com.meeple.backend.ShaderPrograms;
 import com.meeple.backend.noise.NoiseStack;
 import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.frame.FrameUtils;
@@ -188,7 +189,7 @@ public class Island {
 
 			gridMesh
 				.renderCount(renderCount)
-				.getAttribute("meshTransform")
+				.getAttribute(ShaderPrograms.transformAtt.name)
 				.data(list).update.set(true);
 		}
 	}

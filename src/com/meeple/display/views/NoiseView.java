@@ -572,7 +572,10 @@ public class NoiseView {
 		}
 
 		noiseMeshes[i] = new Mesh().drawMode(GLDrawMode.Points).name("noisemesh_"
-			+ noiseNames[i]).vertexCount(render).addAttribute(ShaderPrograms.vertAtt.build().bufferUsage(BufferUsage.StaticDraw).data(vertices)).addAttribute(ShaderPrograms.colourAtt.build().data(colours)).addAttribute(ShaderPrograms.transformAtt.build().data(new Matrix4f().get(new float[16])));
+			+ noiseNames[i])
+			.vertexCount(render)
+			.addAttribute(ShaderPrograms.vertAtt.build().bufferUsage(BufferUsage.StaticDraw).data(vertices))
+			.addAttribute(ShaderPrograms.colourAtt.build().data(colours)).addAttribute(ShaderPrograms.transformAtt.build().data(new Matrix4f().get(new float[16])));
 		ShaderProgramSystem2.loadVAO(glContext, Program._3D_Unlit_Flat.program, noiseMeshes[i]);
 
 	}
@@ -613,7 +616,13 @@ public class NoiseView {
 	}
 
 	private static Mesh setupSeaLevel(float[] colour, float initHeight) {
-		Mesh mesh = new Mesh().drawMode(GLDrawMode.TriangleFan).vertexCount(4).name("sea_level").renderCount(1).addAttribute(ShaderPrograms.vertAtt.build().data(Display.planeVertices)).addAttribute(ShaderPrograms.colourAtt.build().instanced(true, 1).data(colour)).addAttribute(ShaderPrograms.transformAtt.build().data(new Matrix4f().scaleXY(100, 100).translate(0, 0, initHeight).get(new float[16])));
+		Mesh mesh = new Mesh().drawMode(GLDrawMode.TriangleFan)
+			.vertexCount(4)
+			.name("sea_level")
+			.renderCount(1)
+			.addAttribute(ShaderPrograms.vertAtt.build().data(Display.planeVertices))
+			.addAttribute(ShaderPrograms.colourAtt.build().instanced(true, 1).data(colour))
+			.addAttribute(ShaderPrograms.transformAtt.build().data(new Matrix4f().scaleXY(100, 100).translate(0, 0, initHeight).get(new float[16])));
 		return mesh;
 	}
 
