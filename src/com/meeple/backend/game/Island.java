@@ -9,7 +9,6 @@ import java.util.TreeMap;
 
 import org.joml.Matrix4f;
 import org.joml.Vector2i;
-import org.joml.Vector3f;
 
 import com.meeple.backend.ShaderPrograms;
 import com.meeple.backend.noise.NoiseStack;

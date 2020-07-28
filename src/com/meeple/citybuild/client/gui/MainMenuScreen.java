@@ -1,7 +1,15 @@
 package com.meeple.citybuild.client.gui;
 
-import static org.lwjgl.nuklear.Nuklear.*;
-import static org.lwjgl.system.MemoryStack.*;
+import static org.lwjgl.nuklear.Nuklear.nk_begin;
+import static org.lwjgl.nuklear.Nuklear.nk_button_label;
+import static org.lwjgl.nuklear.Nuklear.nk_end;
+import static org.lwjgl.nuklear.Nuklear.nk_layout_row_dynamic;
+import static org.lwjgl.nuklear.Nuklear.nk_layout_row_static;
+import static org.lwjgl.nuklear.Nuklear.nk_rect;
+import static org.lwjgl.nuklear.Nuklear.nk_spacing;
+import static org.lwjgl.nuklear.Nuklear.nk_style_pop_color;
+import static org.lwjgl.nuklear.Nuklear.nk_style_push_color;
+import static org.lwjgl.system.MemoryStack.stackPush;
 
 import org.apache.log4j.Logger;
 import org.joml.Math;

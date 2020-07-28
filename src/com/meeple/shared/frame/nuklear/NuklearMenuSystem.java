@@ -1,10 +1,15 @@
 package com.meeple.shared.frame.nuklear;
 
-import static org.lwjgl.nuklear.Nuklear.*;
+import static org.lwjgl.nuklear.Nuklear.NK_TEXT_ALIGN_CENTERED;
+import static org.lwjgl.nuklear.Nuklear.NK_WINDOW_BACKGROUND;
+import static org.lwjgl.nuklear.Nuklear.NK_WINDOW_SCROLL_AUTO_HIDE;
+import static org.lwjgl.nuklear.Nuklear.nk_button_label;
+import static org.lwjgl.nuklear.Nuklear.nk_group_begin;
+import static org.lwjgl.nuklear.Nuklear.nk_group_end;
+import static org.lwjgl.nuklear.Nuklear.nk_label;
+import static org.lwjgl.nuklear.Nuklear.nk_layout_row_dynamic;
 
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.function.BiConsumer;
 
 import org.lwjgl.nuklear.NkColor;

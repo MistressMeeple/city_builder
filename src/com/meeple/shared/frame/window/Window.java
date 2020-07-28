@@ -1,8 +1,11 @@
 package com.meeple.shared.frame.window;
 
-import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.system.MemoryStack.*;
+import static org.lwjgl.glfw.GLFW.glfwGetPrimaryMonitor;
+import static org.lwjgl.glfw.GLFW.glfwGetVideoMode;
+import static org.lwjgl.glfw.GLFW.glfwSetWindowPos;
+import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
+import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
+import static org.lwjgl.system.MemoryStack.stackPush;
 
 import java.io.Closeable;
 
@@ -15,8 +18,6 @@ import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 
 import com.meeple.shared.frame.FrameUtils;
-import com.meeple.shared.frame.GLFWManager;
-import com.meeple.shared.frame.GLFWThread;
 import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.component.Bounds2DComponent;
 

@@ -1,7 +1,11 @@
 package com.meeple.shared.frame.window;
 
-import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.system.MemoryStack.*;
+import static org.lwjgl.glfw.GLFW.GLFW_DECORATED;
+import static org.lwjgl.glfw.GLFW.GLFW_FALSE;
+import static org.lwjgl.glfw.GLFW.glfwGetPrimaryMonitor;
+import static org.lwjgl.glfw.GLFW.glfwSetWindowMonitor;
+import static org.lwjgl.glfw.GLFW.glfwWindowHint;
+import static org.lwjgl.system.MemoryStack.stackPush;
 
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.glfw.GLFW;

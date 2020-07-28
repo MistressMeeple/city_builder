@@ -1,12 +1,25 @@
 package com.meeple.shared.frame.nuklear;
 
-import static org.lwjgl.nuklear.Nuklear.*;
-import static org.lwjgl.system.MemoryUtil.*;
+import static org.lwjgl.nuklear.Nuklear.NK_BUTTON_LEFT;
+import static org.lwjgl.nuklear.Nuklear.NK_BUTTON_MIDDLE;
+import static org.lwjgl.nuklear.Nuklear.NK_SYMBOL_TRIANGLE_DOWN;
+import static org.lwjgl.nuklear.Nuklear.NK_SYMBOL_TRIANGLE_UP;
+import static org.lwjgl.nuklear.Nuklear.NK_TEXT_ALIGN_LEFT;
+import static org.lwjgl.nuklear.Nuklear.NK_WINDOW_BORDER;
+import static org.lwjgl.nuklear.Nuklear.nk_button_symbol_label;
+import static org.lwjgl.nuklear.Nuklear.nk_fill_rect;
+import static org.lwjgl.nuklear.Nuklear.nk_group_begin;
+import static org.lwjgl.nuklear.Nuklear.nk_group_end;
+import static org.lwjgl.nuklear.Nuklear.nk_layout_row_dynamic;
+import static org.lwjgl.nuklear.Nuklear.nk_stroke_line;
+import static org.lwjgl.nuklear.Nuklear.nk_stroke_rect;
+import static org.lwjgl.nuklear.Nuklear.nk_style_pop_color;
+import static org.lwjgl.nuklear.Nuklear.nk_style_push_color;
+import static org.lwjgl.system.MemoryUtil.memASCII;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
-import java.util.function.Function;
 
 import org.apache.log4j.Logger;
 import org.joml.Rectanglef;
@@ -17,7 +30,6 @@ import org.lwjgl.nuklear.NkContext;
 import org.lwjgl.nuklear.NkImage;
 import org.lwjgl.nuklear.NkPluginFilterI;
 import org.lwjgl.nuklear.NkRect;
-import org.lwjgl.nuklear.NkVec2;
 import org.lwjgl.nuklear.Nuklear;
 import org.lwjgl.opengl.GL46;
 import org.lwjgl.stb.STBImage;

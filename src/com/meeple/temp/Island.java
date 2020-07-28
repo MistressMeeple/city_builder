@@ -6,17 +6,12 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.FloatBuffer;
 import java.text.DecimalFormat;
-import java.time.temporal.ValueRange;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.function.DoubleConsumer;
 import java.util.Random;
 import java.util.TreeMap;
+import java.util.function.DoubleConsumer;
 import java.util.stream.DoubleStream;
 
 import javax.imageio.ImageIO;

@@ -1,11 +1,11 @@
 package com.meeple.citybuild.client.render;
 
-import com.meeple.shared.frame.OGL.ShaderProgram.VertexAttribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferType;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferUsage;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDataType;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
+import com.meeple.shared.frame.OGL.ShaderProgram.VertexAttribute;
 
 public class WorldRenderer extends RendererBase {
 

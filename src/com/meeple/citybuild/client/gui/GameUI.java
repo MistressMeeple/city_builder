@@ -32,8 +32,6 @@ import org.lwjgl.nuklear.Nuklear;
 import org.lwjgl.opengl.GL46;
 import org.lwjgl.system.MemoryStack;
 
-import com.meeple.backend.ShaderPrograms;
-import com.meeple.backend.ShaderPrograms.Program;
 import com.meeple.citybuild.RayHelper;
 import com.meeple.citybuild.client.render.Screen;
 import com.meeple.citybuild.client.render.WorldRenderer;

@@ -1,6 +1,7 @@
 package com.meeple.backend.noise;
 
-import static org.lwjgl.nuklear.Nuklear.*;
+import static org.lwjgl.nuklear.Nuklear.nk_layout_row_dynamic;
+import static org.lwjgl.nuklear.Nuklear.nk_propertyf;
 
 import java.text.DecimalFormat;
 import java.util.Properties;

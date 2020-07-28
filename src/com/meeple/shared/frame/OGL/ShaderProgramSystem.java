@@ -1,7 +1,10 @@
 package com.meeple.shared.frame.OGL;
 
-import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.system.MemoryStack.*;
+import static org.lwjgl.opengl.GL20.glGetProgramInfoLog;
+import static org.lwjgl.opengl.GL20.glGetProgrami;
+import static org.lwjgl.opengl.GL20.glGetShaderInfoLog;
+import static org.lwjgl.opengl.GL20.glGetShaderi;
+import static org.lwjgl.system.MemoryStack.stackPush;
 
 import java.io.BufferedReader;
 import java.io.Closeable;
@@ -31,13 +34,13 @@ import org.lwjgl.system.MemoryStack;
 
 import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.FileLoader;
-import com.meeple.shared.frame.OGL.ShaderProgram.VertexAttribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferObject;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLStatus;
 import com.meeple.shared.frame.OGL.ShaderProgram.IndexBufferObject;
 import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
 import com.meeple.shared.frame.OGL.ShaderProgram.VAO;
+import com.meeple.shared.frame.OGL.ShaderProgram.VertexAttribute;
 
 public class ShaderProgramSystem {
 

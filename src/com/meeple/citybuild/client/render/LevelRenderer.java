@@ -1,17 +1,19 @@
 package com.meeple.citybuild.client.render;
 
-import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.opengl.GL30.*;
-import static org.lwjgl.opengl.GL31.*;
+import static org.lwjgl.opengl.GL15.glBindBuffer;
+import static org.lwjgl.opengl.GL15.glBufferSubData;
+import static org.lwjgl.opengl.GL20.glGetUniformLocation;
+import static org.lwjgl.opengl.GL20.glUniform1f;
+import static org.lwjgl.opengl.GL20.glUseProgram;
+import static org.lwjgl.opengl.GL30.glBindBufferBase;
+import static org.lwjgl.opengl.GL31.GL_UNIFORM_BUFFER;
+import static org.lwjgl.opengl.GL31.glUniformBlockBinding;
 
-import java.io.IOException;
-import java.lang.ref.WeakReference;
 import java.nio.FloatBuffer;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Random;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -30,8 +32,6 @@ import com.meeple.citybuild.RayHelper;
 import com.meeple.citybuild.client.CityBuilderMain;
 import com.meeple.citybuild.client.gui.GameUI;
 import com.meeple.citybuild.client.render.WorldRenderer.MeshExt;
-import com.meeple.citybuild.client.render.structs.Light;
-import com.meeple.citybuild.client.render.structs.Material;
 import com.meeple.citybuild.server.Entity;
 import com.meeple.citybuild.server.LevelData;
 import com.meeple.citybuild.server.LevelData.Chunk;
@@ -46,7 +46,6 @@ import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.OGL.KeyInputSystem;
 import com.meeple.shared.frame.OGL.ShaderProgram;
-import com.meeple.shared.frame.OGL.ShaderProgram.VertexAttribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferDataManagementType;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferType;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferUsage;
@@ -54,6 +53,7 @@ import com.meeple.shared.frame.OGL.ShaderProgram.GLDataType;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
 import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
+import com.meeple.shared.frame.OGL.ShaderProgram.VertexAttribute;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2.ShaderClosable;
@@ -66,7 +66,6 @@ import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpri
 import com.meeple.shared.frame.nuklear.NkContextSingleton;
 import com.meeple.shared.frame.wrapper.Wrapper;
 import com.meeple.shared.frame.wrapper.WrapperImpl;
-import com.meeple.temp.Island;
 import com.meeple.temp.Island.IslandSize;
 
 public class LevelRenderer {

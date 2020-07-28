@@ -1,6 +1,7 @@
 package com.meeple.backend.game.world.features;
 
-import static org.lwjgl.util.par.ParShapes.*;
+import static org.lwjgl.util.par.ParShapes.par_shapes_create_lsystem;
+import static org.lwjgl.util.par.ParShapes.par_shapes_rotate;
 
 import org.lwjgl.util.par.ParShapesMesh;
 

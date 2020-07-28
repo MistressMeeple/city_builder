@@ -10,8 +10,6 @@ import org.joml.SimplexNoise;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
 
-import com.meeple.backend.noise.CircleNoise;
-import com.meeple.backend.noise.NoiseStack;
 import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.ColourUtils;
 import com.meeple.shared.MathHelper.RandomCollection;

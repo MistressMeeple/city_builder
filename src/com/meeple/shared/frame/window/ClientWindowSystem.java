@@ -1,7 +1,13 @@
 package com.meeple.shared.frame.window;
 
-import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.nuklear.Nuklear.*;
+import static org.lwjgl.glfw.GLFW.GLFW_CURSOR;
+import static org.lwjgl.glfw.GLFW.GLFW_CURSOR_DISABLED;
+import static org.lwjgl.glfw.GLFW.GLFW_CURSOR_HIDDEN;
+import static org.lwjgl.glfw.GLFW.GLFW_CURSOR_NORMAL;
+import static org.lwjgl.glfw.GLFW.glfwSetInputMode;
+import static org.lwjgl.glfw.GLFW.glfwShowWindow;
+import static org.lwjgl.nuklear.Nuklear.nk_button_label;
+import static org.lwjgl.nuklear.Nuklear.nk_layout_row_dynamic;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -55,7 +61,6 @@ import com.meeple.shared.frame.nuklear.NuklearMenuSystem;
 import com.meeple.shared.frame.nuklear.NuklearMenuSystem.BtnState;
 import com.meeple.shared.frame.nuklear.NuklearMenuSystem.Menu;
 import com.meeple.shared.frame.nuklear.NuklearUIComponent;
-import com.meeple.shared.frame.thread.ThreadManager.Builder;
 import com.meeple.shared.frame.wrapper.Wrapper;
 import com.meeple.shared.frame.wrapper.WrapperImpl;
 

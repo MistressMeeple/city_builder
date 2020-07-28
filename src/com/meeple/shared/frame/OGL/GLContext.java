@@ -1,10 +1,13 @@
 package com.meeple.shared.frame.OGL;
 
-import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL30.*;
-import static org.lwjgl.opengl.GL31.*;
-import static org.lwjgl.system.MemoryUtil.*;
+import static org.lwjgl.glfw.GLFW.glfwCreateWindow;
+import static org.lwjgl.opengl.GL15.GL_DYNAMIC_DRAW;
+import static org.lwjgl.opengl.GL15.glBindBuffer;
+import static org.lwjgl.opengl.GL15.glBufferData;
+import static org.lwjgl.opengl.GL30.glBindBufferBase;
+import static org.lwjgl.opengl.GL31.GL_UNIFORM_BUFFER;
+import static org.lwjgl.opengl.GL31.glUniformBlockBinding;
+import static org.lwjgl.system.MemoryUtil.NULL;
 
 import java.util.Collection;
 import java.util.Iterator;

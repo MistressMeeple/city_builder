@@ -1,6 +1,5 @@
 package com.meeple.shared.frame.window;
 
-import org.lwjgl.glfw.GLFW;
 @Deprecated
 public class WindowCallbackManager {
 

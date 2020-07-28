@@ -1,10 +1,9 @@
 package com.meeple.shared.frame.OGL;
 
-import java.util.List;
-
 import java.lang.ref.WeakReference;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;

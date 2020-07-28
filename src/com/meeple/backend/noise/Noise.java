@@ -1,6 +1,21 @@
 package com.meeple.backend.noise;
 
-import static org.lwjgl.nuklear.Nuklear.*;
+import static org.lwjgl.nuklear.Nuklear.NK_BUTTON_MIDDLE;
+import static org.lwjgl.nuklear.Nuklear.NK_EDIT_FIELD;
+import static org.lwjgl.nuklear.Nuklear.NK_TEXT_ALIGN_CENTERED;
+import static org.lwjgl.nuklear.Nuklear.NK_TEXT_ALIGN_LEFT;
+import static org.lwjgl.nuklear.Nuklear.NK_TEXT_ALIGN_RIGHT;
+import static org.lwjgl.nuklear.Nuklear.NK_WINDOW_NO_SCROLLBAR;
+import static org.lwjgl.nuklear.Nuklear.nk_group_begin;
+import static org.lwjgl.nuklear.Nuklear.nk_group_end;
+import static org.lwjgl.nuklear.Nuklear.nk_label;
+import static org.lwjgl.nuklear.Nuklear.nk_layout_row_dynamic;
+import static org.lwjgl.nuklear.Nuklear.nk_layout_row_template_begin;
+import static org.lwjgl.nuklear.Nuklear.nk_layout_row_template_end;
+import static org.lwjgl.nuklear.Nuklear.nk_layout_row_template_push_dynamic;
+import static org.lwjgl.nuklear.Nuklear.nk_layout_row_template_push_static;
+import static org.lwjgl.nuklear.Nuklear.nk_propertyf;
+import static org.lwjgl.nuklear.Nuklear.nk_slide_float;
 
 import java.io.IOException;
 import java.io.OutputStream;
