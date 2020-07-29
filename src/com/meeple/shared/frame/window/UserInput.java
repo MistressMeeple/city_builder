@@ -505,8 +505,8 @@ public final class UserInput extends GLFWWrapper {
 		public void rebind(GLFWKeyOrMouse key) {
 			GLFWKeyOrMouse old = keyBindings.put(eventName, key);
 			if (old != null) {
-				logger.warn("Event '" + eventName + "' has already been registered and is being overrided");
-				logger.warn(old.toString() + " is being replaced by " + key.toString());
+				logger.info("Event '" + eventName + "' has already been registered and is being overrided");
+				logger.info(old.toString() + " is being replaced by " + key.toString());
 			}
 			this.key = key;
 		}
