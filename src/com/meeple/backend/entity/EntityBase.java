@@ -1,10 +1,13 @@
 package com.meeple.backend.entity;
 
+import java.util.UUID;
+
 import org.joml.AABBf;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 public class EntityBase {
+	private final  UUID uuid = UUID.randomUUID();	
 	private final Matrix4f transformation = new Matrix4f();
 	private final Vector3f velocity = new Vector3f();
 	private float gravityPull = 0f;
@@ -103,5 +106,9 @@ public class EntityBase {
 
 			currentJumps += 1;
 		}
+	}
+
+	public UUID UUID() {
+		return uuid;
 	}
 }
