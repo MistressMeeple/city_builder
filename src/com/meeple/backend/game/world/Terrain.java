@@ -11,6 +11,7 @@ public class Terrain {
 	protected final float worldX, worldY;
 	protected final Vector3f[] bounds;
 	protected final Set<TerrainFeature> features = new HashSet<>();
+	protected final TerrainSampleInfo[][] tiles;
 
 	public Terrain(int gridX, int gridY) {
 		this.chunkX = gridX;
@@ -27,6 +28,7 @@ public class Terrain {
 				worldX + World.TerrainSize,
 				0,
 				worldY + World.TerrainSize) };
+		 tiles = new TerrainSampleInfo[World.TerrainSize][World.TerrainSize];
 
 	}
 
