@@ -62,10 +62,10 @@ public class WorldView {
 			playerEntity.transformation().translate(0, 0, 100);
 			world.addEntity(playerEntity);
 		}
-
-		VPMatrix.bindToProgram(worldClient.getShaderProgram().programID, vpMatrix.getBindingPoint());
-		vpMatrix.getCamera(primaryCamera).setTranslation(-1, 0, 10f);
-
+		{
+			VPMatrix.bindToProgram(worldClient.getShaderProgram().programID, vpMatrix.getBindingPoint());
+			vpMatrix.getCamera(primaryCamera).setTranslation(-1, 0, 10f);
+		}
 		ParShapeMeshI spherePMesh = new ParShapeMeshI() {
 
 			@Override
@@ -85,7 +85,7 @@ public class WorldView {
 		int index = random.nextInt(colours.length - 1);
 		float[] col1 = colours[index];
 		float[] col2 = colours[random.nextInt(colours.length - 1)];
-		sphereMesh.getAttribute(ShaderPrograms.colourAtt.name).data(new float[] { col1[0], col1[1], col1[2], col1[3], col2[0], col2[1], col2[2], col2[3] }).instanced(true, 1000);
+		sphereMesh.getAttribute(ShaderPrograms.colourAtt.name).data(new float[] { col1[0], col1[1], col1[2], col1[3], col2[0], col2[1], col2[2], col2[3] }).instanced(true, 10000);
 
 		ParShapeMeshI conePMesh = new ParShapeMeshI() {
 
@@ -107,6 +107,37 @@ public class WorldView {
 			human.enableAttributes(ShaderPrograms.InstancedAttribute.Colour, ShaderPrograms.InstancedAttribute.Transformation);
 
 			worldClient.modelManager.register(NPCEntity.class, human);
+		}
+		{
+
+			ParShapeMeshI cubePMesh = new ParShapeMeshI() {
+
+				@Override
+				public ParShapesMesh generate() {
+					ParShapesMesh mesh = ParShapes.par_shapes_create_cube();
+					return mesh;
+				}
+
+			};
+			Mesh cubeMesh = cubePMesh.convert(cubePMesh.generate());
+			cubeMesh.getAttribute(ShaderPrograms.colourAtt.name).data(new float[] { 0, 1, 0, 1 }).instanced(true, 100000);
+			Model human = new Model();
+			human.addMesh(cubeMesh);
+			human.enableAttributes(ShaderPrograms.InstancedAttribute.Transformation);
+			human.loadVAOs(client.glContext, Program._3D_Unlit_Flat.program);
+			worldClient.modelManager.register(NPCEntity.class, human, 1);
+		}
+		{
+
+			for (int i = 0; i < 10000; i++) {
+
+				NPCEntity npc = new NPCEntity();
+				float x = random.nextFloat() * 100;
+				float y = random.nextFloat() * 100;
+				npc.transformation().setTranslation(x, y, world.sample(x, y).height);
+
+				world.entities.add(npc);
+			}
 		}
 
 	}

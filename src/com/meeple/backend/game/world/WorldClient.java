@@ -92,17 +92,25 @@ public class WorldClient {
 	public void setupProgram(GLContext glc) {
 		ShaderPrograms.initAndCreate(glc, Program._3D_Unlit_Flat);
 
+		treeModel = new Model();
+		treeModel.addMesh(tree);
+
 		TreeFeature tf = new TreeFeature();
 		tf.setup();
+
 		tree = tf.mesh;
-		ShaderProgram program = Program._3D_Unlit_Flat.program;
-		ShaderProgramSystem2.loadVAO(glc, program, tree);
+		tree.getAttribute(ShaderPrograms.transformAtt.name).data(new Matrix4f().get(new float[16]));
+		tree.getAttribute(ShaderPrograms.colourAtt.name).data(new float[] { 1, 0, 0, 0 });
+		tree.visible = true;
+
+		ShaderProgramSystem2.loadVAO(glc, Program._3D_Unlit_Flat.program, tree);
 
 		modelManager.setup(glc);
 
 	}
 
 	Mesh tree;
+	Model treeModel;
 
 	public void cameraCheck(World world, Matrix4f camera, EntityBase... nonRendering) {
 
@@ -146,6 +154,7 @@ public class WorldClient {
 					}
 				}
 				if (render) {
+					// is the bounding box of the entity visible
 					Vector3f position = entity.transformation().getTranslation(new Vector3f());
 					float minX = (2f * entity.bounds().minX) + position.x;
 					float minY = (2f * entity.bounds().minY) + position.y;
@@ -191,6 +200,7 @@ public class WorldClient {
 			for (Mesh terrain : visibleTerrains) {
 				ShaderProgramSystem2.tryFullRenderMesh(terrain);
 			}
+			ShaderProgramSystem2.tryFullRenderMesh(tree);
 			modelManager.render(visibleEntities.keySet());
 			modelManager.showBounds = true;
 			modelManager.showPositions = true;
@@ -288,6 +298,14 @@ public class WorldClient {
 		{
 			if (!Thread.currentThread().isInterrupted()) {
 				TerrainMeshUpload upload = new TerrainMeshUpload();
+
+				// setup the actual tile storage
+				for (int _x = 0; _x < World.TerrainSize; _x++) {
+					for (int _y = 0; _y < World.TerrainSize; _y++) {
+						terrain.tiles[_x][_y] = this.sampler.apply(terrain.worldX + _x, terrain.worldY + _y);
+					}
+				}
+
 				Mesh mesh = generator(terrain, sampler);
 				upload.terrain = terrain;
 				upload.mesh = mesh;

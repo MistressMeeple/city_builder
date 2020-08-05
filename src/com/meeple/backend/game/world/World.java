@@ -32,7 +32,7 @@ import com.meeple.temp.IslandOrig.IslandSize;
 
 public class World extends EventHandler {
 
-	public static final float TerrainSize = 100;
+	public static final int TerrainSize = 100;
 	public static final int TerrainVertexCount = 128;
 	public static final float TerrainSampleSize = 250f;
 	public static final float TerrainHeightScale = 10f;
@@ -238,6 +238,13 @@ public class World extends EventHandler {
 			tsi.type = TerrainType.Ground;
 		}
 		return tsi;
+	}
+
+	public TerrainSampleInfo getTileAt(float x, float y) {
+		Terrain terrain = terrainStorage.getTerrain(x, y);
+		int tileX = (int) (x - terrain.worldX);
+		int tileY = (int) (y - terrain.worldY);
+		return terrain.tiles[tileX][tileY];
 	}
 
 	public void setupGenerator(String seedText) {
