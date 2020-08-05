@@ -135,7 +135,6 @@ public class Display extends Client {
 
 		} else if (currentTab == Tab.Test) {
 
-			float prog = worldView.worldClient.progress();
 			if (!worldView.world.generated) {
 
 				worldView.worldClient.StartHold();
@@ -143,6 +142,7 @@ public class Display extends Client {
 				worldView.playerController.register(this.windowID, this.userInput);
 				worldView.playerController.operateOn(vpMatrix.getCamera(worldView.primaryCamera));
 			}
+			float prog = worldView.worldClient.progress();
 
 			if (prog < 1f) {
 				if (nk_begin(this.nkContext.context, "loading", NkRect.create().set(50, 50, 500, 500), 0)) {
