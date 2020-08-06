@@ -82,6 +82,14 @@ public class Display extends Client {
 	NoiseView noisePreview = new NoiseView();
 	WorldView worldView = new WorldView();
 
+	private VPMatrix vpMatrix = new VPMatrix();
+
+	private enum Tab {
+		Noise, Island, Test, WorldBuilding
+	}
+
+	private Tab currentTab = Tab.Noise;
+
 	@Override
 	public void setupGL() {
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -129,6 +137,8 @@ public class Display extends Client {
 		case Test:
 			worldView.preRender();
 			break;
+		case WorldBuilding:
+			break;
 
 		}
 		layout(nkContext, (int) (windowWidth * 0.75f), 0, (int) (windowWidth * 0.25f), windowHeight);
@@ -171,18 +181,12 @@ public class Display extends Client {
 				worldView.render(this, vpMatrix, delta);
 			}
 			break;
+		case WorldBuilding:
+			break;
 
 		}
 
 	}
-
-	private VPMatrix vpMatrix = new VPMatrix();
-
-	private enum Tab {
-		Noise, Island, Test
-	}
-
-	private Tab currentTab = Tab.Noise;
 
 	private void layout(NkContextSingleton nkc, int x, int y, int w, int h) {
 
@@ -229,6 +233,9 @@ public class Display extends Client {
 				break;
 			case Test:
 				break;
+			case WorldBuilding:
+				break;
+
 			}
 		}
 	}
