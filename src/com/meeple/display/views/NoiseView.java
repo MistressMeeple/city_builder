@@ -659,8 +659,13 @@ public class NoiseView {
 		verts.flip();
 		colours.flip();
 
-		Mesh x = new Mesh().addAttribute(ShaderPrograms.vertAtt.build().data(verts)).addAttribute(ShaderPrograms.colourAtt.build().data(colours)).addAttribute(ShaderPrograms.transformAtt.build().data(new Matrix4f().get(new float[16]))).vertexCount(count
-			* 2).renderMode(GLDrawMode.Line).name("axis");
+		Mesh x = new Mesh();
+		x.name("axis");
+		x.vertexCount(count * 2);
+		x.renderMode(GLDrawMode.Line);
+		x.addAttribute(ShaderPrograms.vertAtt.build().data(verts));
+		x.addAttribute(ShaderPrograms.colourAtt.build().data(colours));
+		x.addAttribute(ShaderPrograms.transformAtt.build().data(new Matrix4f().get(new float[16])));
 		return x;
 	}
 
