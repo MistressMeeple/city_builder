@@ -57,10 +57,10 @@ public class Display extends Client {
 
 	private static final float sz = 0.5f;
 	public final static float[] planeVertices = {
-		-sz,sz,sz,
-		sz,sz,sz,
-		sz,-sz,sz,
-		-sz,-sz,sz
+		-sz, sz, sz,
+		sz, sz, sz,
+		sz, -sz, sz,
+		-sz, -sz, sz
 	};
 
 	public final static float[] cubeVertices = {
@@ -121,19 +121,26 @@ public class Display extends Client {
 	@Override
 	public void render(FrameTimings delta) {
 
-		if (currentTab == Tab.Island || currentTab == Tab.Noise) {
+		switch (currentTab) {
+		case Island:
+		case Noise:
 			noisePreview.renderShared(vpMatrix, this, delta);
-		} else {
+			break;
+		case Test:
 			worldView.preRender();
+			break;
+
 		}
 		layout(nkContext, (int) (windowWidth * 0.75f), 0, (int) (windowWidth * 0.25f), windowHeight);
 
-		if (currentTab == Tab.Island) {
+		switch (currentTab) {
+		case Island:
 			noisePreview.renderIsland(this, vpMatrix, delta);
-		} else if (currentTab == Tab.Noise) {
+			break;
+		case Noise:
 			noisePreview.renderNoise(this, delta);
-
-		} else if (currentTab == Tab.Test) {
+			break;
+		case Test:
 
 			if (!worldView.world.generated) {
 
@@ -163,6 +170,8 @@ public class Display extends Client {
 			if (worldView.world.generated && prog == 1f) {
 				worldView.render(this, vpMatrix, delta);
 			}
+			break;
+
 		}
 
 	}
@@ -219,9 +228,7 @@ public class Display extends Client {
 				noisePreview.drawNoiseMenu(glContext, nkc, stack, rect);
 				break;
 			case Test:
-
 				break;
-
 			}
 		}
 	}
