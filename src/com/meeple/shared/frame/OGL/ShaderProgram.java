@@ -485,6 +485,13 @@ public class ShaderProgram {
 			return this;
 		}
 
+		/**
+		 * Currently depricated as it doesnt quite work as intended. Looking into it
+		 * @deprecated
+		 * @param data
+		 * @return
+		 */
+		@Deprecated
 		public BufferObject data(Buffer data) {
 			this.buffer = data;
 			this.bufferResourceType = BufferDataManagementType.Buffer;
