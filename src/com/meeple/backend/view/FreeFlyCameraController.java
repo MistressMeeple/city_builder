@@ -37,6 +37,18 @@ public class FreeFlyCameraController extends BaseCameraController {
 		super.cursorCallback(window, xpos, ypos);
 	}
 
+	public Vector3f getPosition() {
+		return position;
+	}
+
+	public double getPitch() {
+		return pitch;
+	}
+
+	public double getYaw() {
+		return yaw;
+	}
+
 	private void actualTick() {
 
 		operateOn.identity();
@@ -54,7 +66,7 @@ public class FreeFlyCameraController extends BaseCameraController {
 	protected void handleCameraEscape(Client client, UserInput userInput) {
 
 		Boolean pressed = userInput.hasPressed(client.options.openMenu);
-		
+
 		if (pressed != null && pressed) {
 			if (mouseEnabled) {
 				double midx = client.fbWidth / 2;
