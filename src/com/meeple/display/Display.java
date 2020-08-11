@@ -33,6 +33,7 @@ import com.meeple.backend.ShaderPrograms;
 import com.meeple.backend.ShaderPrograms.Program;
 import com.meeple.backend.view.VPMatrix;
 import com.meeple.display.views.NoiseView;
+import com.meeple.display.views.WorldBuildingView;
 import com.meeple.display.views.WorldView;
 import com.meeple.shared.frame.nuklear.NkContextSingleton;
 
@@ -81,6 +82,7 @@ public class Display extends Client {
 	};
 	NoiseView noisePreview = new NoiseView();
 	WorldView worldView = new WorldView();
+	WorldBuildingView worldBuildingView = new WorldBuildingView();
 
 	private VPMatrix vpMatrix = new VPMatrix();
 
@@ -102,27 +104,11 @@ public class Display extends Client {
 		VPMatrix.bindToProgram(Program._3D_Unlit_Flat.program.programID, vpMatrix.getBindingPoint());
 
 		GL46.glEnable(GL46.GL_DEPTH_TEST);
-		/*
-		 * this.userInput.scrollCallbackSet.add(new GLFWScrollCallbackI() {
-		 * 
-		 * @Override public void invoke(long window, double xoffset, double yoffset) {
-		 * if (!Nuklear.nk_item_is_any_active(nkContext.context)) { range += yoffset *
-		 * -0.5f; range = Math.max(range, 1); } } });
-		 */
-
-		// setupArrayMesh(chunkMeshes, this.stack, gridSize, sampleRotation, seaLevel,
-		// 1);
-
-		// noises[2] = stack.new CircleNoise(new Vector2f(), 100);
-
-		// genNoiseMesh(noiseSampleMesh, island.map.size(), island::sampleNoise,
-		// gridSize, sampleRotation, seaLevel, islandScaleXY);
-		// genNoiseMesh(circleSampleMesh, island.map.size(), (x, y) ->
-		// island.sampleCircleMap(x, y, new Vector2f(0, 0), island.size.pythag),
-		// gridSize, sampleRotation, seaLevel, islandScaleXY);
 
 		noisePreview.setup(this, vpMatrix);
 		worldView.setup(this, vpMatrix);
+		worldBuildingView.setup(this, vpMatrix);
+
 		logger.trace("Finished setting up contexts and meshes");
 	}
 
@@ -138,6 +124,7 @@ public class Display extends Client {
 			worldView.preRender();
 			break;
 		case WorldBuilding:
+
 			break;
 
 		}
@@ -182,6 +169,7 @@ public class Display extends Client {
 			}
 			break;
 		case WorldBuilding:
+			worldBuildingView.render(this, vpMatrix,delta);
 			break;
 
 		}
@@ -238,18 +226,6 @@ public class Display extends Client {
 
 			}
 		}
-	}
-
-	class GroundProperties {
-		/**
-		 * Can grow crops on the land or not
-		 */
-		boolean arable;
-		/**
-		 * Can have housing built here
-		 */
-		boolean habitable;
-
 	}
 
 	@Override
