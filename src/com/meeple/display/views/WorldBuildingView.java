@@ -24,6 +24,7 @@ import org.apache.log4j.Logger;
 import org.joml.Matrix4f;
 import org.joml.Vector2i;
 import org.joml.Vector3f;
+import org.lwjgl.glfw.GLFW;
 import org.lwjgl.nuklear.NkColorf;
 import org.lwjgl.nuklear.NkRect;
 import org.lwjgl.nuklear.Nuklear;
@@ -206,7 +207,7 @@ public class WorldBuildingView {
 
 		playerController.register(client.windowID, client.userInput);
 		playerController.operateOn(vpMatrix.getCamera(primaryCamera));
-		playerController.getPosition().set(mapTest.length / 2, mapTest[0].length / 2, 5);
+		vpMatrix.getCamera(primaryCamera).setTranslation(mapTest.length / 2, mapTest[0].length / 2, 5);
 
 		Random r = new Random(1);
 		int totalTiles = (mapTest.length * mapTest[0].length);
@@ -383,14 +384,24 @@ public class WorldBuildingView {
 		vpMatrix.activeCamera(primaryCamera);
 		vpMatrix.upload();
 
-		Vector3f cameraPosition = playerController.getPosition();
-		String pos = cameraPosition.toString();
+		Matrix4f clone2 = new Matrix4f(vpMatrix.getCamera(primaryCamera));
+		clone2.invert();
+		Vector3f translation3 = clone2.getTranslation(new Vector3f());
+		String pos = translation3.toString(new DecimalFormat("0.000"));
 		if (Nuklear.nk_begin(client.nkContext.context, "", NkRect.create().set(0, 0, 300, 300), 0)) {
 			Nuklear.nk_layout_row_dynamic(client.nkContext.context, 30f, 1);
 			Nuklear.nk_label(client.nkContext.context, pos, Nuklear.NK_TEXT_ALIGN_LEFT);
 
 			Nuklear.nk_end(client.nkContext.context);
 		}
+
+		if (client.userInput.isKeyPressed(GLFW.GLFW_KEY_F5)) {
+			vpMatrix.getCamera(primaryCamera).identity();
+//			vpMatrix.getCamera(primaryCamera).rotateX((float) Math.toDegrees(90));
+			vpMatrix.getCamera(primaryCamera).translate(-mapTest.length / 2, -mapTest[0].length / 2, -5);
+
+		}
+
 		glClearColor(background.r(), background.g(), background.b(), background.a());
 		// NOTE this denotes that GL is using a new frame.
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

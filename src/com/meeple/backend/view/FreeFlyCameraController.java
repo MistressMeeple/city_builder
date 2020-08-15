@@ -2,6 +2,10 @@ package com.meeple.backend.view;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.joml.Math;
+import org.joml.Matrix4f;
+import org.joml.Quaternionf;
+import org.joml.Vector2d;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
@@ -12,6 +16,9 @@ import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.window.UserInput;
 
 public class FreeFlyCameraController extends BaseCameraController {
+	private final static float ep = 0.00000000000000000000011f;
+	// private final static double ep = 1E-22;
+
 	float normalSpeed = 10f;
 	/**
 	 * when holding shift, or whatever the "sprint" key is
@@ -19,7 +26,8 @@ public class FreeFlyCameraController extends BaseCameraController {
 	float speedMult = 2f;
 	float hightClimb = 10f;
 	double pitch, yaw;
-	private final Vector3f position = new Vector3f();
+
+	public final Vector3f position = new Vector3f();
 	private double oldX, oldY;
 	private AtomicBoolean hasChanged = new AtomicBoolean();
 	protected boolean mouseEnabled = true;
@@ -28,8 +36,10 @@ public class FreeFlyCameraController extends BaseCameraController {
 	protected void cursorCallback(long window, double xpos, double ypos) {
 
 		if (!mouseEnabled) {
-			yaw += -Math.toRadians(xpos - oldX);
-			pitch += -Math.toRadians(ypos - oldY);
+			double nYaw = -Math.toRadians(xpos - oldX);
+			double nPitch = -Math.toRadians(ypos - oldY);
+			pitch += nPitch;
+			yaw += nYaw;
 			oldX = xpos;
 			oldY = ypos;
 			hasChanged.lazySet(true);
@@ -37,29 +47,111 @@ public class FreeFlyCameraController extends BaseCameraController {
 		super.cursorCallback(window, xpos, ypos);
 	}
 
-	public Vector3f getPosition() {
-		return position;
-	}
-
-	public double getPitch() {
-		return pitch;
-	}
-
-	public double getYaw() {
-		return yaw;
-	}
-
 	private void actualTick() {
+		final int method = 2;
 
-		operateOn.identity();
-		float ep = 0.0001f;
+		switch (method) {
+		case -1: {
 
-		pitch = Math.min(Math.PI - ep, Math.max(ep, pitch % FrameUtils.TWOPI));
-		yaw = yaw % FrameUtils.TWOPI;
+			Matrix4f clone = new Matrix4f(operateOn);
+			clone.invert();
+			Vector3f translation2 = clone.getTranslation(new Vector3f());
+			Vector2d angles = new Vector2d();
+			{
+				angles.x = Math.atan2(operateOn.m21(), operateOn.m22());
+				angles.y = Math.atan2(operateOn.m10(), operateOn.m00());
 
-		operateOn.rotate((float) -pitch, 1, 0, 0);
-		operateOn.rotate((float) yaw, 0, 0, 1);
-		operateOn.translate(position.mul(-1f, new Vector3f()));
+			}
+			pitch = angles.x;
+			yaw = angles.y;
+			position.set(translation2);
+		}
+		case 0: {
+			/*
+			 * This stores the actual complete variables inside this class. wasting
+			 * resources and making it difficult to retrive information
+			 */
+			{
+				/* Clamp the pitch yaw values */
+				pitch = Math.min(Math.PI - ep, Math.max(ep, pitch % FrameUtils.TWOPI));
+				yaw = yaw % FrameUtils.TWOPI;
+			}
+
+			operateOn.identity();
+			operateOn.rotateX((float) -pitch);
+			operateOn.rotateZ((float) yaw);
+			operateOn.translate(position.mul(-1, new Vector3f()));
+
+			break;
+		}
+		case 1: {
+
+			/**
+			 * This method gets all the variables wanted (pitch yaw position) from the
+			 * matrix, resets it and increments accordingly. then resets the stored values
+			 */
+			Matrix4f clone = new Matrix4f(operateOn);
+			clone.invert();
+			Vector3f translation2 = clone.getTranslation(new Vector3f());
+			Vector2d angles = new Vector2d();
+			{
+				angles.x = Math.atan2(operateOn.m21(), operateOn.m22());
+				angles.y = Math.atan2(operateOn.m10(), operateOn.m00());
+
+			}
+			double tempPitch = angles.x + (1 * pitch);
+
+			double upper = 3;
+			double lower = +ep;
+
+			{ /* Clamp the pitch yaw values */
+
+				if (tempPitch > upper) {
+					tempPitch = upper;
+				}
+				if (tempPitch < lower) {
+					tempPitch = lower;
+				}
+
+				yaw = yaw % FrameUtils.TWOPI;
+			}
+			operateOn.identity();
+			operateOn.rotateX((float) (-(tempPitch)));
+			operateOn.rotateZ((float) (-angles.y + yaw));
+			operateOn.translate(translation2.add(position).mul(-1f, new Vector3f()));
+
+			{
+				position.zero();
+				pitch = 0;
+				yaw = 0;
+			}
+			break;
+		}
+		case 2: {
+			/**
+			 * This method just increments the matrix provided, not resetting it to
+			 * identity.
+			 */
+
+			operateOn.rotateLocalX((float) -pitch);
+			Quaternionf quat = new Quaternionf();
+			quat.rotateZ((float) yaw);
+
+			Matrix4f clone = new Matrix4f(operateOn);
+			clone.invert();
+			Vector3f translation2 = clone.getTranslation(new Vector3f());
+			operateOn.rotateAroundAffine(quat, translation2.x, translation2.y, translation2.z, operateOn);
+
+			operateOn.translate(position.mul(-1, new Vector3f()));
+			{
+				position.zero();
+				pitch = 0;
+				yaw = 0;
+			}
+		}
+			break;
+
+		}
 
 	}
 
@@ -131,14 +223,17 @@ public class FreeFlyCameraController extends BaseCameraController {
 			if (userInput.isPressed(client.options.playerSprint)) {
 				rotated.mul(this.speedMult * this.speedMult, rotated);
 			}
+//			operateOn.translate(-rotated.x, -rotated.y, 0);
 			position.add(rotated.x, rotated.y, 0);
 			hasChanged.lazySet(true);
 
 		}
 		if (up != 0) {
+//			operateOn.translate(0, 0, -up * delta.deltaSeconds);
 			position.add(0, 0, up * delta.deltaSeconds);
 			hasChanged.lazySet(true);
 		}
+
 	}
 
 	@Override
