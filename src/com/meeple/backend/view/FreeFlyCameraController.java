@@ -48,7 +48,7 @@ public class FreeFlyCameraController extends BaseCameraController {
 	}
 
 	private void actualTick() {
-		final int method = 2;
+		final int method = 1;
 
 		switch (method) {
 		case -1: {
