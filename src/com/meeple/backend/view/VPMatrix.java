@@ -8,22 +8,26 @@ import static org.lwjgl.opengl.GL30.glBindBufferBase;
 import static org.lwjgl.opengl.GL31.GL_UNIFORM_BUFFER;
 import static org.lwjgl.opengl.GL31.glUniformBlockBinding;
 
-import java.util.List;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.lwjgl.opengl.GL46;
 
-import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.OGL.ShaderProgram;
 
 public class VPMatrix {
 
 	public final class CameraKey {
-		private final int keyIndex;
+		private final Vector3f position = new Vector3f();
+		private Vector3f eulerRotation = new Vector3f();
 
-		public CameraKey(int key) {
-			this.keyIndex = key;
+		/**
+		 * Constructor is hidden. Use {@link VPMatrix#newCamera()} instead.
+		 */
+		private CameraKey() {
 		}
 	}
 
@@ -31,40 +35,53 @@ public class VPMatrix {
 	private int matrixBuffer;
 	private int boundTo = Default_VP_Matrix_Binding_Point;
 
-	private int activeCamera = 0;
-	private List<Matrix4f> cameras = new CollectionSuppliers.ListSupplier<Matrix4f>().get();
+	private CameraKey activeCamera;
+	private Map<CameraKey, Matrix4f> cameras = new WeakHashMap<>();
 
-	//limited use
+	// limited use
 	private Matrix4f projectionMatrix = new Matrix4f();
-	//internal use only
+	// internal use only
 	private Matrix4f viewProjectionMatrix = new Matrix4f();
 
 	public Matrix4f getActiveCamera() {
 		return cameras.get(activeCamera);
 	}
+
 	/**
 	 * Returns the main camera matrix
+	 * 
 	 * @return matrix4f representing the camera
 	 */
 	public Matrix4f getCamera(CameraKey key) {
-		return cameras.get(key.keyIndex);
+		return cameras.get(key);
 	}
 
 	/**
-	 * Returns the main camera matrix with the additional operation of setting the camera as active
+	 * Returns the main camera matrix with the additional operation of setting the
+	 * camera as active
+	 * 
 	 * @return matrix4f representing the camera
 	 */
 	public Matrix4f getCamera(CameraKey key, boolean setActive) {
 		if (setActive)
 			activeCamera(key);
-
-		return cameras.get(key.keyIndex);
+		return cameras.get(key);
 	}
 
+	/**
+	 * Set the shapder programs binding point of a ViewProjection matrix
+	 * 
+	 * @param binding index to bind to
+	 */
 	public void setBindingPoint(int binding) {
 		boundTo = binding;
 	}
 
+	/**
+	 * Gets the shader programs binding point of the ViewProjection matrix
+	 * 
+	 * @return index that it is bound to
+	 */
 	public int getBindingPoint() {
 		return boundTo;
 	}
@@ -75,11 +92,9 @@ public class VPMatrix {
 
 		glBindBuffer(GL46.GL_UNIFORM_BUFFER, matrixBuffer);
 		glBufferData(
-			GL_UNIFORM_BUFFER,
-			16 * 4 * 3,
-			ShaderProgram.BufferUsage.DynamicDraw.getGLID());
+			GL_UNIFORM_BUFFER, 16 * 4 * 3, ShaderProgram.BufferUsage.DynamicDraw.getGLID());
 
-		//binds the buffer to a binding index
+		// binds the buffer to a binding index
 		glBindBufferBase(GL_UNIFORM_BUFFER, boundTo, matrixBuffer);
 
 	}
@@ -87,26 +102,22 @@ public class VPMatrix {
 	public static void bindToProgram(int program, int bindingPoint) {
 		glUseProgram(program);
 		int actualIndex = GL46.glGetUniformBlockIndex(program, "Matrices");
-		//binds the binding index to the interface block (by index)
+		// binds the binding index to the interface block (by index)
 		glUniformBlockBinding(program, actualIndex, VPMatrix.Default_VP_Matrix_Binding_Point);
 	}
 
 	public void setPerspective(float fov, float aspectRatio, float near, float far) {
-		projectionMatrix
-			.setPerspective(
-				(float) Math.toRadians(fov),
-				(float) aspectRatio,
-				near,
-				far);
-		//NOTE invert either X or Y axis for my prefered coord system
+		projectionMatrix.setPerspective(
+			(float) Math.toRadians(fov), (float) aspectRatio, near, far);
+		// NOTE invert either X or Y axis for my prefered coord system
 		projectionMatrix.scale(-1, 1, 1);
-		
 
 	}
 
 	public void activeCamera(CameraKey camera) {
-		this.activeCamera = camera.keyIndex;
+		this.activeCamera = camera;
 	}
+
 	public Matrix4f getVPMatrix() {
 		return viewProjectionMatrix;
 	}
@@ -118,7 +129,8 @@ public class VPMatrix {
 
 	private static void writeVPFMatrix(int buffer, Matrix4f projection, Matrix4f view, Matrix4f vp) {
 
-		//no need to be in a program bidning, since this is shared between multiple programs
+		// no need to be in a program bidning, since this is shared between multiple
+		// programs
 		glBindBuffer(GL46.GL_UNIFORM_BUFFER, buffer);
 		float[] store = new float[16];
 
@@ -134,8 +146,11 @@ public class VPMatrix {
 	}
 
 	public CameraKey newCamera() {
-		CameraKey key = new CameraKey(cameras.size());
-		cameras.add(new Matrix4f());
+		CameraKey key = new CameraKey();
+		cameras.put(key, new Matrix4f());
+		if (activeCamera == null) {
+			activeCamera = key;
+		}
 		return key;
 	}
 }
