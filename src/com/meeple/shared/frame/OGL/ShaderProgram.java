@@ -125,6 +125,41 @@ public class ShaderProgram {
 		}
 	}
 
+	public static int[] TextureUnits = new int[] {
+		GL46.GL_TEXTURE0,
+		GL46.GL_TEXTURE1,
+		GL46.GL_TEXTURE2,
+		GL46.GL_TEXTURE3,
+		GL46.GL_TEXTURE4,
+		GL46.GL_TEXTURE5,
+		GL46.GL_TEXTURE6,
+		GL46.GL_TEXTURE7,
+		GL46.GL_TEXTURE8,
+		GL46.GL_TEXTURE9,
+		GL46.GL_TEXTURE10,
+		GL46.GL_TEXTURE11,
+		GL46.GL_TEXTURE12,
+		GL46.GL_TEXTURE13,
+		GL46.GL_TEXTURE14,
+		GL46.GL_TEXTURE15,
+		GL46.GL_TEXTURE16,
+		GL46.GL_TEXTURE17,
+		GL46.GL_TEXTURE18,
+		GL46.GL_TEXTURE19,
+		GL46.GL_TEXTURE20,
+		GL46.GL_TEXTURE21,
+		GL46.GL_TEXTURE22,
+		GL46.GL_TEXTURE23,
+		GL46.GL_TEXTURE24,
+		GL46.GL_TEXTURE25,
+		GL46.GL_TEXTURE26,
+		GL46.GL_TEXTURE27,
+		GL46.GL_TEXTURE28,
+		GL46.GL_TEXTURE29,
+		GL46.GL_TEXTURE30,
+		GL46.GL_TEXTURE31
+	};
+
 	public enum GLDrawMode implements GLEnum {
 
 		Points(GL46.GL_POINTS),
@@ -540,8 +575,9 @@ public class ShaderProgram {
 			this.bufferResourceType = BufferDataManagementType.List;
 			return this;
 		}
+
 		public IndexBufferObject data(int[] data) {
-			for(int i : data) {
+			for (int i : data) {
 				this.data.add(i);
 			}
 			this.bufferResourceType = BufferDataManagementType.List;
