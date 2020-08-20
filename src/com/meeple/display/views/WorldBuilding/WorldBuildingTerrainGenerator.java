@@ -2,21 +2,64 @@ package com.meeple.display.views.WorldBuilding;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.joml.Vector2i;
 
+import com.meeple.backend.ShaderPrograms;
+import com.meeple.backend.game.world.Terrain;
 import com.meeple.backend.game.world.TerrainSampleInfo.TerrainType;
 import com.meeple.shared.Direction2D;
 import com.meeple.shared.frame.FrameUtils;
+import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
 
 public class WorldBuildingTerrainGenerator {
 
 	private static Logger logger = Logger.getLogger(WorldBuildingTerrainGenerator.class);
+	/**
+	 * This is the width of the entire terrain
+	 */
+	private int terrainWorldSize = 100;
+	/**
+	 * This number squared is how many vertices per terrain. Vertex count per side
+	 */
+	private int terrainVertexCount = 128;
+
+	private Map<Terrain, Float[][]> terrainHeightCache = new HashMap<>();
+	private Map<Terrain, Boolean> shouldRebuild = new HashMap<>();
+
+	private void setHeight(Terrain terrain, int x, int y, float height) {
+		Float[][] retrieve = terrainHeightCache.get(terrain);
+		if (retrieve == null) {
+			retrieve = new Float[terrainVertexCount][terrainVertexCount];
+		}
+		retrieve[x][y] = height;
+		terrainHeightCache.put(terrain, retrieve);
+		shouldRebuild.put(terrain, true);
+	}
+
+	private void setHeight(Terrain terrain, Float[][] heights) {
+		terrainHeightCache.put(terrain, heights);
+		shouldRebuild.put(terrain, true);
+	}
+
+	private Mesh rebuild(Terrain terrain) {
+		Mesh mesh = new Mesh();
+		return mesh;
+	}
+
+	private Mesh initMesh(Mesh mesh) {
+		mesh.addAttribute(ShaderPrograms.vertAtt.build());
+		mesh.addAttribute(ShaderPrograms.transformAtt.build());
+		
+		return mesh;
+	}
 
 	public void setup(Random random, TerrainType[][] mapTest) {
 
