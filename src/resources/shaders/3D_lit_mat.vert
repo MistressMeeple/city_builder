@@ -12,11 +12,10 @@ layout (std140) uniform LightBlock{
 
 layout (std140) uniform Matrices
 {
-	mat4 fixMatrix;
 	mat4 projectionMatrix;
 	mat4 viewMatrix;
 	mat4 vpMatrix;
-	mat4 vpfMatrix;
+	vec3 viewPosition;
 };
 
 

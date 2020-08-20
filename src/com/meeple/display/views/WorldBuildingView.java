@@ -47,7 +47,7 @@ public class WorldBuildingView {
 	private WorldBuildingTerrainMeshHelper worldBuildingTerrainMeshHelper = new WorldBuildingTerrainMeshHelper();
 
 	private TerrainType[][] mapTest = new TerrainType[160][160];
-	private Map<Vector2i,TerrainType[][]> terrainTiles = new CollectionSuppliers.MapSupplier<Vector2i, TerrainType[][]>().get();
+	private Map<Vector2i, TerrainType[][]> terrainTiles = new CollectionSuppliers.MapSupplier<Vector2i, TerrainType[][]>().get();
 
 	public void setup(Client client, VPMatrix vpMatrix) {
 
@@ -82,9 +82,7 @@ public class WorldBuildingView {
 		vpMatrix.activeCamera(primaryCamera);
 		vpMatrix.upload();
 
-		Matrix4f clone2 = new Matrix4f(vpMatrix.getCamera(primaryCamera));
-		clone2.invert();
-		Vector3f translation3 = clone2.getTranslation(new Vector3f());
+		Vector3f translation3 = vpMatrix.getViewPosition(primaryCamera);
 		String pos = translation3.toString(new DecimalFormat("0.000"));
 		if (Nuklear.nk_begin(client.nkContext.context, "", NkRect.create().set(0, 0, 300, 300), 0)) {
 			Nuklear.nk_layout_row_dynamic(client.nkContext.context, 30f, 1);

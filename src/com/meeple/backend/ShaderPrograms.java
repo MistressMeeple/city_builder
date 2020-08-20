@@ -55,10 +55,19 @@ public class ShaderPrograms {
 	 * <ul>
 	 * <li>Buffer Type: {@link BufferType.ArrayBuffer}</li>
 	 * <li>Data Type: {@link GLCompoundDataType.Vec4f}</li>
-	 * <li>Buffer Usage: {@link BufferUsage.StaticDraw}</li>
+	 * <li>Buffer Usage: {@link BufferUsage.DynamicDraw}</li>
 	 * </ul>
 	 */
 	public final static AttributeFactory colourAtt = new AttributeFactory().name("colour").bufferType(BufferType.ArrayBuffer).dataType(GLCompoundDataType.Vec4f).bufferUsage(BufferUsage.DynamicDraw).dataSize(4);
+	/**
+	 * Model/vertex colour attribute used in some shaders.
+	 * <ul>
+	 * <li>Buffer Type: {@link BufferType.ArrayBuffer}</li>
+	 * <li>Data Type: {@link GLCompoundDataType.Vec2f}</li>
+	 * <li>Buffer Usage: {@link BufferUsage.StaticDraw}</li>
+	 * </ul>
+	 */
+	public final static AttributeFactory textureAtt = new AttributeFactory().name("textureCoords").bufferType(BufferType.ArrayBuffer).dataType(GLCompoundDataType.Vec2f).bufferUsage(BufferUsage.StaticDraw).dataSize(2);
 
 	/**
 	 * Transform/model matrix used in most shaders.
@@ -93,8 +102,6 @@ public class ShaderPrograms {
 	 */
 	public final static AttributeFactory materialIndexAtt = new AttributeFactory().name("materialIndex").bufferType(BufferType.ArrayBuffer).dataType(GLDataType.Float).bufferUsage(BufferUsage.DynamicDraw).instanced(true, 1);
 
-	public final static AttributeFactory textureAtt = new AttributeFactory().name("textureCoords").bufferType(BufferType.ArrayBuffer).dataType(GLDataType.Float).bufferUsage(BufferUsage.DynamicDraw).instanced(true, 1);
-
 	public static enum InstancedAttribute {
 		Transformation, NormalMatrix, MaterialIndex, Colour;
 	}
@@ -128,6 +135,18 @@ public class ShaderPrograms {
 		 * You also need to load in the Matrices block
 		 */
 		_3D_Unlit_Flat,
+
+		/**
+		 * This shader program does <i>not</i> use lighting, does use textures, coordinates are set per vertex.<br>
+		 * You need the following attributes for this program: 
+		 * <ul>
+		 * 	<li>The vertex attribute: {@link ShaderPrograms#vertAtt} </li>
+		 * 	<li>The colour attribute:  {@link ShaderPrograms#textureAtt} </li>
+		 * 	<li>The transformation attribute: {@link ShaderPrograms#transformAtt} </li>
+		 * </ul> 
+		 * You also need to load in the Matrices block, and upload a texture 
+		 */
+		_3D_Unlit_Texture,
 		/**
 		 * This shader program uses lighting and flat colours, either per vertex or per mesh <br>
 		 * You need the following attributes for this program: 
@@ -205,6 +224,9 @@ public class ShaderPrograms {
 			if (program == Program._3D_Unlit_Flat) {
 				vert = ShaderProgramSystem2.loadShaderSourceFromFile("resources/shaders/3D_nolit_flat.vert");
 				frag = ShaderProgramSystem2.loadShaderSourceFromFile("resources/shaders/3D_nolit_flat.frag");
+			}else if( program == Program._3D_Unlit_Texture) {
+				vert = ShaderProgramSystem2.loadShaderSourceFromFile("resources/shaders/3D_unlit_texture.vert");
+				frag = ShaderProgramSystem2.loadShaderSourceFromFile("resources/shaders/3D_unlit_texture.frag");
 			} else if (program == Program._3D_Lit_Flat) {
 
 				vert = ShaderProgramSystem2.loadShaderSourceFromFile("resources/shaders/3D_lit_flat.vert");
@@ -263,6 +285,11 @@ public class ShaderPrograms {
 			mesh.addAttribute(ShaderPrograms.colourAtt.build());
 			mesh.addAttribute(ShaderPrograms.transformAtt.build());
 			break;
+		case _3D_Unlit_Texture:
+			mesh.addAttribute(ShaderPrograms.vertAtt.build());
+			mesh.addAttribute(ShaderPrograms.textureAtt.build());
+			mesh.addAttribute(ShaderPrograms.transformAtt.build());			
+			break;
 		case _3D_Lit_Flat:
 			mesh.addAttribute(ShaderPrograms.vertAtt.build());
 			mesh.addAttribute(ShaderPrograms.normalAtt.build());
@@ -281,10 +308,11 @@ public class ShaderPrograms {
 		}
 		return mesh;
 	}
+
 	private void loadTexture(int textureIndex) {
 		GL46.glActiveTexture(ShaderProgram.TextureUnits[textureIndex]);
 		//load
-		
+
 	}
 
 }

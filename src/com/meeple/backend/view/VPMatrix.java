@@ -21,9 +21,6 @@ import com.meeple.shared.frame.OGL.ShaderProgram;
 public class VPMatrix {
 
 	public final class CameraKey {
-		private final Vector3f position = new Vector3f();
-		private Vector3f eulerRotation = new Vector3f();
-
 		/**
 		 * Constructor is hidden. Use {@link VPMatrix#newCamera()} instead.
 		 */
@@ -36,7 +33,9 @@ public class VPMatrix {
 	private int boundTo = Default_VP_Matrix_Binding_Point;
 
 	private CameraKey activeCamera;
-	private Map<CameraKey, Matrix4f> cameras = new WeakHashMap<>();
+	private final Map<CameraKey, Matrix4f> cameras = new WeakHashMap<>();
+	private transient final Map<CameraKey, Float> camerasSum = new WeakHashMap<>();
+	private transient final Map<CameraKey, Vector3f> camerasPosition = new WeakHashMap<>();
 
 	// limited use
 	private Matrix4f projectionMatrix = new Matrix4f();
@@ -123,11 +122,13 @@ public class VPMatrix {
 	}
 
 	public void upload() {
-		projectionMatrix.mul(cameras.get(activeCamera), viewProjectionMatrix);
-		writeVPFMatrix(matrixBuffer, projectionMatrix, cameras.get(activeCamera), viewProjectionMatrix);
+		Matrix4f activeCameraMatrix = cameras.get(activeCamera);
+		Vector3f cameraPosition = getViewPosition(activeCameraMatrix, new Vector3f());
+		projectionMatrix.mul(activeCameraMatrix, viewProjectionMatrix);
+		writeVPFMatrix(matrixBuffer, projectionMatrix, activeCameraMatrix, cameraPosition, viewProjectionMatrix);
 	}
 
-	private static void writeVPFMatrix(int buffer, Matrix4f projection, Matrix4f view, Matrix4f vp) {
+	private static void writeVPFMatrix(int buffer, Matrix4f projection, Matrix4f view, Vector3f position, Matrix4f vp) {
 
 		// no need to be in a program bidning, since this is shared between multiple
 		// programs
@@ -140,9 +141,44 @@ public class VPMatrix {
 			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 1, view.get(store));
 		if (vp != null)
 			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 2, vp.get(store));
-
+		if (position != null)
+			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 3, new float[] { position.x, position.y, position.z });
 		glBindBuffer(GL46.GL_UNIFORM_BUFFER, 0);
 
+	}
+
+	public Vector3f getViewPosition(CameraKey camera) {
+		Matrix4f cameraMatrix = cameras.get(camera);
+		Float sum = sum(cameraMatrix);
+
+		Float oldSum = camerasSum.get(camera);
+		Vector3f position = new Vector3f();
+		if (oldSum == null || Float.compare(oldSum, sum) != 0) {
+			//recalculate
+			getViewPosition(cameraMatrix, position);
+			camerasSum.put(camera, sum);
+			camerasPosition.put(camera, position);
+		} else {
+			position = camerasPosition.get(camera);
+		}
+		return position;
+
+	}
+
+	private static final float sum(Matrix4f matrix) {
+		float sum = 0;
+		float[] mat = matrix.get(new float[16]);
+		for (float f : mat) {
+			sum += f;
+		}
+		return sum;
+	}
+
+	private static Vector3f getViewPosition(Matrix4f view, Vector3f readInto) {
+		Matrix4f clone2 = new Matrix4f(view);
+		clone2.invert();
+		clone2.getTranslation(readInto);
+		return readInto;
 	}
 
 	public CameraKey newCamera() {
