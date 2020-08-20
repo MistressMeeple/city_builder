@@ -33,7 +33,7 @@ import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
  */
 
 public class WorldBuildingTerrainMeshHelper {
-
+	private static final int maxVisibleTerrains = 1000 * 1000;
 	private Map<TerrainType, Mesh> terrainMeshes = new HashMap<>();
 	private Map<Direction2D, Mesh> borderMeshes = new HashMap<>();
 
@@ -82,7 +82,7 @@ public class WorldBuildingTerrainMeshHelper {
 				}
 
 				result.addAttribute(ShaderPrograms.vertAtt.build().data(vertices));
-				result.addAttribute(ShaderPrograms.colourAtt.build().instanced(true, 1000));
+				result.addAttribute(ShaderPrograms.colourAtt.build().instanced(true, maxVisibleTerrains));
 				result.addAttribute(ShaderPrograms.transformAtt.build());
 
 				int tc = meshIn.ntriangles();
