@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.Random;
 
 import org.apache.log4j.Logger;
-import org.joml.Matrix4f;
 import org.joml.Vector2i;
 import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
@@ -20,6 +19,7 @@ import org.lwjgl.nuklear.Nuklear;
 
 import com.meeple.backend.Client;
 import com.meeple.backend.FrameTimings;
+import com.meeple.backend.ShaderPrograms;
 import com.meeple.backend.ShaderPrograms.Program;
 import com.meeple.backend.entity.ModelManager;
 import com.meeple.backend.game.world.TerrainSampleInfo.TerrainType;
@@ -29,6 +29,8 @@ import com.meeple.backend.view.VPMatrix.CameraKey;
 import com.meeple.display.views.WorldBuilding.WorldBuildingTerrainGenerator;
 import com.meeple.display.views.WorldBuilding.WorldBuildingTerrainMeshHelper;
 import com.meeple.shared.CollectionSuppliers;
+import com.meeple.shared.frame.OGL.ShaderProgram.IndexBufferObject;
+import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2.ShaderClosable;
 
@@ -49,6 +51,8 @@ public class WorldBuildingView {
 	private TerrainType[][] mapTest = new TerrainType[160][160];
 	private Map<Vector2i, TerrainType[][]> terrainTiles = new CollectionSuppliers.MapSupplier<Vector2i, TerrainType[][]>().get();
 
+	Mesh textured = new Mesh();
+
 	public void setup(Client client, VPMatrix vpMatrix) {
 
 		//setup the meshes 
@@ -66,6 +70,21 @@ public class WorldBuildingView {
 
 		Random r = new Random(1);
 		new WorldBuildingTerrainGenerator().setup(r, mapTest);
+		textured = ShaderPrograms.constructMesh(Program._3D_Unlit_Texture);
+		textured.getAttribute(ShaderPrograms.vertAtt.name).data(new float[] {
+			-1,1,0,
+			-1,-1,0,
+			1,-1,0,
+			1,1,0
+		});
+		textured.index(new IndexBufferObject().data(new float[] {0,1,3,3,1,2}));
+		textured.getAttribute(ShaderPrograms.textureAtt.name).data(new float[] {
+			0,0,
+			0,1,
+			1,1,
+			1,0
+		});
+		
 
 	}
 

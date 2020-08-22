@@ -25,6 +25,7 @@ public class GLContext implements AutoCloseable {
 	public Set<Long> windows = new SetSupplier<Long>().get();
 	public Set<Integer> vertexArrays = new SetSupplier<Integer>().get();
 	public Set<Integer> buffers = new SetSupplier<Integer>().get();
+	public Set<Integer> textures = new SetSupplier<Integer>().get();
 
 	public Set<Integer> programs = new SetSupplier<Integer>().get();
 	public Set<Integer> shaders = new SetSupplier<Integer>().get();
@@ -46,10 +47,7 @@ public class GLContext implements AutoCloseable {
 	public int genUBO(int bindingPoint, long maxSize) {
 		int buffer = genBuffer();
 		glBindBuffer(GL46.GL_UNIFORM_BUFFER, buffer);
-		glBufferData(
-			GL_UNIFORM_BUFFER,
-			maxSize,
-			GL_DYNAMIC_DRAW);
+		glBufferData(GL_UNIFORM_BUFFER, maxSize, GL_DYNAMIC_DRAW);
 
 		//binds the buffer to a binding index
 		glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, buffer);
@@ -62,6 +60,35 @@ public class GLContext implements AutoCloseable {
 			throw new RuntimeException("Failed to create the GLFW window");
 		windows.add(windowID);
 		return windowID;
+	}
+
+	public int genVertexArray() {
+		int vertexArray = GL46.glGenVertexArrays();
+		vertexArrays.add(vertexArray);
+		return vertexArray;
+	}
+
+	public int genBuffer() {
+		int bufferID = GL46.glGenBuffers();
+		buffers.add(bufferID);
+		return bufferID;
+	}
+
+	public int genTextures() {
+		int texture = GL46.glGenTextures();
+		textures.add(texture);
+		return texture;
+	}
+
+	public int genProgram() {
+		int id = GL46.glCreateProgram();
+		programs.add(id);
+		return id;
+	}
+	public int genShader(int type) {
+		int shaderID = GL46.glCreateShader(type);
+		shaders.add(shaderID);
+		return shaderID;
 	}
 
 	/**
@@ -97,12 +124,22 @@ public class GLContext implements AutoCloseable {
 		deleteAllPrograms();
 		deleteAllShaders();
 		deleteAllArrays();
+		deleteAllTextures();
 	}
 
-	public int genBuffer() {
-		int bufferID = GL46.glGenBuffers();
-		buffers.add(bufferID);
-		return bufferID;
+	public void deleteVertexArray(int vertexArray) {
+		vertexArrays.remove(vertexArray);
+		GL46.glDeleteVertexArrays(vertexArray);
+	}
+
+	public void deleteAllArrays() {
+		synchronized (vertexArrays) {
+			for (Iterator<Integer> i = vertexArrays.iterator(); i.hasNext();) {
+				Integer vertexArray = i.next();
+				GL46.glDeleteVertexArrays(vertexArray);
+				i.remove();
+			}
+		}
 	}
 
 	public void deleteBuffer(int buffer) {
@@ -120,23 +157,31 @@ public class GLContext implements AutoCloseable {
 		}
 	}
 
-	public int genVertexArray() {
-
-		int vertexArray = GL46.glGenVertexArrays();
-		vertexArrays.add(vertexArray);
-		return vertexArray;
+	public void deleteTexture(int id) {
+		textures.remove(id);
+		GL46.glDeleteTextures(id);
 	}
 
-	public void deleteVertexArray(int vertexArray) {
-		vertexArrays.remove(vertexArray);
-		GL46.glDeleteVertexArrays(vertexArray);
+	public void deleteAllTextures() {
+		synchronized (textures) {
+			for (Iterator<Integer> i = textures.iterator(); i.hasNext();) {
+				Integer texture = i.next();
+				GL46.glDeleteTextures(texture);
+				i.remove();
+			}
+		}
 	}
 
-	public void deleteAllArrays() {
-		synchronized (vertexArrays) {
-			for (Iterator<Integer> i = vertexArrays.iterator(); i.hasNext();) {
-				Integer vertexArray = i.next();
-				GL46.glDeleteVertexArrays(vertexArray);
+	public void deleteProgram(int program) {
+		programs.remove(program);
+		GL46.glDeleteProgram(program);
+	}
+
+	public void deleteAllPrograms() {
+		synchronized (programs) {
+			for (Iterator<Integer> i = programs.iterator(); i.hasNext();) {
+				Integer program = i.next();
+				GL46.glDeleteProgram(program);
 				i.remove();
 			}
 		}
@@ -157,24 +202,4 @@ public class GLContext implements AutoCloseable {
 		}
 	}
 
-	public int genProgram() {
-		int id = GL46.glCreateProgram();
-		programs.add(id);
-		return id;
-	}
-
-	public void deleteProgram(int program) {
-		programs.remove(program);
-		GL46.glDeleteProgram(program);
-	}
-
-	public void deleteAllPrograms() {
-		synchronized (programs) {
-			for (Iterator<Integer> i = programs.iterator(); i.hasNext();) {
-				Integer program = i.next();
-				GL46.glDeleteProgram(program);
-				i.remove();
-			}
-		}
-	}
 }

@@ -29,6 +29,7 @@ import javax.activation.UnsupportedDataTypeException;
 import org.apache.log4j.Logger;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL46;
+import org.lwjgl.stb.STBImage;
 import org.lwjgl.system.MemoryStack;
 
 import com.meeple.backend.GLHelper;
@@ -45,6 +46,7 @@ import com.meeple.shared.frame.OGL.ShaderProgram.IndexBufferObject;
 import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
 import com.meeple.shared.frame.OGL.ShaderProgram.VAO;
 import com.meeple.shared.frame.OGL.ShaderProgram.VertexAttribute;
+import com.meeple.shared.frame.nuklear.IOUtil;
 
 public class ShaderProgramSystem2 {
 
@@ -159,8 +161,8 @@ public class ShaderProgramSystem2 {
 	 * @throws Exception
 	 */
 	public static int compileShader(GLContext glc, String source, int type) throws Exception {
-		int shaderID = GL46.glCreateShader(type);
-		glc.shaders.add(shaderID);
+		int shaderID = glc.genShader(type);
+
 		GL46.glShaderSource(shaderID, source);
 		GL46.glCompileShader(shaderID);
 		String shaderLog = "";
@@ -524,6 +526,50 @@ public class ShaderProgramSystem2 {
 		default:
 			break;
 		}
+	}
+
+	public static int loadTexture(GLContext glContext, String imagePath) {
+
+		ByteBuffer imageData = null;
+		int textureID = 0;
+		try {
+			imageData = IOUtil.ioResourceToByteBuffer(imagePath, 1024);
+			try (MemoryStack stack = stackPush()) {
+				IntBuffer w = stack.mallocInt(1);
+				IntBuffer h = stack.mallocInt(1);
+				IntBuffer components = stack.mallocInt(1);
+
+				// Decode texture image into a byte buffer
+				ByteBuffer decodedImage = STBImage.stbi_load_from_memory(imageData, w, h, components, 4);
+
+				int width = w.get();
+				int height = h.get();
+
+				// Create a new OpenGL texture 
+				textureID = glContext.genTextures();
+
+				// Bind the texture
+				GL46.glBindTexture(GL46.GL_TEXTURE_2D, textureID);
+
+				// Tell OpenGL how to unpack the RGBA bytes. Each component is 1 byte size
+				GL46.glPixelStorei(GL46.GL_UNPACK_ALIGNMENT, 1);
+				GL46.glTexParameteri(GL46.GL_TEXTURE_2D, GL46.GL_TEXTURE_MIN_FILTER, GL46.GL_LINEAR);
+				GL46.glTexParameteri(GL46.GL_TEXTURE_2D, GL46.GL_TEXTURE_MAG_FILTER, GL46.GL_LINEAR);
+				GL46.glTexParameteri(GL46.GL_TEXTURE_2D, GL46.GL_TEXTURE_WRAP_S, GL46.GL_REPEAT);
+				GL46.glTexParameteri(GL46.GL_TEXTURE_2D, GL46.GL_TEXTURE_WRAP_T, GL46.GL_REPEAT);
+
+				// Upload the texture data
+				GL46.glTexImage2D(GL46.GL_TEXTURE_2D, 0, GL46.GL_RGBA, width, height, 0, GL46.GL_RGBA, GL46.GL_UNSIGNED_BYTE, decodedImage);
+
+				// Generate Mip Map
+				GL46.glGenerateMipmap(GL46.GL_TEXTURE_2D);
+			}
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return textureID;
+
 	}
 
 	/**
