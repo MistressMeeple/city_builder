@@ -6,12 +6,10 @@ import static org.lwjgl.opengl.GL11.glClear;
 import static org.lwjgl.opengl.GL11.glClearColor;
 
 import java.text.DecimalFormat;
-import java.util.Map;
 import java.util.Random;
 
 import org.apache.log4j.Logger;
 import org.joml.Matrix4f;
-import org.joml.Vector2i;
 import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.nuklear.NkColorf;
@@ -23,14 +21,12 @@ import com.meeple.backend.Client;
 import com.meeple.backend.FrameTimings;
 import com.meeple.backend.ShaderPrograms;
 import com.meeple.backend.ShaderPrograms.Program;
-import com.meeple.backend.entity.ModelManager;
 import com.meeple.backend.game.world.TerrainSampleInfo.TerrainType;
 import com.meeple.backend.view.FreeFlyCameraController;
 import com.meeple.backend.view.VPMatrix;
 import com.meeple.backend.view.VPMatrix.CameraKey;
 import com.meeple.display.views.WorldBuilding.WorldBuildingTerrainGenerator;
 import com.meeple.display.views.WorldBuilding.WorldBuildingTerrainMeshHelper;
-import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLTexture;
 import com.meeple.shared.frame.OGL.ShaderProgram.IndexBufferObject;
@@ -48,12 +44,11 @@ public class WorldBuildingView {
 	private float fov = 60;
 	private CameraKey primaryCamera;
 
-	private ModelManager tileModels = new ModelManager();
 
 	private WorldBuildingTerrainMeshHelper worldBuildingTerrainMeshHelper = new WorldBuildingTerrainMeshHelper();
 
 	private TerrainType[][] mapTest = new TerrainType[160][160];
-	private Map<Vector2i, TerrainType[][]> terrainTiles = new CollectionSuppliers.MapSupplier<Vector2i, TerrainType[][]>().get();
+
 
 	Mesh textured = new Mesh();
 	GLTexture texture = new GLTexture();
@@ -113,7 +108,7 @@ public class WorldBuildingView {
 
 		playerController.tick(delta, client);
 
-		vpMatrix.setPerspective(fov, (float) client.windowWidth / client.windowHeight, 0.01f, 100.0f);
+		vpMatrix.setPerspective(fov, (float) client.windowWidth / client.windowHeight, 0.01f, 1000.0f);
 		vpMatrix.activeCamera(primaryCamera);
 		vpMatrix.upload();
 
