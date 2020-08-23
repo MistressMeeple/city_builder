@@ -160,6 +160,31 @@ public class ShaderProgram {
 		GL46.GL_TEXTURE31
 	};
 
+	public static enum GLTextureType implements GLEnum {
+		Texture1D(GL46.GL_TEXTURE_1D),
+		Texture2D(GL46.GL_TEXTURE_2D),
+		Texture1DArray(GL46.GL_TEXTURE_1D_ARRAY),
+		TextureRectangle(GL46.GL_TEXTURE_RECTANGLE),
+		TextureCubemap(GL46.GL_TEXTURE_CUBE_MAP),
+		Texture3D(GL46.GL_TEXTURE_3D),
+		Texture2DArray(GL46.GL_TEXTURE_2D_ARRAY),
+		TextureCubemapArray(GL46.GL_TEXTURE_CUBE_MAP_ARRAY),
+		TextureBuffer(GL46.GL_TEXTURE_BUFFER),
+		Texture2DMultisample(GL46.GL_TEXTURE_2D_MULTISAMPLE),
+		Texture2DMultisampleArray(GL46.GL_TEXTURE_2D_MULTISAMPLE_ARRAY);
+
+		int textureType;
+
+		private GLTextureType(int textureType) {
+			this.textureType = textureType;
+		}
+
+		@Override
+		public int getGLID() {
+			return textureType;
+		}
+	}
+
 	public enum GLDrawMode implements GLEnum {
 
 		Points(GL46.GL_POINTS),
@@ -428,6 +453,12 @@ public class ShaderProgram {
 		public int getGLID() {
 			return GLID;
 		}
+	}
+
+	public static class GLTexture {
+		public int textureIndex = 0;
+		GLTextureType glTextureType = GLTextureType.Texture2D;
+		public int textureID = NULL;
 	}
 
 	public static class VAO {
@@ -919,7 +950,8 @@ public class ShaderProgram {
 	public final Map<GLShaderType, Integer> shaderIDs = new CollectionSuppliers.MapSupplier<GLShaderType, Integer>().get();
 	public final Map<String, GLSLAttribute> atts = new CollectionSuppliers.MapSupplier<String, GLSLAttribute>().get();
 	public final Set<VAO> VAOs = new CollectionSuppliers.SetSupplier<VAO>().get();
+	public final Map<String, Integer> shaderUniforms = new CollectionSuppliers.MapSupplier<String, Integer>().get();
 
-	public final Map<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>> uniformSystems = new CollectionSuppliers.MapSupplier<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>>().get();
+//	public final Map<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>> uniformSystems = new CollectionSuppliers.MapSupplier<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>>().get();
 
 }

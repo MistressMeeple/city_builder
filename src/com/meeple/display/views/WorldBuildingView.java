@@ -10,12 +10,14 @@ import java.util.Map;
 import java.util.Random;
 
 import org.apache.log4j.Logger;
+import org.joml.Matrix4f;
 import org.joml.Vector2i;
 import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.nuklear.NkColorf;
 import org.lwjgl.nuklear.NkRect;
 import org.lwjgl.nuklear.Nuklear;
+import org.lwjgl.opengl.GL46;
 
 import com.meeple.backend.Client;
 import com.meeple.backend.FrameTimings;
@@ -29,6 +31,9 @@ import com.meeple.backend.view.VPMatrix.CameraKey;
 import com.meeple.display.views.WorldBuilding.WorldBuildingTerrainGenerator;
 import com.meeple.display.views.WorldBuilding.WorldBuildingTerrainMeshHelper;
 import com.meeple.shared.CollectionSuppliers;
+import com.meeple.shared.frame.OGL.ShaderProgram.GLDataType;
+import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
+import com.meeple.shared.frame.OGL.ShaderProgram.GLTexture;
 import com.meeple.shared.frame.OGL.ShaderProgram.IndexBufferObject;
 import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
@@ -52,9 +57,11 @@ public class WorldBuildingView {
 	private Map<Vector2i, TerrainType[][]> terrainTiles = new CollectionSuppliers.MapSupplier<Vector2i, TerrainType[][]>().get();
 
 	Mesh textured = new Mesh();
+	GLTexture texture = new GLTexture();
 
 	public void setup(Client client, VPMatrix vpMatrix) {
-
+		ShaderPrograms.initAndCreate(client.glContext, Program._3D_Unlit_Texture);
+		VPMatrix.bindToProgram(Program._3D_Unlit_Texture.program.programID, vpMatrix.getBindingPoint());
 		//setup the meshes 
 		worldBuildingTerrainMeshHelper.setup(client.glContext);
 
@@ -70,21 +77,31 @@ public class WorldBuildingView {
 
 		Random r = new Random(1);
 		new WorldBuildingTerrainGenerator().setup(r, mapTest);
-		textured = ShaderPrograms.constructMesh(Program._3D_Unlit_Texture);
+		textured = ShaderPrograms.constructMesh(Program._3D_Unlit_Texture,"texturedMeshTest",6,GLDrawMode.Triangles);
 		textured.getAttribute(ShaderPrograms.vertAtt.name).data(new float[] {
-			-1,1,0,
-			-1,-1,0,
-			1,-1,0,
-			1,1,0
+			-0.5f, 0.5f, 0,
+			-0.5f, -0.5f, 0,
+			0.5f, -0.5f, 0,
+			0.5f, 0.5f, 0
 		});
-		textured.index(new IndexBufferObject().data(new float[] {0,1,3,3,1,2}));
+		textured.index(new IndexBufferObject().data(new int[] { 0, 1, 3, 3, 1, 2 }));
 		textured.getAttribute(ShaderPrograms.textureAtt.name).data(new float[] {
-			0,0,
-			0,1,
-			1,1,
-			1,0
+			0, 0,
+			0, 1,
+			1, 1,
+			1, 0
 		});
+		textured.getAttribute(ShaderPrograms.transformAtt.name).data(new Matrix4f().scale(10f).translate(0, 0, -2).get(new float[16]));
 		
+		
+		Program prog = Program._3D_Unlit_Texture;
+		logger.info(prog);
+		ShaderProgramSystem2.loadVAO(client.glContext, ShaderPrograms.Program._3D_Unlit_Texture.program, textured);
+
+		GL46.glProgramUniform1f(Program._3D_Unlit_Texture.program.programID, ShaderProgramSystem2.getUniformLocation(Program._3D_Unlit_Texture.program, "alphaDiscardThreshold"), 0.5f);
+		
+
+		texture = ShaderProgramSystem2.loadTexture(client.glContext, "resources/imgs/Wood_Raw.png");
 
 	}
 
@@ -116,6 +133,12 @@ public class WorldBuildingView {
 			vpMatrix.getCamera(primaryCamera).translate(-mapTest.length / 2, -mapTest[0].length / 2, -5);
 
 		}
+		if (client.userInput.isKeyPressed(GLFW.GLFW_KEY_F6)) {
+			vpMatrix.getCamera(primaryCamera).identity();
+			//			vpMatrix.getCamera(primaryCamera).rotateX((float) Math.toDegrees(90));
+			vpMatrix.getCamera(primaryCamera).translate(0, 0, 0);
+
+		}
 
 		glClearColor(background.r(), background.g(), background.b(), background.a());
 		// NOTE this denotes that GL is using a new frame.
@@ -130,7 +153,13 @@ public class WorldBuildingView {
 
 		try (ShaderClosable sc = ShaderProgramSystem2.useProgram(Program._3D_Unlit_Flat.program)) {
 			worldBuildingTerrainMeshHelper.render();
+		}
+		
+		try (ShaderClosable sc = ShaderProgramSystem2.useProgram(Program._3D_Unlit_Texture.program)) {
 
+			try (ShaderClosable tc = ShaderProgramSystem2.useTexture(texture)) {
+				ShaderProgramSystem2.tryFullRenderMesh(textured);
+			}
 		}
 	}
 }

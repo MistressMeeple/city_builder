@@ -2,10 +2,14 @@
 in vec2 vTextureCoords;
 
 out lowp vec4 outColour;
-
-uniform sampler2D texture01;
+uniform float alphaDiscardThreshold;
+uniform sampler2D texture1;
 
 void main(void){
-	outColour = texture(texture01,vTextureCoords);
+	vec4 sampled = texture(texture1,vTextureCoords);
+	if(sampled.a < alphaDiscardThreshold){
+		discard;
+	}
+	outColour = sampled;
 }
 

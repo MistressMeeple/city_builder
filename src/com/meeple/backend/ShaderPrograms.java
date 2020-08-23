@@ -8,8 +8,8 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 import org.joml.Matrix4f;
 import org.joml.Vector4f;
-import org.lwjgl.opengl.GL46;
 
+import com.meeple.backend.view.VPMatrix;
 import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.AttributeFactory;
@@ -17,6 +17,7 @@ import com.meeple.shared.frame.OGL.ShaderProgram.BufferType;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferUsage;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLCompoundDataType;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDataType;
+import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
 import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
@@ -224,7 +225,7 @@ public class ShaderPrograms {
 			if (program == Program._3D_Unlit_Flat) {
 				vert = ShaderProgramSystem2.loadShaderSourceFromFile("resources/shaders/3D_nolit_flat.vert");
 				frag = ShaderProgramSystem2.loadShaderSourceFromFile("resources/shaders/3D_nolit_flat.frag");
-			}else if( program == Program._3D_Unlit_Texture) {
+			} else if (program == Program._3D_Unlit_Texture) {
 				vert = ShaderProgramSystem2.loadShaderSourceFromFile("resources/shaders/3D_unlit_texture.vert");
 				frag = ShaderProgramSystem2.loadShaderSourceFromFile("resources/shaders/3D_unlit_texture.frag");
 			} else if (program == Program._3D_Lit_Flat) {
@@ -277,8 +278,11 @@ public class ShaderPrograms {
 	 * @param program Which program to construct a mesh for
 	 * @return An empty mesh that has the required attributes
 	 */
-	public static Mesh constructMesh(Program program) {
+	public static Mesh constructMesh(Program program, String name, int vertexCount, GLDrawMode drawMode) {
 		Mesh mesh = new Mesh();
+		mesh.name(name);
+		mesh.vertexCount(vertexCount);
+		mesh.drawMode(drawMode);
 		switch (program) {
 		case _3D_Unlit_Flat:
 			mesh.addAttribute(ShaderPrograms.vertAtt.build());
@@ -288,7 +292,7 @@ public class ShaderPrograms {
 		case _3D_Unlit_Texture:
 			mesh.addAttribute(ShaderPrograms.vertAtt.build());
 			mesh.addAttribute(ShaderPrograms.textureAtt.build());
-			mesh.addAttribute(ShaderPrograms.transformAtt.build());			
+			mesh.addAttribute(ShaderPrograms.transformAtt.build());
 			break;
 		case _3D_Lit_Flat:
 			mesh.addAttribute(ShaderPrograms.vertAtt.build());
@@ -307,12 +311,6 @@ public class ShaderPrograms {
 
 		}
 		return mesh;
-	}
-
-	private void loadTexture(int textureIndex) {
-		GL46.glActiveTexture(ShaderProgram.TextureUnits[textureIndex]);
-		//load
-
 	}
 
 }

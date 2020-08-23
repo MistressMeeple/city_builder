@@ -81,8 +81,8 @@ public class LevelRenderer {
 	public UniformManager<String[], Integer[]>.Uniform<VPMatrix> setupWorldProgram(GLContext glc, ShaderProgram program, VPMatrixSystem VPMatrixSystem, VPMatrix vpMatrix) {
 		UniformManager<String[], Integer[]>.Uniform<VPMatrix> u = ShaderProgramSystem.multiUpload.register(new String[] { "vpMatrix", "projectionMatrix", "viewMatrix" }, VPMatrixSystem);
 
-		ShaderProgramSystem.addUniform(program, ShaderProgramSystem.multiUpload, u);
-		ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.multiUpload, u, vpMatrix);
+//		ShaderProgramSystem.addUniform(program, ShaderProgramSystem.multiUpload, u);
+//		ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.multiUpload, u, vpMatrix);
 
 		program.shaderSources.put(GLShaderType.VertexShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/line3D.vert")));
 		program.shaderSources.put(GLShaderType.FragmentShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
@@ -98,8 +98,8 @@ public class LevelRenderer {
 	public UniformManager<String, Integer>.Uniform<ProjectionMatrix> setupUIProgram(GLContext glc, ShaderProgram program, ProjectionMatrixSystem pSystem, ProjectionMatrix pMatrix) {
 
 		UniformManager<String, Integer>.Uniform<ProjectionMatrix> u = ShaderProgramSystem.singleUpload.register("projectionMatrix", pSystem);
-		ShaderProgramSystem.addUniform(program, ShaderProgramSystem.singleUpload, u);
-		ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.singleUpload, u, pMatrix);
+//		ShaderProgramSystem.addUniform(program, ShaderProgramSystem.singleUpload, u);
+//		ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.singleUpload, u, pMatrix);
 		System.out.println(">");
 		program.shaderSources.put(GLShaderType.VertexShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/line2D-UI.vert")));
 		program.shaderSources.put(GLShaderType.FragmentShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
@@ -117,8 +117,8 @@ public class LevelRenderer {
 	public UniformManager<String[], Integer[]>.Uniform<VPMatrix> setupMainProgram(GLContext glc, ShaderProgram program, VPMatrixSystem VPMatrixSystem, VPMatrix vpMatrix) {
 		UniformManager<String[], Integer[]>.Uniform<VPMatrix> u = ShaderProgramSystem.multiUpload.register(new String[] { "vpMatrix", "projectionMatrix", "viewMatrix" }, VPMatrixSystem);
 
-		ShaderProgramSystem.addUniform(program, ShaderProgramSystem.multiUpload, u);
-		ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.multiUpload, u, vpMatrix);
+//		ShaderProgramSystem.addUniform(program, ShaderProgramSystem.multiUpload, u);
+//		ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.multiUpload, u, vpMatrix);
 
 		program.shaderSources.put(GLShaderType.VertexShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/3D-unlit.vert")));
 		program.shaderSources.put(GLShaderType.FragmentShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
@@ -732,7 +732,7 @@ public class LevelRenderer {
 			GL46.glClear(GL46.GL_COLOR_BUFFER_BIT);
 			GL46.glPointSize(2f);
 			vpSystem.preMult(vpMatrix);
-			ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.multiUpload, puW.getWrapped(), vpMatrix);
+//			ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.multiUpload, puW.getWrapped(), vpMatrix);
 
 			writeVPMatrix(matrixBuffer, vpMatrix.proj.getWrapped().cache, vpMatrix.view.getWrapped().cache, vpMatrix.cache);
 

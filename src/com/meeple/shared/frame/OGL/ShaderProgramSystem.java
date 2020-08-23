@@ -114,7 +114,7 @@ public class ShaderProgramSystem {
 		merge(shaderIDs, program.shaderIDs);
 		program.shaderIDs.putAll(shaderIDs);
 		bindShaders(program.programID, program.shaderIDs.values());
-//bindAttributeLocations(program.programID, program.attributes);
+		//bindAttributeLocations(program.programID, program.attributes);
 		String log = "";
 		try {
 			GL46.glLinkProgram(program.programID);
@@ -127,7 +127,7 @@ public class ShaderProgramSystem {
 			if (log.length() > 0) {
 				logger.trace("program log: \r\n" + log);
 			}
-			bindUniformLocations(program.programID, program.uniformSystems);
+			//			bindUniformLocations(program.programID, program.uniformSystems);
 		} catch (Exception e) {
 			close(program);
 			throw new AssertionError();
@@ -312,7 +312,7 @@ public class ShaderProgramSystem {
 			BufferObject vbo = iterator.next();
 			bindBuffer(program, vbo);
 		}
-//unbind afterwards
+		//unbind afterwards
 		GL46.glBindVertexArray(0);
 		program.VAOs.add(vao);
 	}
@@ -534,59 +534,60 @@ public class ShaderProgramSystem {
 			}
 
 		}
-//GL46.glBindBuffer(attrib.target, 0);
+		//GL46.glBindBuffer(attrib.target, 0);
 	}
 
-	public static <Name, ID> void addUniform(ShaderProgram program, UniformManager<Name, ID> system, UniformManager<Name, ID>.Uniform<?> uniform) {
-
-		Map<UniformManager<?, ?>.Uniform<?>, List<?>> uniformList = program.uniformSystems.get(system);
-
-		if (uniformList == null) {
-			uniformList = new CollectionSuppliers.MapSupplier<UniformManager<?, ?>.Uniform<?>, List<?>>().get();
-		}
-		List<?> queue = uniformList.getOrDefault(uniform, new ArrayList<>());
-		uniformList.put(uniform, queue);
-		program.uniformSystems.put(system, uniformList);
-	}
-
-	public static <Name, ID, T> void queueUniformUpload(ShaderProgram program, UniformManager<Name, ID> manager, UniformManager<Name, ID>.Uniform<T> uniform, T object) {
-		Map<UniformManager<?, ?>.Uniform<?>, List<?>> uniforms = program.uniformSystems.get(manager);
-		if (uniforms != null && !uniforms.isEmpty()) {
-			List<?> queueBase = uniforms.getOrDefault(uniforms, new ArrayList<T>());
-			try {
-				List<T> queue = (List<T>) queueBase;
-				if (queue != null) {
-					queue = new ArrayList<>();
-					uniforms.put(uniform, queue);
-				}
-				queue.add(object);
-
-			} catch (Exception e) {
-				System.out.println("Failed to upload the object: " + e);
-				return;
+	/*
+		public static <Name, ID> void addUniform(ShaderProgram program, UniformManager<Name, ID> system, UniformManager<Name, ID>.Uniform<?> uniform) {
+	
+			Map<UniformManager<?, ?>.Uniform<?>, List<?>> uniformList = program.uniformSystems.get(system);
+	
+			if (uniformList == null) {
+				uniformList = new CollectionSuppliers.MapSupplier<UniformManager<?, ?>.Uniform<?>, List<?>>().get();
 			}
+			List<?> queue = uniformList.getOrDefault(uniform, new ArrayList<>());
+			uniformList.put(uniform, queue);
+			program.uniformSystems.put(system, uniformList);
 		}
-	}
-
-	/**
-	 * Iterates all the queued uniforms for upload and uploads them.
-	 * 
-	 * @param program shader program to iterate all uniforms and upload
-	 */
-
-	public static void uploadUniforms(ShaderProgram program) {
-		synchronized (program.uniformSystems) {
-			try (MemoryStack stack = stackPush()) {
-				for (Iterator<Entry<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>>> i = program.uniformSystems.entrySet().iterator(); i.hasNext();) {
-					Entry<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>> entry = i.next();
-					UniformManager<?, ?> system = entry.getKey();
-					Map<UniformManager<?, ?>.Uniform<?>, List<?>> uniforms = entry.getValue();
-					system.uploadUniforms(uniforms);
+	
+		public static <Name, ID, T> void queueUniformUpload(ShaderProgram program, UniformManager<Name, ID> manager, UniformManager<Name, ID>.Uniform<T> uniform, T object) {
+			Map<UniformManager<?, ?>.Uniform<?>, List<?>> uniforms = program.uniformSystems.get(manager);
+			if (uniforms != null && !uniforms.isEmpty()) {
+				List<?> queueBase = uniforms.getOrDefault(uniforms, new ArrayList<T>());
+				try {
+					List<T> queue = (List<T>) queueBase;
+					if (queue != null) {
+						queue = new ArrayList<>();
+						uniforms.put(uniform, queue);
+					}
+					queue.add(object);
+	
+				} catch (Exception e) {
+					System.out.println("Failed to upload the object: " + e);
+					return;
 				}
 			}
-
 		}
-	}
+	
+		*//**
+			* Iterates all the queued uniforms for upload and uploads them.
+			* 
+			* @param program shader program to iterate all uniforms and upload
+			*//*
+				
+				public static void uploadUniforms(ShaderProgram program) {
+				synchronized (program.uniformSystems) {
+					try (MemoryStack stack = stackPush()) {
+						for (Iterator<Entry<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>>> i = program.uniformSystems.entrySet().iterator(); i.hasNext();) {
+							Entry<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>> entry = i.next();
+							UniformManager<?, ?> system = entry.getKey();
+							Map<UniformManager<?, ?>.Uniform<?>, List<?>> uniforms = entry.getValue();
+							system.uploadUniforms(uniforms);
+						}
+					}
+				
+				}
+				}*/
 
 	public static interface ShaderClosable extends Closeable {
 		@Override
@@ -630,7 +631,7 @@ public class ShaderProgramSystem {
 	}
 
 	public static void enableAttribute(VertexAttribute VertexAttribute) {
-//enables all the vertex attrib indexes
+		//enables all the vertex attrib indexes
 		int index = 0;
 		int id = VertexAttribute.index;
 		if (id != -1) {
@@ -643,7 +644,7 @@ public class ShaderProgramSystem {
 	}
 
 	public static void disableAttribute(VertexAttribute VertexAttribute) {
-//enables all the vertex attrib indexes
+		//enables all the vertex attrib indexes
 		int index = 0;
 		int id = VertexAttribute.index;
 		if (id != -1) {
@@ -657,7 +658,7 @@ public class ShaderProgramSystem {
 
 	public static void renderMesh(Mesh mesh) {
 
-//check for index buffer
+		//check for index buffer
 		WeakReference<IndexBufferObject> indexVboRef = mesh.index;
 		BufferObject indexVBO = null;
 
@@ -792,14 +793,14 @@ public class ShaderProgramSystem {
 
 	}
 
-//----------------------------------------------- RENDER METHODS -----------------------------------//TODO 
+	//----------------------------------------------- RENDER METHODS -----------------------------------//TODO 
 	public static void render(ShaderProgram program) {
 
-//bind shader program
+		//bind shader program
 		GL46.glUseProgram(program.programID);
-//upload all the queued uniform uploads
-		uploadUniforms(program);
-//sync - important
+		//upload all the queued uniform uploads
+//		uploadUniforms(program);
+		//sync - important
 		synchronized (program.VAOs) {
 
 			for (Iterator<VAO> vaoI = program.VAOs.iterator(); vaoI.hasNext();) {
@@ -891,12 +892,12 @@ public class ShaderProgramSystem {
 			}
 
 		}
-//unbind shader program
+		//unbind shader program
 		GL46.glUseProgram(0);
 
 	}
 
-//----------------------------------------------- CLOSE METHODS -----------------------------------//TODO 
+	//----------------------------------------------- CLOSE METHODS -----------------------------------//TODO 
 
 	public static void deleteMesh(VAO model) {
 		if (model != null) {

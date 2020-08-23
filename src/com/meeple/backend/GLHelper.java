@@ -168,7 +168,7 @@ public class GLHelper {
 		return (index * 4 <= dataLength ? 4 : mod);
 	}
 
-	public static void setupAttrib(int program, GLSLAttribute glAtt, int instanceStride) {
+	public static void setupAttrib(int program, GLSLAttribute glAtt, int instanceStride) throws Exception {
 
 		int dataSize = glAtt.arraySize * glAtt.type.size;
 		if (dataSize > 4) {
@@ -183,14 +183,8 @@ public class GLHelper {
 				int stride = glAtt.arraySize * glAtt.type.size * glAtt.type.base.bytes;
 				int offset = runningTotal * glAtt.type.base.bytes;
 
-				gl
-					.glVertexAttribPointer(
-						runningIndex,
-						size,
-						type,
-						normalized,
-						stride,
-						offset);
+				gl.glVertexAttribPointer(
+					runningIndex, size, type, normalized, stride, offset);
 				if (instanceStride > 0) {
 					gl.glVertexAttribDivisor(runningIndex, instanceStride);
 
@@ -212,4 +206,5 @@ public class GLHelper {
 			}
 		}
 	}
+
 }

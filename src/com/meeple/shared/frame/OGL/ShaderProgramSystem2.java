@@ -16,10 +16,8 @@ import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -42,6 +40,8 @@ import com.meeple.shared.frame.OGL.ShaderProgram.GLDataType;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLStatus;
+import com.meeple.shared.frame.OGL.ShaderProgram.GLTexture;
+import com.meeple.shared.frame.OGL.ShaderProgram.GLTextureType;
 import com.meeple.shared.frame.OGL.ShaderProgram.IndexBufferObject;
 import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
 import com.meeple.shared.frame.OGL.ShaderProgram.VAO;
@@ -65,14 +65,15 @@ public class ShaderProgramSystem2 {
 	 * ({@link #bindAttributeLocations(int, Map)})</li>
 	 * <li>Linking the program ({@link GL46#glLinkProgram(int)})</li>
 	 * <li>Validating the program {@link GL46#glValidateProgram(int)}</li>
-	 * <li>Getting/setting indexes of all uniforms attached to program<
-	 * ({@link #bindUniformLocations(int, Map)})</li>
+	 * <li>Retrieving all active uniforms used by the program {@link #getUniformLocations(ShaderProgram)}</li>
 	 * </ol>
 	 * <br>
 	 * Also stores the generated ID's into the GLContext to be easily cleaned up
 	 * later.
 	 * 
+	 * @param glc OpenGL Context to store the generated ID's for it is easy to clean up later
 	 * @param program Shader program to create/setup
+	 * 
 	 * @throws Exception when the program fails error checks. if thrown auto closes
 	 *                   and deletes resources
 	 */
@@ -108,7 +109,8 @@ public class ShaderProgramSystem2 {
 				logger.trace("program log: \r\n" + log);
 			}
 			generateProgramAttributes(program);
-			bindUniformLocations(program.programID, program.uniformSystems);
+			getUniformLocations(program);
+
 		} catch (Exception e) {
 			failure = true;
 			err = e;
@@ -228,27 +230,6 @@ public class ShaderProgramSystem2 {
 		}
 	}
 
-	/**
-	 * Sets the correct index for all uniforms provided. <br>
-	 * Internally uses {@link GL46#glGetUniformLocation(int, CharSequence)} to set
-	 * Integer of entry using the entry key as the name.
-	 * 
-	 * @param programID
-	 * @param uniformSystems
-	 */
-	private static void bindUniformLocations(int programID, Map<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>> uniformSystems) {
-
-		synchronized (uniformSystems) {
-			Iterator<Entry<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>>> i = uniformSystems.entrySet().iterator();
-			while (i.hasNext()) {
-				Entry<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>> entry = i.next();
-				UniformManager<?, ?> system = entry.getKey();
-				Map<UniformManager<?, ?>.Uniform<?>, List<?>> uniforms = entry.getValue();
-				system.bindUniformLocations(programID, uniforms.keySet());
-			}
-		}
-	}
-
 	private static void generateProgramAttributes(ShaderProgram program) {
 
 		int activeAtts = GL46.glGetProgrami(program.programID, GL46.GL_ACTIVE_ATTRIBUTES);
@@ -258,6 +239,19 @@ public class ShaderProgramSystem2 {
 			program.atts.put(att.name, att);
 		}
 
+	}
+
+	/**
+	 * Gets all active uniforms in the program and stores then in the {@link ShaderProgram#shaderUniforms} variable by name to index.
+	 * @param program
+	 */
+	private static void getUniformLocations(ShaderProgram program) {
+		program.shaderUniforms.clear();
+		int activeUniforms = GL46.glGetProgrami(program.programID, GL46.GL_ACTIVE_UNIFORMS);
+		for (int i = 0; i < activeUniforms; i++) {
+			String name = GL46.glGetActiveUniformName(program.programID, i);
+			program.shaderUniforms.put(name, i);
+		}
 	}
 
 	/**
@@ -375,7 +369,11 @@ public class ShaderProgramSystem2 {
 		if (vbo instanceof VertexAttribute) {
 			VertexAttribute attrib = (VertexAttribute) vbo;
 			GLSLAttribute att = program.atts.get(attrib.name);
-			GLHelper.setupAttrib(program.programID, att, attrib.instanced ? attrib.instanceStride : 0);
+			try {
+				GLHelper.setupAttrib(program.programID, att, attrib.instanced ? attrib.instanceStride : 0);
+			} catch (Exception e) {
+				logger.warn("Mesh attribute was null: " + attrib.name);
+			}
 
 		}
 
@@ -528,8 +526,8 @@ public class ShaderProgramSystem2 {
 		}
 	}
 
-	public static int loadTexture(GLContext glContext, String imagePath) {
-
+	public static GLTexture loadTexture(GLContext glContext, String imagePath) {
+		GLTexture texture = new GLTexture();
 		ByteBuffer imageData = null;
 		int textureID = 0;
 		try {
@@ -568,71 +566,11 @@ public class ShaderProgramSystem2 {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		return textureID;
+		texture.textureID = textureID;
+		texture.textureIndex = 0;
+		texture.glTextureType = GLTextureType.Texture2D;
+		return texture;
 
-	}
-
-	/**
-	 * gets the attribute ID from the shader program<br>
-	 * this WILL handle any instanced attributes and any attributes with data size
-	 * over 4 calls
-	 * {@link GL46#glVertexAttribPointer(int, int, int, boolean, int, long)} to
-	 * setup the pointer<br>
-	 * if attribute is instanced the diviser is setup with
-	 * {@link GL46#glVertexAttribDivisor(int, int)}
-	 * 
-	 * @param shaderProgramID
-	 * @param attrib
-	 */
-
-	public static <Name, ID> void addUniform(ShaderProgram program, UniformManager<Name, ID> system, UniformManager<Name, ID>.Uniform<?> uniform) {
-
-		Map<UniformManager<?, ?>.Uniform<?>, List<?>> uniformList = program.uniformSystems.get(system);
-
-		if (uniformList == null) {
-			uniformList = new CollectionSuppliers.MapSupplier<UniformManager<?, ?>.Uniform<?>, List<?>>().get();
-		}
-		List<?> queue = uniformList.getOrDefault(uniform, new ArrayList<>());
-		uniformList.put(uniform, queue);
-		program.uniformSystems.put(system, uniformList);
-	}
-
-	public static <Name, ID, T> void queueUniformUpload(ShaderProgram program, UniformManager<Name, ID> manager, UniformManager<Name, ID>.Uniform<T> uniform, T object) {
-		Map<UniformManager<?, ?>.Uniform<?>, List<?>> uniforms = program.uniformSystems.get(manager);
-		if (uniforms != null && !uniforms.isEmpty()) {
-			List<?> queueBase = uniforms.getOrDefault(uniforms, new ArrayList<T>());
-			try {
-				List<T> queue = (List<T>) queueBase;
-				if (queue != null) {
-					queue = new ArrayList<>();
-					uniforms.put(uniform, queue);
-				}
-				queue.add(object);
-
-			} catch (Exception e) {
-				System.out.println("Failed to upload the object: " + e);
-				return;
-			}
-		}
-	}
-
-	/**
-	 * Iterates all the queued uniforms for upload and uploads them.
-	 * 
-	 * @param program shader program to iterate all uniforms and upload
-	 */
-	public static void uploadUniforms(ShaderProgram program) {
-		synchronized (program.uniformSystems) {
-			try (MemoryStack stack = stackPush()) {
-				for (Iterator<Entry<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>>> i = program.uniformSystems.entrySet().iterator(); i.hasNext();) {
-					Entry<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>> entry = i.next();
-					UniformManager<?, ?> system = entry.getKey();
-					Map<UniformManager<?, ?>.Uniform<?>, List<?>> uniforms = entry.getValue();
-					system.uploadUniforms(uniforms);
-				}
-			}
-
-		}
 	}
 
 	public static interface ShaderClosable extends Closeable {
@@ -660,6 +598,17 @@ public class ShaderProgramSystem2 {
 		};
 	}
 
+	/**
+	 * This retrieves the stored uniform location from a generated program. This <b>cannot</b> be called before {@link ShaderProgramSystem2#create(GLContext, ShaderProgram)}<br>
+	 * This will return null if it has been called before setup or if there is no such uniform found in the shader program. 
+	 * @param program ShaderProgram to get the uniform location from
+	 * @param uniformName name of the uniform to get the location of
+	 * @return location of the uniform, or null if the uniform was not found. 
+	 */
+	public static int getUniformLocation(ShaderProgram program, String uniformName) {
+		return program.shaderUniforms.get(uniformName);
+	}
+
 	public static ShaderClosable useModel(Mesh model) throws Exception {
 		if (model.VAOID == 0) {
 			throw new Exception("Mesh '" + model.name + "' has not been loaded to the GL context. cannot be rendered");
@@ -684,6 +633,20 @@ public class ShaderProgramSystem2 {
 			@Override
 			public void close() {
 				GL46.glBindBuffer(vbo.bufferType.getGLID(), 0);
+			}
+		};
+	}
+
+	public static ShaderClosable useTexture(GLTexture texture) {
+
+		GL46.glActiveTexture(ShaderProgram.TextureUnits[texture.textureIndex]);
+		GL46.glBindTexture(texture.glTextureType.getGLID(), texture.textureID);
+		return new ShaderClosable() {
+
+			@Override
+			public void close() {
+				GL46.glActiveTexture(ShaderProgram.TextureUnits[texture.textureIndex]);
+				GL46.glBindTexture(texture.glTextureType.getGLID(), 0);
 			}
 		};
 	}
