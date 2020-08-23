@@ -54,12 +54,10 @@ import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
 import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
 import com.meeple.shared.frame.OGL.ShaderProgram.VertexAttribute;
-import com.meeple.shared.frame.OGL.ShaderProgramSystem;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2.ShaderClosable;
 import com.meeple.shared.frame.OGL.UniformManager;
 import com.meeple.shared.frame.camera.VPMatrixSystem;
-import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpringArm;
@@ -78,76 +76,6 @@ public class LevelRenderer {
 
 	public static boolean disableAlphaTest = false;
 
-	public UniformManager<String[], Integer[]>.Uniform<VPMatrix> setupWorldProgram(GLContext glc, ShaderProgram program, VPMatrixSystem VPMatrixSystem, VPMatrix vpMatrix) {
-		UniformManager<String[], Integer[]>.Uniform<VPMatrix> u = ShaderProgramSystem.multiUpload.register(new String[] { "vpMatrix", "projectionMatrix", "viewMatrix" }, VPMatrixSystem);
-
-//		ShaderProgramSystem.addUniform(program, ShaderProgramSystem.multiUpload, u);
-//		ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.multiUpload, u, vpMatrix);
-
-		program.shaderSources.put(GLShaderType.VertexShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/line3D.vert")));
-		program.shaderSources.put(GLShaderType.FragmentShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
-
-		try {
-			ShaderProgramSystem2.create(glc, program);
-		} catch (Exception err) {
-			err.printStackTrace();
-		}
-		return u;
-	}
-
-	public UniformManager<String, Integer>.Uniform<ProjectionMatrix> setupUIProgram(GLContext glc, ShaderProgram program, ProjectionMatrixSystem pSystem, ProjectionMatrix pMatrix) {
-
-		UniformManager<String, Integer>.Uniform<ProjectionMatrix> u = ShaderProgramSystem.singleUpload.register("projectionMatrix", pSystem);
-//		ShaderProgramSystem.addUniform(program, ShaderProgramSystem.singleUpload, u);
-//		ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.singleUpload, u, pMatrix);
-		System.out.println(">");
-		program.shaderSources.put(GLShaderType.VertexShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/line2D-UI.vert")));
-		program.shaderSources.put(GLShaderType.FragmentShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
-
-		try {
-			ShaderProgramSystem2.create(glc, program);
-		} catch (Exception err) {
-			// TODO Auto-generated catch block
-			err.printStackTrace();
-		}
-		return u;
-
-	}
-
-	public UniformManager<String[], Integer[]>.Uniform<VPMatrix> setupMainProgram(GLContext glc, ShaderProgram program, VPMatrixSystem VPMatrixSystem, VPMatrix vpMatrix) {
-		UniformManager<String[], Integer[]>.Uniform<VPMatrix> u = ShaderProgramSystem.multiUpload.register(new String[] { "vpMatrix", "projectionMatrix", "viewMatrix" }, VPMatrixSystem);
-
-//		ShaderProgramSystem.addUniform(program, ShaderProgramSystem.multiUpload, u);
-//		ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.multiUpload, u, vpMatrix);
-
-		program.shaderSources.put(GLShaderType.VertexShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/3D-unlit.vert")));
-		program.shaderSources.put(GLShaderType.FragmentShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
-
-		try {
-			ShaderProgramSystem2.create(glc, program);
-		} catch (Exception err) {
-
-			err.printStackTrace();
-		}
-		return u;
-	}
-
-	public void setupLitProgram(GLContext glc, ShaderProgram program, int maxLights, int maxMaterials) {
-		String fragSource = ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/lighting.frag"));
-		fragSource = fragSource.replaceAll("\\{maxmats\\}", "" + maxMaterials);
-		fragSource = fragSource.replaceAll("\\{maxlights\\}", maxLights + "");
-		String vertSource = ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/lighting.vert"));
-		vertSource = vertSource.replaceAll("\\{maxlights\\}", maxLights + "");
-		program.shaderSources.put(GLShaderType.VertexShader, vertSource);
-		program.shaderSources.put(GLShaderType.FragmentShader, fragSource);
-		try {
-			ShaderProgramSystem2.create(glc, program);
-		} catch (Exception err) {
-			// TODO Auto-generated catch block
-			err.printStackTrace();
-		}
-
-	}
 
 	public void preRender(GLContext glc, LevelData level, VPMatrix vp, ShaderProgram program) {
 		FrustumIntersection fi = new FrustumIntersection(vp.cache);
@@ -638,7 +566,6 @@ public class LevelRenderer {
 		CameraSpringArm arm = vpMatrix.view.getWrapped().springArm;
 		cityBuilder.window.events.postCreation.add(() -> {
 
-			puW.setWrapped(setupWorldProgram(cityBuilder.window.glContext, program, vpSystem, vpMatrix));
 			//			uipuW.setWrapped(setupUIProgram(cityBuilder.window.glContext, uiProgram, vpSystem.projSystem, ortho));
 			VPMatrixSystem.ProjectionMatrixSystem.update(ortho);
 

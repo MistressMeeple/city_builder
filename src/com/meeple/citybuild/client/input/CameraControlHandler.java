@@ -18,7 +18,6 @@ import com.meeple.shared.frame.CursorHelper.SpaceState;
 import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
-import com.meeple.shared.frame.OGL.ShaderProgramSystem;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraMode;
@@ -445,7 +444,7 @@ public class CameraControlHandler {
 								FrameUtils.appendToList(mcompas.colourAttrib.data, new Vector4f(1, 0, 1, 1));
 								mcompas.mesh.name = "compas";
 								mcompas.zIndexAttrib.data.add(-1f);
-								ShaderProgramSystem.loadVAO(program, mcompas.mesh);
+//								ShaderProgramSystem.loadVAO(program, mcompas.mesh);
 							}
 							Vector2f line = new Vector2f(mouseDir.x, mouseDir.y);
 							Vector2f lineStart = line.mul(panRadi, new Vector2f());
@@ -461,7 +460,7 @@ public class CameraControlHandler {
 							FrameUtils.appendToList(m.colourAttrib.data, new Vector4f(1, 1, 0, 1));
 							m.mesh.name = "compasLine";
 							m.zIndexAttrib.data.add(-1f);
-							ShaderProgramSystem.loadVAO(program, m.mesh);
+//							ShaderProgramSystem.loadVAO(program, m.mesh);
 						}
 
 					}

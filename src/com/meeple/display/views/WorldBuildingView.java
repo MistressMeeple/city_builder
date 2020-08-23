@@ -31,7 +31,6 @@ import com.meeple.backend.view.VPMatrix.CameraKey;
 import com.meeple.display.views.WorldBuilding.WorldBuildingTerrainGenerator;
 import com.meeple.display.views.WorldBuilding.WorldBuildingTerrainMeshHelper;
 import com.meeple.shared.CollectionSuppliers;
-import com.meeple.shared.frame.OGL.ShaderProgram.GLDataType;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLTexture;
 import com.meeple.shared.frame.OGL.ShaderProgram.IndexBufferObject;
@@ -156,7 +155,6 @@ public class WorldBuildingView {
 		}
 		
 		try (ShaderClosable sc = ShaderProgramSystem2.useProgram(Program._3D_Unlit_Texture.program)) {
-
 			try (ShaderClosable tc = ShaderProgramSystem2.useTexture(texture)) {
 				ShaderProgramSystem2.tryFullRenderMesh(textured);
 			}
