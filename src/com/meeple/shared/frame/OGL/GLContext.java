@@ -125,6 +125,7 @@ public class GLContext implements AutoCloseable {
 		deleteAllShaders();
 		deleteAllArrays();
 		deleteAllTextures();
+		GL.destroy();
 	}
 
 	public void deleteVertexArray(int vertexArray) {
