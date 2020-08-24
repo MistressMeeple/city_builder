@@ -46,6 +46,15 @@ import com.meeple.shared.frame.nuklear.NkContextSingleton;
 import com.meeple.shared.frame.window.MirroredWindowCallbacks;
 import com.meeple.shared.frame.window.UserInput;
 
+/**
+ * This class represents the GLFW window, and holds the Nuklear and OpenGL instances. As well as user input, user options, delta calculation per frame, and other useful helper class wrappers.
+ * <br>  
+ * To use, create an instance of this class, call {@link #setup(int, int, String)} and then {@link #show()}. Almost all method can be overridden but are not required to be for a functional client. 
+ * <br>
+ * It is recommended to use this in a resource try-catch block in case any errors crop up and all the cleanup is handled automatically. 
+ * @author Megan
+ *
+ */
 public abstract class Client implements AutoCloseable {
 	private static Logger logger = Logger.getLogger(Client.class);
 
@@ -80,7 +89,11 @@ public abstract class Client implements AutoCloseable {
 
 		}
 	};
+	/**
+	 * This is the ID generated and used by the entire GLFW library
+	 */
 	public long windowID;
+	
 	/**
 	 * These are the actual values currently being used. changing these does not
 	 * affect window/frame buffer sizes<br>
@@ -92,8 +105,9 @@ public abstract class Client implements AutoCloseable {
 	 * Frame time manager that tries to control the delta of each frame
 	 */
 	public final FrameTimeManager timingManager = new FrameTimeManager();
+	
 	/**
-	 * 
+	 * This holds the delta between frames, all values contained are calculated per frame too so they are accurate on each use. 
 	 */
 	public final FrameTimings currentFrameDelta = new FrameTimings();
 
@@ -101,31 +115,51 @@ public abstract class Client implements AutoCloseable {
 	 * GL context used by this client
 	 */
 	public final GLContext glContext = new GLContext();
+	
 	/**
-	 * Nuklear context used by this client
+	 * Nuklear context wrapper used by this client
 	 */
 	public final NkContextSingleton nkContext = new NkContextSingleton();
+	
 	/**
-	 * GLFW window callbacks used by this client
+	 * GLFW window callback's used by this client
 	 */
 	public final MirroredWindowCallbacks callbacks = new MirroredWindowCallbacks();
+	
 	/**
-	 * Small helper class for all user input built ontop of the GLFW interfaces and
-	 * callbacks
+	 * Small helper class for all user input built on top of the GLFW interfaces and callback's
 	 */
 	public final UserInput userInput = new UserInput();
+	
 	/**
 	 * Class that holds the users preferences/option-choices of the client
 	 */
 	public final ClientOptions options = new ClientOptions(userInput);
-	public final ExecutorService service = Executors.newCachedThreadPool();
+	
 	/**
-	 * Uncaught exception handler for the client threads
+	 * Executor service to run async tasks. this is initialised with {@link Executors#newCachedThreadPool()}
+	 */
+	public final ExecutorService service = Executors.newCachedThreadPool();
+	
+	/**
+	 * Uncaught exception handler for the client threads, initialised with a default handler. 
 	 * 
 	 */
 	private UncaughtExceptionHandler exceptionHandler = defaultHandler;
+	
+	/**
+	 * Once the {@link #show()} is called, this is set to {@link Thread#currentThread()} to allow interrupting 
+	 */
 	private Thread loopThread;
+	
+	/**
+	 * A private flag to check whether or not the window has been set up already or not
+	 */
 	private boolean hasSetup = false;
+	
+	/**
+	 * This stores the closed state of the window. this is only changed once normally 
+	 */
 	private AtomicBoolean hasCLosed = new AtomicBoolean(false);
 
 	private final void glInit(int width, int height, String title) {
@@ -163,6 +197,21 @@ public abstract class Client implements AutoCloseable {
 		nkContext.setup(windowID, userInput);
 	}
 
+	/**
+	 * Sets up the client by doing the following in order
+	 * <ol>
+	 * <li>Sets the thread's exception handler to the one stored in this class</li>
+	 * <li>Sets the GLFW error callback to {@link System#err}</li>
+	 * <li>Sets up the GLFW Context and window</li>
+	 * <li>Initialises the {@link GLContext} class, which creates a GL context, and is stored in {@link #glContext}</li>
+	 * <li>Initialises and sets up the {@link NkContextSingleton} class, stored in {@link #nkContext}</li>
+	 * <li>Binds the GLFW instance to the generated OpenGL context from {@link #glContext}</li>
+	 * </ol>
+	 *  
+	 * @param width The desired width of the window
+	 * @param height The desired height of the window
+	 * @param title The title of the window
+	 */
 	public final void setup(int width, int height, String title) {
 		Thread.currentThread().setUncaughtExceptionHandler(exceptionHandler);
 		glInit(width, height, title);
@@ -172,13 +221,13 @@ public abstract class Client implements AutoCloseable {
 	}
 
 	/**
-	 * Requests the client closes if true. or cancels the call this tick if false.
+	 * Requests the client closes if true. Calling with false will only work if the window is still open and running its render loop. 
 	 * <br>
 	 * Sending false will only work if true has been called in the <b>SAME</b> tick.
 	 * cannot cancel attempts to close from previous ticks <br>
 	 * By default this will use the
-	 * {@link GLFW#glfwSetWindowShouldClose(long, boolean)} combined with
-	 * {@link GLFW#glfwWindowShouldClose(long)}
+	 * {@link GLFW#glfwSetWindowShouldClose(long, boolean) glfwSetWindowShouldClose} combined with
+	 * {@link GLFW#glfwWindowShouldClose(long) glfwWindowShouldClose}
 	 * 
 	 * @param close - should the client close
 	 */
@@ -189,17 +238,26 @@ public abstract class Client implements AutoCloseable {
 	/**
 	 * Returns whether or not the client should close. used internal per tick to
 	 * check if should keep running. By default this will use the
-	 * {@link GLFW#glfwSetWindowShouldClose(long, boolean)} combined with
-	 * {@link GLFW#glfwWindowShouldClose(long)}
+	 *  {@link GLFW#glfwSetWindowShouldClose(long, boolean) glfwSetWindowShouldClose} combined with
+	 * {@link GLFW#glfwWindowShouldClose(long) glfwWindowShouldClose}
 	 * 
-	 * @return true if client *should* close, false to keep running
+	 * @return true if client should close, false for the client to remain open close
 	 */
 	protected boolean shouldClose() {
 		return glfwWindowShouldClose(windowID);
 	}
 
 	/**
-	 * Called per frame to setup the rendering of the client
+	 * Called per frame to setup the rendering of the client.<br>
+	 * By default this performs the following tasks: 
+	 * <ul>
+	 * <li>Gets the frame-delta between this and last frame, and stores it in {@link #currentFrameDelta}</li>
+	 * <li>Gets the current accurate size of the window and stores them in {@link #windowWidth} and {@link #windowHeight}</li>
+	 * <li>Sets the viewport to the full size of the window</li>
+	 * <li>Gets the current accurate size of the window's frame buffers and stores them in {@link #fbWidth} and {@link #fbHeight}</li>
+	 * <li>Handles Nuklear (through {@link NkContextSingleton#handleInput(long) nkContext.handleInpu} and window input (through {@link UserInput#tick(FrameTimings, long) userInput.tick}</li>
+	 * </ul>
+	 * Overriding this method will stop these functions happening automatically. 
 	 */
 	protected void startFrame() {
 		if (!hasSetup) {
@@ -227,7 +285,14 @@ public abstract class Client implements AutoCloseable {
 	}
 
 	/**
-	 * Called at the end of a frame to finished the rendering of the client
+	 * Called at the end of a frame to finished the rendering of the client<br>
+	 * By default this performs the following tasks:
+	 * <ul>
+	 * <li>Renders the Nuklear context with {@link NkContextSingleton#render(float, float, float, float) nkContext.render}</li>
+	 * <li>Swaps the frame buffer with {@link GLFW#glfwSwapBuffers(long)}</li>
+	 * <li>Pauses the thread to achieve the desired framerate (if neccessary) with {@link FrameTimeManager#run() timingManager.run}</li>
+	 * </ul>
+	 * Overriding this method will stop these functions happening automatically. 
 	 */
 	protected void endFrame() {
 		nkContext.render(fbWidth, fbHeight, windowWidth, windowHeight);
@@ -236,8 +301,7 @@ public abstract class Client implements AutoCloseable {
 	}
 
 	/**
-	 * Called when the client is about to close, just before the cleanup of
-	 * contexts.
+	 * Called when the client is about to close, just before the cleanup of contexts.
 	 */
 	protected void onClose() {
 
@@ -246,7 +310,7 @@ public abstract class Client implements AutoCloseable {
 	/**
 	 * Per frame rendering of the client
 	 * 
-	 * @param delta - delta difference of the last frame and the current frame
+	 * @param delta The delta difference of the last frame and the current frame pre-calculated
 	 */
 	protected abstract void render(FrameTimings delta);
 
@@ -260,6 +324,10 @@ public abstract class Client implements AutoCloseable {
 	 * current thread.</i></b>
 	 */
 	public final void show() {
+		if(!hasSetup) {
+			throw new RuntimeException("Client has not been set up and cannot be shown.");
+		}
+		logger.trace("Window to begin rendering loop (" + (shouldClose()+")"));
 		loopThread = Thread.currentThread();
 
 		Thread.currentThread().setUncaughtExceptionHandler(exceptionHandler);
@@ -270,13 +338,10 @@ public abstract class Client implements AutoCloseable {
 			render(currentFrameDelta);
 			endFrame();
 		}
-		logger.trace("end of loop");
-
+		logger.trace("Rendering loop has ended, moving on to closing");
 		if (hasCLosed.compareAndSet(false, true)) {
-			logger.trace("closing");
-			if (!shouldClose()) {
-				shouldClose(true);
-			}
+			close();
+
 			if (loopThread != Thread.currentThread()) {
 				try {
 					loopThread.join();
@@ -292,20 +357,28 @@ public abstract class Client implements AutoCloseable {
 		}
 	}
 
+	/**
+	 * This method attempts to stop the window application by calling {@link #shouldClose(boolean) shouldClose(true)}.
+	 */
 	@Override
-	public final void close() {
-		logger.info("TODO: impliment actual close method");
+	public void close() {
+		if (!shouldClose()) {
+			shouldClose(true);
+		}
 	}
 
 	private final void cleanup() {
+
+		logger.trace("Clenaing up the contexts before closing");
 		glContext.close();
 		nkContext.close();
-
+		logger.trace("Closing window");
 		glfwFreeCallbacks(windowID);
 		glfwDestroyWindow(windowID);
-
+		logger.trace("Terminating OpenGL");
 		glfwTerminate();
 		glfwSetErrorCallback(null).free();
+		hasSetup=false;
 	}
 
 }
