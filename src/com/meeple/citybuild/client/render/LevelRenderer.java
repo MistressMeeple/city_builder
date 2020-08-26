@@ -56,7 +56,6 @@ import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
 import com.meeple.shared.frame.OGL.ShaderProgram.VertexAttribute;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2.ShaderClosable;
-import com.meeple.shared.frame.OGL.UniformManager;
 import com.meeple.shared.frame.camera.VPMatrixSystem;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
@@ -545,7 +544,7 @@ public class LevelRenderer {
 
 		VPMatrixSystem vpSystem = new VPMatrixSystem();
 
-		Wrapper<UniformManager<String[], Integer[]>.Uniform<VPMatrix>> puW = new WrapperImpl<>();
+//		Wrapper<UniformManager<String[], Integer[]>.Uniform<VPMatrix>> puW = new WrapperImpl<>();
 		//		Wrapper<UniformManager<String, Integer>.Uniform<ProjectionMatrix>> uipuW = new WrapperImpl<>();
 
 		vpMatrix.proj.getWrapped().window = cityBuilder.window;
