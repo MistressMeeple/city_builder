@@ -145,7 +145,7 @@ public abstract class Client implements AutoCloseable {
 	 * Uncaught exception handler for the client threads, initialised with a default handler. 
 	 * 
 	 */
-	private UncaughtExceptionHandler exceptionHandler = defaultHandler;
+	public UncaughtExceptionHandler exceptionHandler = defaultHandler;
 	
 	/**
 	 * Once the {@link #show()} is called, this is set to {@link Thread#currentThread()} to allow interrupting 
