@@ -1,5 +1,6 @@
 package com.meeple.shared.frame.camera;
 
+import java.nio.FloatBuffer;
 import java.util.function.Supplier;
 
 import org.joml.Matrix4f;
@@ -8,39 +9,10 @@ import org.lwjgl.opengl.GL46;
 import org.lwjgl.system.MemoryStack;
 
 import com.meeple.shared.frame.FrameUtils;
-import com.meeple.shared.frame.OGL.IShaderUniformUploadSystem;
-import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
-import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
-import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.ViewMatrix;
-import com.meeple.shared.frame.component.Bounds2DComponent;
-import com.meeple.shared.frame.window.Window;
-import com.meeple.shared.frame.wrapper.Wrapper;
-import com.meeple.shared.frame.wrapper.WrapperImpl;
 
-public class VPMatrixSystem implements IShaderUniformUploadSystem<VPMatrix, Integer[]> {
-	public static class VPMatrix {
-		public final Wrapper<ViewMatrix> view = new WrapperImpl<>(new ViewMatrix());
-		public final Wrapper<ProjectionMatrix> proj = new WrapperImpl<>(new ProjectionMatrix());
-		public Matrix4f cache = new Matrix4f();
+public class VPMatrixSystem  {
 
-	}
-
-	public ProjectionMatrixSystem projSystem = new ProjectionMatrixSystem();
-	public ViewMatrixSystem viewSystem = new ViewMatrixSystem();
-
-	public void preMult(VPMatrix vp) {
-		vp.proj.getWrapped().cache.mul(vp.view.getWrapped().cache, vp.cache);
-	}
-
-	@Override
-	public void uploadToShader(VPMatrix upload, Integer[] uniforms, MemoryStack stack) {
-		projSystem.uploadToShader(upload.proj.getWrapped(), uniforms[1], stack);
-		viewSystem.uploadToShader(upload.view.getWrapped(), uniforms[2], stack);
-		GL46.glUniformMatrix4fv(uniforms[0], false, IShaderUniformUploadSystem.generateMatrix4fBuffer(stack, upload.cache));
-
-	}
-
-	public static class ViewMatrixSystem implements IShaderUniformUploadSystem<ViewMatrix, Integer> {
+	public static class ViewMatrixSystem  {
 
 		public static enum CameraMode {
 			Normal,
@@ -86,7 +58,6 @@ public class VPMatrixSystem implements IShaderUniformUploadSystem<VPMatrix, Inte
 			public final CameraSpringArm springArm = new CameraSpringArm();
 		}
 
-		@Override
 		public void uploadToShader(ViewMatrix camera, Integer uniformID, MemoryStack stack) {
 
 			Matrix4f viewMatrix = new Matrix4f();
@@ -121,54 +92,12 @@ public class VPMatrixSystem implements IShaderUniformUploadSystem<VPMatrix, Inte
 				viewMatrix.translate(negativeCameraPos);
 			}
 
-			GL46.glUniformMatrix4fv(uniformID, false, IShaderUniformUploadSystem.generateMatrix4fBuffer(stack, viewMatrix));
+			GL46.glUniformMatrix4fv(uniformID, false,  viewMatrix.get(FloatBuffer.allocate(16)));
 			camera.cache.set(viewMatrix);
 
 		}
 
 	}
 
-	public static class ProjectionMatrixSystem implements IShaderUniformUploadSystem<ProjectionMatrix, Integer> {
-
-		public static class ProjectionMatrix {
-			public float FOV;
-			public float nearPlane;
-			public float farPlane;
-			public Window window;
-			public final Matrix4f cache = new Matrix4f();
-			public boolean perspectiveOrOrtho = false;
-			public float orthoAspect = 10f;
-			public float scale = 1f;
-
-		}
-
-		public static final void update(ProjectionMatrix upload) {
-			Matrix4f matrix = new Matrix4f();
-			Bounds2DComponent bounds = upload.window.bounds;
-			float aspectRatio = (float) bounds.width / (float) bounds.height;
-			if (upload.perspectiveOrOrtho) {
-				matrix.perspective((float) Math.toRadians(upload.FOV), aspectRatio, upload.nearPlane, upload.farPlane);
-			} else {
-				float scale = (1f / upload.scale);
-				matrix
-					.ortho(
-						aspectRatio * -upload.orthoAspect * scale,
-						aspectRatio * upload.orthoAspect * scale,
-						-upload.orthoAspect * scale,
-						upload.orthoAspect * scale,
-						upload.nearPlane,
-						upload.farPlane);
-			}
-			upload.cache.set(matrix);
-		}
-
-		@Override
-		public void uploadToShader(ProjectionMatrix upload, Integer uniformID, MemoryStack stack) {
-			update(upload);
-			GL46.glUniformMatrix4fv(uniformID, false, IShaderUniformUploadSystem.generateMatrix4fBuffer(stack, upload.cache));
-			
-		}
-
-	}
 
 }

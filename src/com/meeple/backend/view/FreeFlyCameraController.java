@@ -48,7 +48,9 @@ public class FreeFlyCameraController extends BaseCameraController {
 	}
 
 	private void actualTick() {
-		final int method = 1;
+		final int method = 2;
+		double upper = 3;
+		double lower = +ep;
 
 		switch (method) {
 		case -1: {
@@ -101,9 +103,6 @@ public class FreeFlyCameraController extends BaseCameraController {
 			}
 			double tempPitch = angles.x + (1 * pitch);
 
-			double upper = 3;
-			double lower = +ep;
-
 			{ /* Clamp the pitch yaw values */
 
 				if (tempPitch > upper) {
@@ -132,18 +131,36 @@ public class FreeFlyCameraController extends BaseCameraController {
 			 * This method just increments the matrix provided, not resetting it to
 			 * identity.
 			 */
-
-			operateOn.rotateLocalX((float) -pitch);
-			Quaternionf quat = new Quaternionf();
-			quat.rotateZ((float) yaw);
-
-			Matrix4f clone = new Matrix4f(operateOn);
-			clone.invert();
-			Vector3f translation2 = clone.getTranslation(new Vector3f());
-			operateOn.rotateAroundAffine(quat, translation2.x, translation2.y, translation2.z, operateOn);
-
-			operateOn.translate(position.mul(-1, new Vector3f()));
 			{
+				//Pitch
+				double currentPitch = Math.atan2(operateOn.m21(), operateOn.m22());
+
+				if (currentPitch + pitch > upper) {
+					pitch = Math.min(pitch, 0);
+				}
+				if (currentPitch + pitch < lower) {
+					pitch = Math.max(pitch, 0);
+				}
+				operateOn.rotateLocalX((float) -pitch);
+			}
+
+			{
+				//Yaw 
+				Quaternionf quat = new Quaternionf();
+				quat.rotateZ((float) yaw);
+
+				Matrix4f clone = new Matrix4f(operateOn);
+				clone.invert();
+				Vector3f translation2 = clone.getTranslation(new Vector3f());
+				operateOn.rotateAroundAffine(quat, translation2.x, translation2.y, translation2.z, operateOn);
+
+			}
+			{
+				//Translation 
+				operateOn.translate(position.mul(-1, new Vector3f()));
+			}
+			{
+				//Reset
 				position.zero();
 				pitch = 0;
 				yaw = 0;
@@ -153,7 +170,10 @@ public class FreeFlyCameraController extends BaseCameraController {
 
 		}
 
+
 	}
+
+
 
 	protected void handleCameraEscape(Client client, UserInput userInput) {
 
@@ -223,13 +243,13 @@ public class FreeFlyCameraController extends BaseCameraController {
 			if (userInput.isPressed(client.options.playerSprint)) {
 				rotated.mul(this.speedMult * this.speedMult, rotated);
 			}
-//			operateOn.translate(-rotated.x, -rotated.y, 0);
+			//			operateOn.translate(-rotated.x, -rotated.y, 0);
 			position.add(rotated.x, rotated.y, 0);
 			hasChanged.lazySet(true);
 
 		}
 		if (up != 0) {
-//			operateOn.translate(0, 0, -up * delta.deltaSeconds);
+			//			operateOn.translate(0, 0, -up * delta.deltaSeconds);
 			position.add(0, 0, up * delta.deltaSeconds);
 			hasChanged.lazySet(true);
 		}

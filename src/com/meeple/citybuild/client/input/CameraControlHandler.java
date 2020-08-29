@@ -1,5 +1,6 @@
 package com.meeple.citybuild.client.input;
 
+import org.joml.Matrix4f;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
@@ -10,6 +11,7 @@ import org.lwjgl.glfw.GLFWScrollCallbackI;
 import org.lwjgl.nuklear.Nuklear;
 import org.lwjgl.opengl.GL46;
 
+import com.meeple.backend.view.VPMatrix;
 import com.meeple.citybuild.client.render.WorldRenderer;
 import com.meeple.citybuild.client.render.WorldRenderer.MeshExt;
 import com.meeple.citybuild.server.Entity;
@@ -18,8 +20,6 @@ import com.meeple.shared.frame.CursorHelper.SpaceState;
 import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
-import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
-import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraMode;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpringArm;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.ViewMatrix;
@@ -86,7 +86,7 @@ public class CameraControlHandler {
 	ClientWindow window;
 	VPMatrix vpMatrix;
 
-	ProjectionMatrix orthoProjection;
+	Matrix4f orthoProjection;
 
 	Vector2f panningButtonPos = null;
 	Vector2f rotatingButtonPos = null;
@@ -201,7 +201,7 @@ public class CameraControlHandler {
 		}
 	}
 
-	public void init(ClientWindow window, VPMatrix vpMatrix, ProjectionMatrix orthoProj) {
+	public void init(ClientWindow window, VPMatrix vpMatrix, Matrix4f orthoProj) {
 		this.window = window;
 		this.vpMatrix = vpMatrix;
 		this.orthoProjection = orthoProj;
@@ -210,7 +210,7 @@ public class CameraControlHandler {
 		window.callbacks.cursorPosCallbackSet.add(cursorposCallback);
 	}
 
-	public void handlePitchingTick(ClientWindow window, ProjectionMatrix proj, CameraSpringArm arm) {
+	public void handlePitchingTick(ClientWindow window, Matrix4f proj, CameraSpringArm arm) {
 
 		Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, window, proj, null);
 		Vector2f dir = new Vector2f(mousePos.x, mousePos.y);
@@ -307,7 +307,7 @@ public class CameraControlHandler {
 		}
 	}
 
-	public void handlePanningTick(ClientWindow window, ProjectionMatrix orthoProjection, ViewMatrix view, Entity cameraAnchor) {
+	public void handlePanningTick(ClientWindow window, Matrix4f orthoProjection, ViewMatrix view, Entity cameraAnchor) {
 
 		Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, window, orthoProjection, null);
 		float rotZ = 0;
@@ -396,7 +396,7 @@ public class CameraControlHandler {
 
 	}
 	private static boolean once = false;
-	public void preRenderMouseUI(ClientWindow window, ProjectionMatrix proj, ShaderProgram program) {
+	public void preRenderMouseUI(ClientWindow window, Matrix4f proj, ShaderProgram program) {
 
 		GL46.glEnable(GL46.GL_DEPTH_TEST);
 

@@ -8,15 +8,19 @@ import static org.lwjgl.opengl.GL30.glBindBufferBase;
 import static org.lwjgl.opengl.GL31.GL_UNIFORM_BUFFER;
 import static org.lwjgl.opengl.GL31.glUniformBlockBinding;
 
+import java.nio.FloatBuffer;
 import java.util.Map;
 import java.util.WeakHashMap;
 
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.opengl.GL46;
+import org.lwjgl.system.MemoryStack;
 
 import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.OGL.ShaderProgram;
+import com.meeple.shared.frame.component.Bounds2DComponent;
+import com.meeple.shared.frame.window.Window;
 
 public class VPMatrix {
 
@@ -29,6 +33,8 @@ public class VPMatrix {
 	}
 
 	public static final int Default_VP_Matrix_Binding_Point = 2;
+	private static final int Matrix_Size = ShaderProgram.GLDataType.Float.getBytes() * 16;
+	private static final int VP_Matricies_Size = Matrix_Size * Matrix_Size * Matrix_Size;
 	private int matrixBuffer;
 	private int boundTo = Default_VP_Matrix_Binding_Point;
 
@@ -68,6 +74,15 @@ public class VPMatrix {
 	}
 
 	/**
+	 * Returns a clone of the current projection matrix. <br>
+	 * Note: changing this will not change the projection matrix used by the program. 
+	 * @return Matrix4f representation of projection matrix
+	 */
+	public Matrix4f getProjection() {
+		return new Matrix4f(projectionMatrix);
+	}
+
+	/**
 	 * Set the shapder programs binding point of a ViewProjection matrix
 	 * 
 	 * @param binding index to bind to
@@ -85,13 +100,18 @@ public class VPMatrix {
 		return boundTo;
 	}
 
+	/**
+	 * Sets up the internal buffer within the context./<br>
+	 * This needs to be called before using/uploading
+	 * @param glContext needed to generate the buffer
+	 * @see GLContext GLContext - the parameter to generate the buffer
+	 */
 	public void setupBuffer(GLContext glContext) {
 
 		this.matrixBuffer = glContext.genBuffer();
 
 		glBindBuffer(GL46.GL_UNIFORM_BUFFER, matrixBuffer);
-		glBufferData(
-			GL_UNIFORM_BUFFER, 16 * 4 * 3, ShaderProgram.BufferUsage.DynamicDraw.getGLID());
+		glBufferData(GL_UNIFORM_BUFFER, VP_Matricies_Size, ShaderProgram.BufferUsage.DynamicDraw.getGLID());
 
 		// binds the buffer to a binding index
 		glBindBufferBase(GL_UNIFORM_BUFFER, boundTo, matrixBuffer);
@@ -106,11 +126,9 @@ public class VPMatrix {
 	}
 
 	public void setPerspective(float fov, float aspectRatio, float near, float far) {
-		projectionMatrix.setPerspective(
-			(float) Math.toRadians(fov), (float) aspectRatio, near, far);
+		projectionMatrix.setPerspective((float) Math.toRadians(fov), (float) aspectRatio, near, far);
 		// NOTE invert either X or Y axis for my prefered coord system
 		projectionMatrix.scale(-1, 1, 1);
-
 	}
 
 	public void activeCamera(CameraKey camera) {
@@ -130,19 +148,17 @@ public class VPMatrix {
 
 	private static void writeVPFMatrix(int buffer, Matrix4f projection, Matrix4f view, Vector3f position, Matrix4f vp) {
 
-		// no need to be in a program bidning, since this is shared between multiple
-		// programs
+		// no need to be in a program binding, since this is shared between multiple programs
 		glBindBuffer(GL46.GL_UNIFORM_BUFFER, buffer);
 		float[] store = new float[16];
-
 		if (projection != null)
-			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 0, projection.get(store));
+			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 0, projection.get(store));
 		if (view != null)
-			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 1, view.get(store));
+			glBufferSubData(GL46.GL_UNIFORM_BUFFER, Matrix_Size, view.get(store));
 		if (vp != null)
-			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 2, vp.get(store));
+			glBufferSubData(GL46.GL_UNIFORM_BUFFER, Matrix_Size * 2, vp.get(store));
 		if (position != null)
-			glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 3, new float[] { position.x, position.y, position.z });
+			glBufferSubData(GL46.GL_UNIFORM_BUFFER, Matrix_Size * 3, new float[] { position.x, position.y, position.z });
 		glBindBuffer(GL46.GL_UNIFORM_BUFFER, 0);
 
 	}
@@ -188,5 +204,41 @@ public class VPMatrix {
 			activeCamera = key;
 		}
 		return key;
+	}
+
+	private class ProjectionMatrixSystem {
+
+		private class ProjectionMatrix {
+			public float FOV;
+			public float nearPlane;
+			public float farPlane;
+			public Window window;
+			public final Matrix4f cache = new Matrix4f();
+			public boolean perspectiveOrOrtho = false;
+			public float orthoAspect = 10f;
+			public float scale = 1f;
+
+		}
+
+		public final void update(ProjectionMatrix upload) {
+			Matrix4f matrix = new Matrix4f();
+			Bounds2DComponent bounds = upload.window.bounds;
+			float aspectRatio = (float) bounds.width / (float) bounds.height;
+			if (upload.perspectiveOrOrtho) {
+				matrix.perspective((float) Math.toRadians(upload.FOV), aspectRatio, upload.nearPlane, upload.farPlane);
+			} else {
+				float scale = (1f / upload.scale);
+				matrix.ortho(
+					aspectRatio * -upload.orthoAspect * scale, aspectRatio * upload.orthoAspect * scale, -upload.orthoAspect * scale, upload.orthoAspect * scale, upload.nearPlane, upload.farPlane);
+			}
+			upload.cache.set(matrix);
+		}
+
+		public void uploadToShader(ProjectionMatrix upload, Integer uniformID, MemoryStack stack) {
+			update(upload);
+			GL46.glUniformMatrix4fv(uniformID, false, upload.cache.get(FloatBuffer.allocate(16)));
+
+		}
+
 	}
 }

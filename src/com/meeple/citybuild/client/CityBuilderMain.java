@@ -17,6 +17,7 @@ import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWKeyCallbackI;
 
+import com.meeple.backend.view.VPMatrix;
 import com.meeple.citybuild.RayHelper;
 import com.meeple.citybuild.client.gui.GameUI;
 import com.meeple.citybuild.client.gui.LoadingScreen;
@@ -33,8 +34,6 @@ import com.meeple.shared.Tickable;
 import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.GLFWManager;
 import com.meeple.shared.frame.OGL.KeyInputSystem;
-import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
-import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpringArm;
 import com.meeple.shared.frame.nuklear.NuklearMenuSystem;
 import com.meeple.shared.frame.window.ClientWindowSystem;
@@ -99,24 +98,26 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		ClientWindowSystem.setupWindow(window, keyInput, window.nkContext, optionsSystem);
 
 		VPMatrix vpMatrix = new VPMatrix();
-		CameraSpringArm arm = vpMatrix.view.getWrapped().springArm;
-		ProjectionMatrix ortho = new ProjectionMatrix();
+		CameraSpringArm arm = new CameraSpringArm();//vpMatrix.view.getWrapped().springArm;
 		arm.addDistance(15f);
-		vpMatrix.view.getWrapped().springArm.addPitch(45);
+		//		vpMatrix.view.getWrapped().springArm.addPitch(45);
 
 		Entity cameraAnchorEntity = new Entity();
-		vpMatrix.view.getWrapped().springArm.lookAt = new Supplier<Vector3f>() {
+		/*		vpMatrix.view.getWrapped().springArm.lookAt = new Supplier<Vector3f>() {
+		
+					@Override
+					public Vector3f get() {
+						return cameraAnchorEntity.position;
+					}
+			
+				};
+				*/
 
-			@Override
-			public Vector3f get() {
-				return cameraAnchorEntity.position;
-			}
-		};
-
-		window.events.preCleanup.add(() -> {
+		window.events.preCleanup.add(() ->
+		{
 			FrameUtils.shutdownService(executorService, 1l, TimeUnit.SECONDS);
 		});
-		
+
 		window.callbacks.keyCallbackSet.add(new GLFWKeyCallbackI() {
 
 			@Override
@@ -137,7 +138,9 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 			RayHelper rh = new RayHelper();
 
 			LevelRenderer levelRenderer = new LevelRenderer();
-			Tickable t = levelRenderer.renderGame(this, vpMatrix, cameraAnchorEntity, ortho, rh, keyInput, window.nkContext);
+			Tickable t  = (delta)->{
+				return null;};
+			//levelRenderer.renderGame(this, vpMatrix, cameraAnchorEntity, ortho, rh, keyInput, window.nkContext);
 
 			//			FrameUtils.addToSetMap(stateRendering, WindowState.Game, t, syncSetSupplier);
 
@@ -155,7 +158,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 			clientQuitCounter.incrementAndGet();
 			NuklearMenuSystem menuSystem = new NuklearMenuSystem();
-//			menuSystem.create(window, window.registeredNuklear);
+			//			menuSystem.create(window, window.registeredNuklear);
 			window.eventListeners.add(this::handleWindowEvent);
 
 			//NOTE this is the first screen on show when the window loads
@@ -163,7 +166,8 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 			//NOTE this is the screen that loads after loading screen for the first time
 			loadingScreen.setChild(mainMenuScreen);
 
-			window.events.render.add(0, (delta) -> {
+			window.events.render.add(0, (delta) ->
+			{
 
 				if (window.currentFocus != null) {
 					//						logger.trace(window.state.getWrapped() + " " + ((NuklearUIComponent) window.currentFocus).title);
@@ -193,57 +197,57 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 	public void handleWindowEvent(WindowEvent event, Object param) {
 		switch (event) {
-			case ClientClose:
-				quitGame();
-				window.shouldClose = true;
-				break;
-			case GameLoad:
-				if (param != null) {
-					if (param instanceof File) {
-						loadLevel((File) param);
-					} else if (param instanceof Number) {
-						newGame(((Number) param).longValue());
-					} else {
-						try {
-							newGame((long) param);
-						} catch (ClassCastException e) {
-							//wasnt a number
+		case ClientClose:
+			quitGame();
+			window.shouldClose = true;
+			break;
+		case GameLoad:
+			if (param != null) {
+				if (param instanceof File) {
+					loadLevel((File) param);
+				} else if (param instanceof Number) {
+					newGame(((Number) param).longValue());
+				} else {
+					try {
+						newGame((long) param);
+					} catch (ClassCastException e) {
+						//wasnt a number
 
-						}
 					}
 				}
-				if (level == null) {
-					newGame(System.currentTimeMillis());
-				}
+			}
+			if (level == null) {
+				newGame(System.currentTimeMillis());
+			}
 
-				break;
-			case GamePause:
-				pauseGame();
-				gameUI.setChild(pauseScreen);
-				break;
-			case GameResume:
-				gameUI.clearChild();
-				resumeGame();
-				break;
-			case GameSave:
-				saveGame();
-				break;
-			case GameStart:
-				loadingScreen.setChild(gameRenderScreen);
-				gameUI.clearChild();
-				break;
-			case GoToMainMenu:
-				loadingScreen.setChild(mainMenuScreen);
-				logger.trace("herp, todo");
-				break;
-			case OptionsClose:
-				logger.trace("herp, todo");
-				break;
-			case OptionsOpen:
-				logger.trace("herp, todo");
-				break;
-			default:
-				break;
+			break;
+		case GamePause:
+			pauseGame();
+			gameUI.setChild(pauseScreen);
+			break;
+		case GameResume:
+			gameUI.clearChild();
+			resumeGame();
+			break;
+		case GameSave:
+			saveGame();
+			break;
+		case GameStart:
+			loadingScreen.setChild(gameRenderScreen);
+			gameUI.clearChild();
+			break;
+		case GoToMainMenu:
+			loadingScreen.setChild(mainMenuScreen);
+			logger.trace("herp, todo");
+			break;
+		case OptionsClose:
+			logger.trace("herp, todo");
+			break;
+		case OptionsOpen:
+			logger.trace("herp, todo");
+			break;
+		default:
+			break;
 		}
 
 	}

@@ -28,6 +28,7 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL46;
 
+import com.meeple.backend.view.VPMatrix;
 import com.meeple.citybuild.RayHelper;
 import com.meeple.citybuild.client.CityBuilderMain;
 import com.meeple.citybuild.client.gui.GameUI;
@@ -57,8 +58,6 @@ import com.meeple.shared.frame.OGL.ShaderProgram.VertexAttribute;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2.ShaderClosable;
 import com.meeple.shared.frame.camera.VPMatrixSystem;
-import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
-import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpringArm;
 import com.meeple.shared.frame.nuklear.NkContextSingleton;
 import com.meeple.shared.frame.wrapper.Wrapper;
@@ -75,9 +74,8 @@ public class LevelRenderer {
 
 	public static boolean disableAlphaTest = false;
 
-
 	public void preRender(GLContext glc, LevelData level, VPMatrix vp, ShaderProgram program) {
-		FrustumIntersection fi = new FrustumIntersection(vp.cache);
+		FrustumIntersection fi = new FrustumIntersection(vp.getActiveCamera());
 
 		Set<Entry<Vector2i, Chunk>> set = level.chunks.entrySet();
 		synchronized (level.chunks) {
@@ -99,16 +97,16 @@ public class LevelRenderer {
 				}
 				switch (fi.intersectAab(chunkPos, chunkPos.add(LevelData.fullChunkSize, LevelData.fullChunkSize, 0, new Vector3f()))) {
 
-					case FrustumIntersection.INSIDE:
-					case FrustumIntersection.INTERSECT:
-						m.mesh.visible = true;
-						//render chunk
-						break;
-					case FrustumIntersection.OUTSIDE:
-						m.mesh.visible = false;
-						break;
-					default:
-						break;
+				case FrustumIntersection.INSIDE:
+				case FrustumIntersection.INTERSECT:
+					m.mesh.visible = true;
+					//render chunk
+					break;
+				case FrustumIntersection.OUTSIDE:
+					m.mesh.visible = false;
+					break;
+				default:
+					break;
 				}
 
 			}
@@ -120,12 +118,6 @@ public class LevelRenderer {
 
 	Map<Chunk, MeshExt> baked = new CollectionSuppliers.MapSupplier<Chunk, MeshExt>().get();
 	Map<TileTypes, Map<String, MeshExt>> tileMeshes = new CollectionSuppliers.MapSupplier<TileTypes, Map<String, MeshExt>>().get();
-
-	private void bakeTile(Tile tile) {
-		switch (tile.type) {
-
-		}
-	}
 
 	private MeshExt bakeChunk(Vector3f chunkPos, Chunk chunk) {
 		MeshExt m = new MeshExt();
@@ -166,19 +158,19 @@ public class LevelRenderer {
 				}
 
 				switch (tile.type) {
-					case Hole:
+				case Hole:
 
-						break;
-					case Ground:
+					break;
+				case Ground:
 
-						colour = new Vector4f(0.1f, 1f, 0.1f, 1f);
-						FrameUtils.appendToList(m.offsetAttrib.data, tilePos);
-						m.colourAttrib.data.add(colour.x);
-						m.colourAttrib.data.add(colour.y);
-						m.colourAttrib.data.add(colour.z);
-						m.colourAttrib.data.add(colour.w);
-						m.mesh.renderCount += 1;
-						break;
+					colour = new Vector4f(0.1f, 1f, 0.1f, 1f);
+					FrameUtils.appendToList(m.offsetAttrib.data, tilePos);
+					m.colourAttrib.data.add(colour.x);
+					m.colourAttrib.data.add(colour.y);
+					m.colourAttrib.data.add(colour.z);
+					m.colourAttrib.data.add(colour.w);
+					m.mesh.renderCount += 1;
+					break;
 
 				}
 
@@ -511,21 +503,15 @@ public class LevelRenderer {
 		glBindBuffer(GL46.GL_UNIFORM_BUFFER, 0);
 	}
 
-	private void setupUBOs(GLContext glc, ShaderProgram program, Matrix4f projection, Matrix4f view, Matrix4f vp) {
+	private void setupUBOs(GLContext glc, ShaderProgram program) {
 
 		glUseProgram(program.programID);
 		ambientBrightnessLocation = GL46.glGetUniformLocation(program.programID, "ambientBrightness");
 		glUniform1f(ambientBrightnessLocation, 0.125f);
-		//-----binding to the view/projection uniform buffer/block-----//
-		if (true) {
-			this.matrixBuffer = storeMatrixBuffer(glc, vpMatrixBindingpoint);
-			writeVPMatrix(matrixBuffer, projection, view, vp);
-			bindUBONameToIndex("Matrices", vpMatrixBindingpoint, program);
-		}
 
 	}
 
-	public Tickable renderGame(CityBuilderMain cityBuilder, VPMatrix vpMatrix, Entity cameraAnchorEntity, ProjectionMatrix ortho, RayHelper rh, KeyInputSystem keyInput, NkContextSingleton nkContext) {
+	public Tickable renderGame(CityBuilderMain cityBuilder, VPMatrix vpMatrix, Entity cameraAnchorEntity, RayHelper rh, KeyInputSystem keyInput, NkContextSingleton nkContext) {
 
 		//		ShaderProgram mainProgram = new ShaderProgram();
 		ShaderProgram program = new ShaderProgram();
@@ -544,34 +530,22 @@ public class LevelRenderer {
 
 		VPMatrixSystem vpSystem = new VPMatrixSystem();
 
-//		Wrapper<UniformManager<String[], Integer[]>.Uniform<VPMatrix>> puW = new WrapperImpl<>();
+		//		Wrapper<UniformManager<String[], Integer[]>.Uniform<VPMatrix>> puW = new WrapperImpl<>();
 		//		Wrapper<UniformManager<String, Integer>.Uniform<ProjectionMatrix>> uipuW = new WrapperImpl<>();
 
-		vpMatrix.proj.getWrapped().window = cityBuilder.window;
-		vpMatrix.proj.getWrapped().FOV = 90;
-		vpMatrix.proj.getWrapped().nearPlane = 0.001f;
-		vpMatrix.proj.getWrapped().farPlane = 10000f;
-		vpMatrix.proj.getWrapped().orthoAspect = 10f;
-		vpMatrix.proj.getWrapped().perspectiveOrOrtho = true;
-		vpMatrix.proj.getWrapped().scale = 1f;
+		vpMatrix.setPerspective(90, 10f, 0.001f, 10000f);
 
-		ortho.window = cityBuilder.window;
-		ortho.FOV = 90;
-		ortho.nearPlane = 0.001f;
-		ortho.farPlane = 10000f;
-		ortho.orthoAspect = 10f;
-		ortho.perspectiveOrOrtho = false;
-		ortho.scale = 1f;
-		CameraSpringArm arm = vpMatrix.view.getWrapped().springArm;
-		cityBuilder.window.events.postCreation.add(() -> {
+		CameraSpringArm arm = new CameraSpringArm();// vpMatrix.view.getWrapped().springArm;
+		cityBuilder.window.events.postCreation.add(() ->
+		{
 
-			//			uipuW.setWrapped(setupUIProgram(cityBuilder.window.glContext, uiProgram, vpSystem.projSystem, ortho));
-			VPMatrixSystem.ProjectionMatrixSystem.update(ortho);
+			//NOTE upload VPMatrix
+			//			VPMatrixSystem.ProjectionMatrixSystem.update(ortho);
 
 			//setup the program
 			try {
 
-				setupUBOs(cityBuilder.window.glContext, debugProgram, vpMatrix.proj.getWrapped().cache, vpMatrix.view.getWrapped().cache, vpMatrix.cache);
+				setupUBOs(cityBuilder.window.glContext, debugProgram);
 
 				{
 					String vertSource = ShaderProgramSystem2.loadShaderSourceFromFile(("resources/shaders/3D_nolit_flat.vert"));
@@ -640,7 +614,7 @@ public class LevelRenderer {
 					ShaderProgramSystem2.loadVAO(cityBuilder.window.glContext, uiProgram2, compasLine);
 
 					int location = glGetUniformLocation(uiProgram2.programID, "projectionMatrix");
-					GL46.glProgramUniformMatrix4fv(uiProgram2.programID, location, false, ortho.cache.get(new float[16]));
+//					GL46.glProgramUniformMatrix4fv(uiProgram2.programID, location, false, ortho.cache.get(new float[16]));
 				}
 
 			} catch (Exception err) {
@@ -651,29 +625,30 @@ public class LevelRenderer {
 
 		});
 
-		vpSystem.preMult(vpMatrix);
+		//		vpSystem.preMult(vpMatrix);
 
-		cityBuilder.gameUI.init(cityBuilder.window, vpMatrix, ortho, rh);
-		return (time) -> {
+		cityBuilder.gameUI.init(cityBuilder.window, (Matrix4f) null, rh);
+		return (time) ->
+		{
 			GL46.glClear(GL46.GL_COLOR_BUFFER_BIT);
 			GL46.glPointSize(2f);
-			vpSystem.preMult(vpMatrix);
-//			ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.multiUpload, puW.getWrapped(), vpMatrix);
+			//			vpSystem.preMult(vpMatrix);
+			//			ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.multiUpload, puW.getWrapped(), vpMatrix);
 
-			writeVPMatrix(matrixBuffer, vpMatrix.proj.getWrapped().cache, vpMatrix.view.getWrapped().cache, vpMatrix.cache);
+//			writeVPMatrix(matrixBuffer, vpMatrix.proj.getWrapped().cache, vpMatrix.view.getWrapped().cache, vpMatrix.cache);
 
 			keyInput.tick(cityBuilder.window.mousePressTicks, cityBuilder.window.mousePressMap, time.nanos);
 			keyInput.tick(cityBuilder.window.keyPressTicks, cityBuilder.window.keyPressMap, time.nanos);
 			if (cityBuilder.level != null) {
 				//TODO better testing for if mouse controls should be enabled. eg when over a gui
 
-				cityBuilder.gameUI.handlePanningTick(cityBuilder.window, ortho, vpMatrix.view.getWrapped(), cameraAnchorEntity);
-				cityBuilder.gameUI.handlePitchingTick(cityBuilder.window, ortho, arm);
+//				cityBuilder.gameUI.handlePanningTick(cityBuilder.window, ortho, vpMatrix.view.getWrapped(), cameraAnchorEntity);
+//				cityBuilder.gameUI.handlePitchingTick(cityBuilder.window, ortho, arm);
 				cityBuilder.gameUI.handleScrollingTick(arm);
 				long mouseLeftClick = cityBuilder.window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
 				if (mouseLeftClick > 0) {
-					Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, cityBuilder.window, vpMatrix.proj.getWrapped(), vpMatrix.view.getWrapped());
-					rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z), new Vector3f(vpMatrix.view.getWrapped().position), cityBuilder);
+//					Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, cityBuilder.window, vpMatrix.proj.getWrapped(), vpMatrix.view.getWrapped());
+//					rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z), new Vector3f(vpMatrix.view.getWrapped().position), cityBuilder);
 
 				}
 
@@ -681,27 +656,26 @@ public class LevelRenderer {
 				cityBuilder.window.clearColour.set(0f, 0f, 0f, 0f);
 				//TODO do chunk building for faster mesh drawing
 				preRender(cityBuilder.window.glContext, cityBuilder.level, vpMatrix, program);
-				cityBuilder.gameUI.preRenderMouseUI(cityBuilder.window, ortho, uiProgram2, compas, compas.getAttribute(offsetName), compasLine, compasLine.getAttribute(vPosName));
+//				cityBuilder.gameUI.preRenderMouseUI(cityBuilder.window, ortho, uiProgram2, compas, compas.getAttribute(offsetName), compasLine, compasLine.getAttribute(vPosName));
 
 			}
 			//NOTE uploading the ortho UI projection matrix to the UI program
 			//also check if we actually need to do this per frame.. could put it into a window-resize event
 			int location = glGetUniformLocation(uiProgram2.programID, "projectionMatrix");
-			GL46.glProgramUniformMatrix4fv(uiProgram2.programID, location, false, ortho.cache.get(new float[16]));
+//			GL46.glProgramUniformMatrix4fv(uiProgram2.programID, location, false, ortho.cache.get(new float[16]));
 
 			//TODO fix "single frame discarding"
-//			ShaderProgramSystem2.render(program);
+			//			ShaderProgramSystem2.render(program);
 			//			ShaderProgramSystem2.render(uiProgram);
-			try(ShaderClosable prog = ShaderProgramSystem2.useProgram(uiProgram2)) {
+			try (ShaderClosable prog = ShaderProgramSystem2.useProgram(uiProgram2)) {
 				ShaderProgramSystem2.renderMesh(compasLine);
 				ShaderProgramSystem2.renderMesh(compas);
-				
+
 			}
-			try(ShaderClosable prog = ShaderProgramSystem2.useProgram(debugProgram)) {
+			try (ShaderClosable prog = ShaderProgramSystem2.useProgram(debugProgram)) {
 
 				ShaderProgramSystem2.renderMesh(axisMesh);
 			}
-			
 
 			//this is the cube test rendering program
 			//						ShaderProgramSystem.render(mainProgram);

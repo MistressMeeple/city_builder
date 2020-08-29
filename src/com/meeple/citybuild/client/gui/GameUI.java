@@ -19,6 +19,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
+import org.joml.Matrix4f;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
@@ -32,6 +33,7 @@ import org.lwjgl.nuklear.Nuklear;
 import org.lwjgl.opengl.GL46;
 import org.lwjgl.system.MemoryStack;
 
+import com.meeple.backend.view.VPMatrix;
 import com.meeple.citybuild.RayHelper;
 import com.meeple.citybuild.client.render.Screen;
 import com.meeple.citybuild.client.render.WorldRenderer;
@@ -49,8 +51,6 @@ import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
 import com.meeple.shared.frame.OGL.ShaderProgram.VertexAttribute;
-import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
-import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraMode;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpringArm;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.ViewMatrix;
@@ -118,9 +118,7 @@ public class GameUI extends Screen {
 	Wrapper<Vector2f> mouseMClick = new WrapperImpl<>();
 	Wrapper<Vector2f> mouseLastPos = new WrapperImpl<>();*/
 	ClientWindow window;
-	VPMatrix vpMatrix;
-
-	ProjectionMatrix orthoProjection;
+	private Matrix4f uiProjection;
 
 	Vector2f panningButtonPos = null;
 	Vector2f rotatingButtonPos = null;
@@ -168,10 +166,10 @@ public class GameUI extends Screen {
 		public void invoke(long windowID, int button, int action, int mods) {
 			/*only allows when no UI element is hovered*/
 			if (!Nuklear.nk_window_is_any_hovered(window.nkContext.context)) {
+				Vector4f mouse = CursorHelper.getMouse(SpaceState.Eye_Space, window, uiProjection, null);
 				if (button == panningButton.getID()) {
 					if (action == GLFW.GLFW_PRESS) {
 						if (panningType == PanningType.Difference) {
-							Vector4f mouse = CursorHelper.getMouse(SpaceState.Eye_Space, window, orthoProjection, null);
 							panningButtonPos = new Vector2f(mouse.x, mouse.y);
 						} else if (panningType == PanningType.FromCenter) {
 							panningButtonPos = new Vector2f(0, 0);
@@ -183,7 +181,6 @@ public class GameUI extends Screen {
 				if (button == rotateButton.getID()) {
 					if (action == GLFW.GLFW_PRESS) {
 						if (rotationType == PanningType.Difference) {
-							Vector4f mouse = CursorHelper.getMouse(SpaceState.Eye_Space, window, orthoProjection, null);
 							rotatingButtonPos = new Vector2f(mouse.x, mouse.y);
 						} else if (rotationType == PanningType.FromCenter) {
 							rotatingButtonPos = new Vector2f(0, 0);
@@ -241,18 +238,17 @@ public class GameUI extends Screen {
 		}
 	}
 
-	public void init(ClientWindow window, VPMatrix vpMatrix, ProjectionMatrix orthoProj, RayHelper rayHelper) {
+	public void init(ClientWindow window, Matrix4f uiProjection, RayHelper rayHelper) {
 		this.window = window;
-		this.vpMatrix = vpMatrix;
-		this.orthoProjection = orthoProj;
+		this.uiProjection = uiProjection;
 		this.rayHelper = rayHelper;
-		
+
 		window.callbacks.scrollCallbackSet.add(scrollCallback);
 		window.callbacks.mouseButtonCallbackSet.add(mouseButtonCallback);
 		window.callbacks.cursorPosCallbackSet.add(cursorposCallback);
 	}
 
-	public void handlePitchingTick(ClientWindow window, ProjectionMatrix proj, CameraSpringArm arm) {
+	public void handlePitchingTick(ClientWindow window, Matrix4f proj, CameraSpringArm arm) {
 
 		Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, window, proj, null);
 		Vector2f dir = new Vector2f(mousePos.x, mousePos.y);
@@ -320,7 +316,6 @@ public class GameUI extends Screen {
 	}
 
 	private void process(Wrapper<Float> wrapper, float decr) {
-
 		wrapper.setWrapped(wrapper.getWrapped() - decr);
 		if (Math.abs(wrapper.getWrapped()) < 1f) {
 			wrapper.setWrapped(0f);
@@ -349,21 +344,20 @@ public class GameUI extends Screen {
 		}
 	}
 
-	public void handlePanningTick(ClientWindow window, ProjectionMatrix orthoProjection, ViewMatrix view, Entity cameraAnchor) {
-
-		Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, window, orthoProjection, null);
-		float rotZ = 0;
-		switch (view.cameraMode) {
-			case LookAt:
-				rotZ = view.springArm.yaw;
-				break;
-			case Normal:
-				rotZ = view.rotation.y;
-				break;
-			default:
-				break;
-
-		}
+	public void handlePanningTick(ClientWindow window, Entity cameraAnchor) {
+		Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, window, uiProjection, null);
+		float rotZ = 0;/*
+						switch (view.cameraMode) {
+						case LookAt:
+						rotZ = view.springArm.yaw;
+						break;
+						case Normal:
+						rotZ = view.rotation.y;
+						break;
+						default:
+						break;
+						
+						}*/
 
 		Vector2f dir = new Vector2f(mousePos.x, mousePos.y);
 		{
@@ -389,11 +383,12 @@ public class GameUI extends Screen {
 						mouseDir = mouseDir.mul((len) * 0.1f * 0.1f);
 						float scale = 1f;
 						//almost always
+						/*
 						if (view.cameraMode == CameraMode.LookAt) {
 							scale = view.springArm.getDistance();
 						} else {
 							scale = view.position.z;
-						}
+						}*/
 						mouseDir = mouseDir.mul(scale);
 						cameraAnchor.position.add(mouseDir.x, mouseDir.y, 0);
 						panningState = CompasState.Active;
@@ -426,11 +421,12 @@ public class GameUI extends Screen {
 
 				float scale = 1f;
 				//almost always
+				/*
 				if (view.cameraMode == CameraMode.LookAt) {
 					scale = view.springArm.getDistance();
 				} else {
 					scale = view.position.z;
-				}
+				}*/
 				mdir = mdir.mul(scale / 100f);
 				cameraAnchor.position.add(mdir);
 			}
@@ -438,7 +434,7 @@ public class GameUI extends Screen {
 
 	}
 
-	public void preRenderMouseUI(ClientWindow window, ProjectionMatrix proj, ShaderProgram program, Mesh compasMesh, VertexAttribute compasMeshOffset, Mesh lineMesh, VertexAttribute lineMeshVPos) {
+	public void preRenderMouseUI(ClientWindow window, ShaderProgram program, Mesh compasMesh, VertexAttribute compasMeshOffset, Mesh lineMesh, VertexAttribute lineMeshVPos) {
 
 		GL46.glEnable(GL46.GL_DEPTH_TEST);
 
@@ -465,7 +461,7 @@ public class GameUI extends Screen {
 					if (true) {
 						Vector3f camPos = new Vector3f();//vpMatrix.view.getWrapped().getPosition(new Vector3f());
 
-						Vector4f v = CursorHelper.getMouse(SpaceState.Eye_Space, window, proj, null);
+						Vector4f v = new Vector4f();//= CursorHelper.getMouse(SpaceState.Eye_Space, window, vpMatrix.getProjection(), null);
 						Vector2f dir = new Vector2f(v.x - camPos.x, v.y - camPos.y);
 						Vector2f pos = new Vector2f(mouseClickedPos);
 						if (pos != null) {
@@ -529,10 +525,12 @@ public class GameUI extends Screen {
 
 		lineMesh.visible = compasMesh.visible;
 	}
-private static boolean once = false;
-	public void preRenderMouseUI(ClientWindow window, ProjectionMatrix proj, ShaderProgram program) {
-		if(!once) {
-			once=true;
+
+	private static boolean once = false;
+
+	public void preRenderMouseUI(ClientWindow window, ShaderProgram program) {
+		if (!once) {
+			once = true;
 			logger.warn("Disabled using shader system for mouse UI");
 		}
 		GL46.glEnable(GL46.GL_DEPTH_TEST);
@@ -559,7 +557,7 @@ private static boolean once = false;
 					if (true) {
 						Vector3f camPos = new Vector3f();//vpMatrix.view.getWrapped().getPosition(new Vector3f());
 
-						Vector4f v = CursorHelper.getMouse(SpaceState.Eye_Space, window, proj, null);
+						Vector4f v = CursorHelper.getMouse(SpaceState.Eye_Space, window, uiProjection, null);
 						Vector2f dir = new Vector2f(v.x - camPos.x, v.y - camPos.y);
 						Vector2f pos = new Vector2f(mouseClickedPos);
 						if (pos != null) {
@@ -588,7 +586,6 @@ private static boolean once = false;
 								FrameUtils.appendToList(mcompas.colourAttrib.data, new Vector4f(1, 0, 1, 1));
 								mcompas.mesh.name = "compas";
 								mcompas.zIndexAttrib.data.add(-1f);
-								
 
 								//ShaderProgramSystem.loadVAO(program, mcompas.mesh);
 							}
@@ -606,7 +603,7 @@ private static boolean once = false;
 							FrameUtils.appendToList(m.colourAttrib.data, new Vector4f(1, 1, 0, 1));
 							m.mesh.name = "compasLine";
 							m.zIndexAttrib.data.add(-1f);
-							
+
 							//ShaderProgramSystem.loadVAO(program, m.mesh);
 						}
 
@@ -644,7 +641,8 @@ private static boolean once = false;
 					for (TileTypes type : WorldGenerator.TileTypes.values()) {
 						nk_layout_space_push(ctx, nk_rect((btnWidth + btnSpacing) * i++, 0, btnWidth, btnHeight, NkRect.create()));
 						if (currentSubMenu != null && currentSubMenu == type) {
-							NuklearManager.styledButton(ctx, NuklearMenuSystem.getDisabled(ctx, stack), () -> {
+							NuklearManager.styledButton(ctx, NuklearMenuSystem.getDisabled(ctx, stack), () ->
+							{
 								if (nk_button_text(ctx, type.toString())) {
 									currentSubMenu = null;
 									currentAction = null;
@@ -682,7 +680,8 @@ private static boolean once = false;
 									Tiles t = it.next();
 									nk_layout_space_push(ctx, nk_rect((btnWidth + btnSpacing) * i++, 0, btnWidth, btnHeight, NkRect.create()));
 									if (currentAction != null && currentAction == t) {
-										NuklearManager.styledButton(ctx, NuklearMenuSystem.getDisabled(ctx, stack), () -> {
+										NuklearManager.styledButton(ctx, NuklearMenuSystem.getDisabled(ctx, stack), () ->
+										{
 											nk_button_text(ctx, t.toString());
 										});
 									} else {

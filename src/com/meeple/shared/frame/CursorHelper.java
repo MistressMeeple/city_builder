@@ -4,7 +4,6 @@ import org.joml.Matrix4f;
 import org.joml.Vector4f;
 import org.lwjgl.glfw.GLFW;
 
-import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.ViewMatrix;
 import com.meeple.shared.frame.window.Window;
 
@@ -20,7 +19,7 @@ public class CursorHelper {
 
 	}
 
-	public static Vector4f getMouse(SpaceState result, Window window, ProjectionMatrix proj, ViewMatrix view) {
+	public static Vector4f getMouse(SpaceState result, Window window, Matrix4f proj, ViewMatrix view) {
 		Vector4f ret = new Vector4f();
 		if (result == null) {
 			//early escape if no work is requested
@@ -54,7 +53,7 @@ public class CursorHelper {
 			return ret;
 		}
 		if (true) {
-			Matrix4f invertedProj = proj.cache.invert(new Matrix4f());
+			Matrix4f invertedProj = proj.invert(new Matrix4f());
 			ret = ret.mul(invertedProj);
 			ret.z = -1f;
 			ret.w = 0f;
@@ -70,7 +69,7 @@ public class CursorHelper {
 		return ret;
 	}
 
-	public static Vector4f getMouse(SpaceState start, Vector4f startVec, SpaceState result, Window window, ProjectionMatrix proj, ViewMatrix view) {
+	public static Vector4f getMouse(SpaceState start, Vector4f startVec, SpaceState result, Window window, Matrix4f proj, ViewMatrix view) {
 		Vector4f ret = startVec;
 		if (result == null) {
 			//early escape if no work is requested
@@ -104,7 +103,7 @@ public class CursorHelper {
 			return ret;
 		}
 		if (start.ordinal() < 3) {
-			Matrix4f invertedProj = proj.cache.invert(new Matrix4f());
+			Matrix4f invertedProj = proj.invert(new Matrix4f());
 			ret = ret.mul(invertedProj);
 			ret.z = -1f;
 			ret.w = 0f;
