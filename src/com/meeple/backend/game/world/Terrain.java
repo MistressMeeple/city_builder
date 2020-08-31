@@ -28,7 +28,7 @@ public class Terrain {
 				worldX + World.TerrainSize,
 				0,
 				worldY + World.TerrainSize) };
-		 tiles = new TerrainSampleInfo[World.TerrainSize][World.TerrainSize];
+		 tiles = new TerrainSampleInfo[World.TerrainSampleSize][World.TerrainSampleSize];
 
 	}
 

@@ -23,6 +23,7 @@ import org.joml.Matrix4f;
 import org.joml.Vector2i;
 import org.joml.Vector3f;
 import org.lwjgl.BufferUtils;
+import org.lwjgl.opengl.GL46;
 
 import com.meeple.backend.Model;
 import com.meeple.backend.ShaderPrograms;
@@ -49,8 +50,10 @@ public class WorldClient {
 	private static Logger logger = Logger.getLogger(WorldClient.class);
 
 	private Map<Terrain, Mesh> terrainMeshes = Collections.synchronizedMap(new WeakHashMap<>());
+	private Map<Terrain, Mesh> terrainOutlineMeshes = Collections.synchronizedMap(new WeakHashMap<>());
 	private Map<EntityBase, Model> visibleEntities = Collections.synchronizedMap(new WeakHashMap<>());
-	private BiFunction<Float, Float, TerrainSampleInfo> sampler;
+	//	private BiFunction<Float, Float, TerrainSampleInfo> sampler;
+	private boolean showOutlines = true;
 
 	/**
 	 * Basic pair class for ease of use when sending data between threads. only
@@ -62,6 +65,7 @@ public class WorldClient {
 	private class TerrainMeshUpload {
 		Terrain terrain;
 		Mesh mesh;
+		public Mesh outline;
 	}
 
 	/**
@@ -75,6 +79,7 @@ public class WorldClient {
 	// protected Map<Terrain, Set<EntityBase>> sortedEntities = new HashMap<>();
 
 	public Set<Mesh> visibleTerrains = Collections.synchronizedSet(new HashSet<>());
+	public Set<Mesh> visibleTerrainOutlines = Collections.synchronizedSet(new HashSet<>());
 
 	public ModelManager modelManager = new ModelManager();
 
@@ -85,7 +90,7 @@ public class WorldClient {
 	private final ExecutorService service;
 
 	public WorldClient(BiFunction<Float, Float, TerrainSampleInfo> sampler, ExecutorService service) {
-		this.sampler = sampler;
+		//		this.sampler = sampler;
 		this.service = service;
 	}
 
@@ -112,20 +117,31 @@ public class WorldClient {
 	Mesh tree;
 	Model treeModel;
 
-	public void cameraCheck(World world, Matrix4f camera, EntityBase... nonRendering) {
+	public void cameraCheck(World world, Matrix4f vpMatrix, EntityBase... nonRendering) {
 
 		// TODO optimise render check.
 		visibleTerrains.clear();
+		visibleTerrainOutlines.clear();
 
-		FrustumIntersection fu = new FrustumIntersection(camera);
+		FrustumIntersection fu = new FrustumIntersection(vpMatrix, false);
+
+		//OPTIMISE by only searching nearby regions rather than all terrains ever
 		for (Entry<Vector2i, Map<Vector2i, Terrain>> entry : world.getStorage().terrains.entrySet()) {
 			Vector2i regionIndex = entry.getKey();
+
 			Map<Vector2i, Terrain> regionData = entry.getValue();
 			boolean test = false;
 			if (true) {
-				int intersectTest = fu.intersectAab(
-					regionIndex.x * World.RegionalWorldSize, regionIndex.y * World.RegionalWorldSize, -10, (regionIndex.x + 1) * World.RegionalWorldSize, (regionIndex.y + 1) * World.RegionalWorldSize, 10);
-				test = intersectTest == FrustumIntersection.INSIDE || intersectTest == FrustumIntersection.INTERSECT;
+				float minX = regionIndex.x * World.RegionalWorldSize;
+				float minY = regionIndex.y * World.RegionalWorldSize;
+				float minZ = -1;
+				float maxX = (regionIndex.x + 1) * World.RegionalWorldSize;
+				float maxY = (regionIndex.y + 1) * World.RegionalWorldSize;
+				float maxZ = 1;
+				int intersectTest = fu.intersectAab(minX, minY, minZ, maxX, maxY, maxZ);
+				test = fu.testPlaneXY(minX, minY, maxX, maxY);
+
+				//					test = intersectTest == FrustumIntersection.INSIDE || intersectTest == FrustumIntersection.INTERSECT;
 			}
 			for (Terrain terrain : regionData.values()) {
 				synchronized (terrainMeshes) {
@@ -138,6 +154,12 @@ public class WorldClient {
 							// } else {
 							// visibleTerrains.remove(mesh);
 						}
+					}
+				}
+				synchronized (terrainOutlineMeshes) {
+					Mesh outline = terrainOutlineMeshes.get(terrain);
+					if (outline != null && test && showOutlines) {
+						visibleTerrainOutlines.add(outline);
 					}
 				}
 
@@ -186,10 +208,15 @@ public class WorldClient {
 			for (Iterator<TerrainMeshUpload> i = toUpload.iterator(); i.hasNext();) {
 				TerrainMeshUpload terrMesh = i.next();
 				Terrain terrain = terrMesh.terrain;
-				Mesh mesh = terrMesh.mesh;
-				ShaderProgramSystem2.loadVAO(glc, Program._3D_Unlit_Flat.program, mesh);
-				visibleTerrains.add(mesh);
-				terrainMeshes.put(terrain, mesh);
+				Mesh terrainMesh = terrMesh.mesh;
+				Mesh outlineMesh = terrMesh.outline;
+
+				ShaderProgramSystem2.loadVAO(glc, Program._3D_Unlit_Flat.program, terrainMesh);
+				ShaderProgramSystem2.loadVAO(glc, Program._3D_Unlit_Flat.program, outlineMesh);
+
+				terrainMeshes.put(terrain, terrainMesh);
+				terrainOutlineMeshes.put(terrain, outlineMesh);
+
 				i.remove();
 			}
 		}
@@ -200,7 +227,13 @@ public class WorldClient {
 			for (Mesh terrain : visibleTerrains) {
 				ShaderProgramSystem2.tryFullRenderMesh(terrain);
 			}
-			ShaderProgramSystem2.tryFullRenderMesh(tree);
+			System.out.println(visibleTerrains.size() + " " + visibleTerrainOutlines.size());
+			for (Mesh terrainOutline : visibleTerrainOutlines) {
+				ShaderProgramSystem2.tryFullRenderMesh(terrainOutline);
+
+				//				ShaderProgramSystem2.tryFullRenderMesh(terrainOutline);
+			}
+			//			ShaderProgramSystem2.tryFullRenderMesh(tree);
 			modelManager.render(visibleEntities.keySet());
 			modelManager.showBounds = true;
 			modelManager.showPositions = true;
@@ -231,9 +264,9 @@ public class WorldClient {
 	public float progress() {
 		if (barrier != null) {
 
-//			float arrived = barrier.getArrivedParties();
-//			float registered = barrier.getRegisteredParties() - 1;
-//			logger.info("progress: " + (arrived / registered));
+			//			float arrived = barrier.getArrivedParties();
+			//			float registered = barrier.getRegisteredParties() - 1;
+			//			logger.info("progress: " + (arrived / registered));
 
 			return ((float) barrier.getArrivedParties() / (float) (barrier.getRegisteredParties() - 1));
 		}
@@ -284,7 +317,6 @@ public class WorldClient {
 			barrier.bulkRegister((int) fSize);
 			logger.info("Now waiting on " + barrier.getRegisteredParties());
 		}
-		logger.info("Now waiting on " + barrier.getRegisteredParties());
 		return result;
 	}
 
@@ -299,16 +331,12 @@ public class WorldClient {
 			if (!Thread.currentThread().isInterrupted()) {
 				TerrainMeshUpload upload = new TerrainMeshUpload();
 
-				// setup the actual tile storage
-				for (int _x = 0; _x < World.TerrainSize; _x++) {
-					for (int _y = 0; _y < World.TerrainSize; _y++) {
-						terrain.tiles[_x][_y] = this.sampler.apply(terrain.worldX + _x, terrain.worldY + _y);
-					}
-				}
-
-				Mesh mesh = generator(terrain, sampler);
+				Mesh terrainMesh = new Mesh();
+				Mesh outlineMesh = new Mesh();
+				generator(terrain, terrainMesh, outlineMesh);
 				upload.terrain = terrain;
-				upload.mesh = mesh;
+				upload.mesh = terrainMesh;
+				upload.outline = outlineMesh;
 
 				toUpload.add(upload);
 
@@ -326,7 +354,7 @@ public class WorldClient {
 
 	}
 
-	public static Mesh generator(Terrain currentTerrain, BiFunction<Float, Float, TerrainSampleInfo> sampler) {
+	public static void generator(Terrain currentTerrain, Mesh main, Mesh outline) {
 
 		int count = World.TerrainVertexCount * World.TerrainVertexCount;
 
@@ -342,12 +370,13 @@ public class WorldClient {
 
 				float x1 = (float) j / ((float) World.TerrainVertexCount - 1);
 				float y1 = (float) i / ((float) World.TerrainVertexCount - 1);
-				float x = x1 * World.TerrainSize;
-				float y = y1 * World.TerrainSize;
+
+				float x = x1 * (World.TerrainSize);
+				float y = y1 * (World.TerrainSize);
 				float sampleX = (currentTerrain.chunkX + x1) * World.TerrainSampleSize;
 				float sampleY = (currentTerrain.chunkY + y1) * World.TerrainSampleSize;
 
-				TerrainSampleInfo sample = sampler.apply(sampleX, sampleY);
+				TerrainSampleInfo sample = currentTerrain.tiles[(int) x1 * (World.TerrainSampleSize - 1)][(int) y1 * (World.TerrainSampleSize - 1)];
 
 				float height = sample.height * World.TerrainHeightScale;
 				switch (sample.type) {
@@ -358,7 +387,7 @@ public class WorldClient {
 					colours.put(1f);
 					break;
 				case Ground:
-					float colVal = 0.5f + (1.5f * (sample.height - 0.5f));
+					float colVal = 0.5f;
 					colours.put(0f);
 					colours.put(colVal);
 					colours.put(0f);
@@ -400,10 +429,21 @@ public class WorldClient {
 
 			}
 		}
-		Mesh mesh = new Mesh().drawMode(GLDrawMode.Triangles).name("terrain" + currentTerrain.worldX + "."
-			+ currentTerrain.worldY).vertexCount(renderCount).index(new IndexBufferObject().data(indices).bufferUsage(BufferUsage.StaticDraw).dataSize(3)).addAttribute(ShaderPrograms.vertAtt.build().bufferUsage(BufferUsage.StaticDraw).data(vertices)).addAttribute(ShaderPrograms.colourAtt.build().data(colours)).addAttribute(ShaderPrograms.transformAtt.build().data(new Matrix4f().translate(currentTerrain.worldX, currentTerrain.worldY, 0).get(new float[16])));
+		main.drawMode(GLDrawMode.Triangles);
+		main.name("terrain" + currentTerrain.worldX + "." + currentTerrain.worldY);
+		main.vertexCount(renderCount);
+		main.index(new IndexBufferObject().data(indices).bufferUsage(BufferUsage.StaticDraw).dataSize(3));
+		main.addAttribute(ShaderPrograms.vertAtt.build().bufferUsage(BufferUsage.StaticDraw).data(vertices));
+		main.addAttribute(ShaderPrograms.colourAtt.build().data(colours));
+		main.addAttribute(ShaderPrograms.transformAtt.build().data(new Matrix4f().translate(currentTerrain.worldX, currentTerrain.worldY, 0).get(new float[16])));
 
-		return mesh;
+		outline.drawMode(GLDrawMode.LineLoop);
+		outline.name("terrain_outline_" + currentTerrain.worldX + "." + currentTerrain.worldY);
+		outline.vertexCount(renderCount);
+		outline.index(new IndexBufferObject().data(indices).bufferUsage(BufferUsage.StaticDraw).dataSize(3));
+		outline.addAttribute(ShaderPrograms.vertAtt.build().bufferUsage(BufferUsage.StaticDraw).data(vertices));
+		outline.addAttribute(ShaderPrograms.colourAtt.build().instanced(true, 1).data(new float[] { 0, 0, 0, 1 }));
+		outline.addAttribute(ShaderPrograms.transformAtt.build().data(new Matrix4f().translate(currentTerrain.worldX, currentTerrain.worldY, 0.1f).get(new float[16])));
 
 	}
 

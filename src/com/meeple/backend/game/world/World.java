@@ -34,12 +34,12 @@ public class World extends EventHandler {
 
 	public static final int TerrainSize = 100;
 	public static final int TerrainVertexCount = 128;
-	public static final float TerrainSampleSize = 250f;
+	public static final int TerrainSampleSize = 100;
 	public static final float TerrainHeightScale = 10f;
 	/**
 	 * this number squared is how many terrains per region
 	 */
-	public static final int RegionSize = 10;
+	public static final int RegionSize = 4;
 	public static final float RegionalWorldSize = RegionSize * TerrainSize;
 	private static final float SampleScale = TerrainSampleSize / TerrainSize;
 	private static final float gravityDamageScale = 1f;
@@ -154,14 +154,36 @@ public class World extends EventHandler {
 
 		protected Terrain generateNewTerrain(int x, int y) {
 			Terrain terrain = new Terrain(x, y);
-			for (int i = 0; i < 1; i++) {
-				TreeFeature tf = new TreeFeature();
-				terrain.features.add(tf);
+			
+			
+			World.this.sendEventAsync( 
+				new Runnable() {
 
-			}
+					@Override
+					public void run() {
+						generateTiles(terrain);
+						for (int i = 0; i < 1; i++) {
+							TreeFeature tf = new TreeFeature();
+							terrain.features.add(tf);
 
-			World.this.sendEventAsync(new TerrainGenerationEvent(terrain));
+						}
+
+					}
+				},	new TerrainGenerationEvent(terrain));
 			return terrain;
+		}
+
+		protected void generateTiles(Terrain terrain) {
+			for (int x = 0; x < World.TerrainSampleSize; x++) {
+				for (int y = 0; y < World.TerrainSampleSize; y++) {
+					float sampleX = (terrain.chunkX + x) * World.TerrainSampleSize;
+					float sampleY = (terrain.chunkY + y) * World.TerrainSampleSize;
+					terrain.tiles[x][y] = sample(sampleX, sampleY);
+					new TerrainSampleInfo();
+					terrain.tiles[x][y].height = 0;
+					terrain.tiles[x][y].type = TerrainType.Ground;
+				}
+			}
 		}
 
 	}
