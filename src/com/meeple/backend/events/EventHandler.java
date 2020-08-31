@@ -29,7 +29,16 @@ public class EventHandler {
 	}
 
 	public void sendEventAsync(EventBase event) {
-		SwingUtilities.invokeLater(() -> {
+		SwingUtilities.invokeLater(() ->
+		{
+			sendEventNow(event);
+		});
+	}
+
+	public void sendEventAsync(Runnable runWhen, EventBase event) {
+		SwingUtilities.invokeLater(() ->
+		{
+			runWhen.run();
 			sendEventNow(event);
 		});
 	}
@@ -66,7 +75,8 @@ public class EventHandler {
 	}
 
 	public void processQueueAsync() {
-		SwingUtilities.invokeLater(() -> {
+		SwingUtilities.invokeLater(() ->
+		{
 			processQueueNow();
 		});
 
