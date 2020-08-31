@@ -17,6 +17,7 @@ import com.meeple.shared.frame.window.UserInput;
 
 public class FreeFlyCameraController extends BaseCameraController {
 	private final static float ep = 0.00000000000000000000011f;
+	private static final double minPitch = Math.toRadians(5);
 	// private final static double ep = 1E-22;
 
 	float normalSpeed = 10f;
@@ -50,7 +51,7 @@ public class FreeFlyCameraController extends BaseCameraController {
 	private void actualTick() {
 		final int method = 2;
 		double upper = 3;
-		double lower = +ep;
+		double lower = minPitch;
 
 		switch (method) {
 		case -1: {
