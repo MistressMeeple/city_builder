@@ -22,6 +22,12 @@ import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.component.Bounds2DComponent;
 import com.meeple.shared.frame.window.Window;
 
+/**
+ * This class holds the Projection and View matrices, and the combination of the two. Also holds the binding point to be a uniform buffer and upload system. <br>
+ * To use call {@link #setupBuffer(GLContext)}  then for each program you wish to bind to use {@link VPMatrix#bindToProgram(int, int)} as long as the binding point has not changed between.   
+ * @author Megan
+ *
+ */
 public class VPMatrix {
 
 	public final class CameraKey {
