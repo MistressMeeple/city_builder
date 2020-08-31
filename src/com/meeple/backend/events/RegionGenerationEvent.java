@@ -1,10 +1,8 @@
 package com.meeple.backend.events;
 
-import java.util.Map;
-
 import org.joml.Vector2i;
 
-import com.meeple.backend.game.world.Terrain;
+import com.meeple.backend.game.world.World.Region;
 
 /**
  * Region generation event is called after all the chunks within have been
@@ -16,14 +14,14 @@ import com.meeple.backend.game.world.Terrain;
  */
 public class RegionGenerationEvent extends EventBase {
 	private final Vector2i regionIndex;
-	private final Map<Vector2i, Terrain> region;
+	private final Region region;
 
-	public RegionGenerationEvent(Vector2i key, Map<Vector2i, Terrain> region) {
+	public RegionGenerationEvent(Vector2i key, Region region) {
 		this.region = region;
 		this.regionIndex = key;
 	}
 
-	public Map<Vector2i, Terrain> getRegion() {
+	public Region getRegion() {
 		return region;
 	}
 

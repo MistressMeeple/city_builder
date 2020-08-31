@@ -23,7 +23,6 @@ import org.joml.Matrix4f;
 import org.joml.Vector2i;
 import org.joml.Vector3f;
 import org.lwjgl.BufferUtils;
-import org.lwjgl.opengl.GL46;
 
 import com.meeple.backend.Model;
 import com.meeple.backend.ShaderPrograms;
@@ -32,6 +31,7 @@ import com.meeple.backend.entity.EntityBase;
 import com.meeple.backend.entity.ModelManager;
 import com.meeple.backend.events.RegionGenerationEvent;
 import com.meeple.backend.events.TerrainGenerationEvent;
+import com.meeple.backend.game.world.World.Region;
 import com.meeple.backend.game.world.features.TreeFeature;
 import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.OGL.GLContext;
@@ -126,24 +126,21 @@ public class WorldClient {
 		FrustumIntersection fu = new FrustumIntersection(vpMatrix, false);
 
 		//OPTIMISE by only searching nearby regions rather than all terrains ever
-		for (Entry<Vector2i, Map<Vector2i, Terrain>> entry : world.getStorage().terrains.entrySet()) {
+		for (Entry<Vector2i, Region> entry : world.getStorage().terrains.entrySet()) {
 			Vector2i regionIndex = entry.getKey();
-
-			Map<Vector2i, Terrain> regionData = entry.getValue();
+			Region region = entry.getValue();
+			Map<Vector2i,Terrain> regionData = region.terrains;
 			boolean test = false;
 			if (true) {
 				float minX = regionIndex.x * World.RegionalWorldSize;
 				float minY = regionIndex.y * World.RegionalWorldSize;
-				float minZ = -1;
 				float maxX = (regionIndex.x + 1) * World.RegionalWorldSize;
 				float maxY = (regionIndex.y + 1) * World.RegionalWorldSize;
-				float maxZ = 1;
-				int intersectTest = fu.intersectAab(minX, minY, minZ, maxX, maxY, maxZ);
 				test = fu.testPlaneXY(minX, minY, maxX, maxY);
-
-				//					test = intersectTest == FrustumIntersection.INSIDE || intersectTest == FrustumIntersection.INTERSECT;
+				
 			}
 			for (Terrain terrain : regionData.values()) {
+
 				synchronized (terrainMeshes) {
 
 					Mesh mesh = terrainMeshes.get(terrain);
@@ -227,7 +224,6 @@ public class WorldClient {
 			for (Mesh terrain : visibleTerrains) {
 				ShaderProgramSystem2.tryFullRenderMesh(terrain);
 			}
-			System.out.println(visibleTerrains.size() + " " + visibleTerrainOutlines.size());
 			for (Mesh terrainOutline : visibleTerrainOutlines) {
 				ShaderProgramSystem2.tryFullRenderMesh(terrainOutline);
 
@@ -289,7 +285,7 @@ public class WorldClient {
 
 	public void regionGenerated(RegionGenerationEvent regionEvent) {
 
-		Collection<Terrain> vals = regionEvent.getRegion().values();
+		Collection<Terrain> vals = regionEvent.getRegion().terrains.values();
 		Spliterator<Terrain> mainSplit = vals.spliterator();
 		// Spliterator<Terrain> scndSplit = mainSplit.trySplit();
 
@@ -373,12 +369,11 @@ public class WorldClient {
 
 				float x = x1 * (World.TerrainSize);
 				float y = y1 * (World.TerrainSize);
-				float sampleX = (currentTerrain.chunkX + x1) * World.TerrainSampleSize;
-				float sampleY = (currentTerrain.chunkY + y1) * World.TerrainSampleSize;
+				int tileX = (int) (x1 * (World.TerrainSampleSize - 1));
+				int tileY = (int) (y1 * (World.TerrainSampleSize - 1));
+				TerrainSampleInfo sample = currentTerrain.tiles[tileX][tileY];
 
-				TerrainSampleInfo sample = currentTerrain.tiles[(int) x1 * (World.TerrainSampleSize - 1)][(int) y1 * (World.TerrainSampleSize - 1)];
-
-				float height = sample.height * World.TerrainHeightScale;
+				float height = sample.height  * World.TerrainSampleSize;
 				switch (sample.type) {
 				case Beach:
 					colours.put(0.7f);
@@ -437,7 +432,7 @@ public class WorldClient {
 		main.addAttribute(ShaderPrograms.colourAtt.build().data(colours));
 		main.addAttribute(ShaderPrograms.transformAtt.build().data(new Matrix4f().translate(currentTerrain.worldX, currentTerrain.worldY, 0).get(new float[16])));
 
-		outline.drawMode(GLDrawMode.LineLoop);
+		outline.drawMode(GLDrawMode.Line);
 		outline.name("terrain_outline_" + currentTerrain.worldX + "." + currentTerrain.worldY);
 		outline.vertexCount(renderCount);
 		outline.index(new IndexBufferObject().data(indices).bufferUsage(BufferUsage.StaticDraw).dataSize(3));

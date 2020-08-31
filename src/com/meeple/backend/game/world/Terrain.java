@@ -2,7 +2,11 @@ package com.meeple.backend.game.world;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.joml.AABBf;
+import org.joml.Vector2f;
+import org.joml.Vector2i;
 import org.joml.Vector3f;
 
 public class Terrain {
@@ -12,6 +16,9 @@ public class Terrain {
 	protected final Vector3f[] bounds;
 	protected final Set<TerrainFeature> features = new HashSet<>();
 	protected final TerrainSampleInfo[][] tiles;
+
+	private final AtomicBoolean hasUpdated = new AtomicBoolean(false);
+	protected float minZ, maxZ;
 
 	public Terrain(int gridX, int gridY) {
 		this.chunkX = gridX;
@@ -28,8 +35,52 @@ public class Terrain {
 				worldX + World.TerrainSize,
 				0,
 				worldY + World.TerrainSize) };
-		 tiles = new TerrainSampleInfo[World.TerrainSampleSize][World.TerrainSampleSize];
+		tiles = new TerrainSampleInfo[World.TerrainSampleSize][World.TerrainSampleSize];
 
+	}
+
+	/**
+	 * Returns a vector representation of the X and Y position within the region. <br>
+	 * Altering this has <b>no</b> effect on the terrain.
+	 * @return Vector2i holding terrains position in the region
+	 */
+	public Vector2i getChunkPos() {
+		return new Vector2i(chunkX, chunkY);
+	}
+
+	/**
+	 * Returns this terrains minimum world coordinates (starting from tile [0,0])<br>
+	 * Altering this has <b>no</b> effect on the terrain.  
+	 * @return Vector2f holding the world coordinates
+	 */
+	public Vector2f getWorldPos() {
+		return new Vector2f(worldX, worldY);
+	}
+
+	/**
+	 * Returns this terrains minimum and maximum world coordinates<br>
+	 * Altering this has <b>no</b> effect on the terrain.  
+	 * @return AABBf holding the AAB holding min and max world coordinates of this terrain
+	 */
+	public AABBf getAABB() {
+		return new AABBf(bounds[0], bounds[1]);
+	}
+
+	public void setTile(int x, int y, TerrainSampleInfo tile) {
+		tiles[x][y] = tile;
+		hasUpdated.lazySet(true);
+	}
+
+	/**
+	 * Check whether or not the  
+	 * @return
+	 */
+	public boolean hasChanged() {
+		return hasUpdated.get();
+	}
+
+	public boolean resetChanged() {
+		return hasUpdated.getAndSet(false);
 	}
 
 }

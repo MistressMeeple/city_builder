@@ -6,6 +6,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import org.joml.AABBf;
@@ -19,6 +21,7 @@ import com.meeple.backend.entity.EntityBase;
 import com.meeple.backend.events.EventHandler;
 import com.meeple.backend.events.RegionGenerationEvent;
 import com.meeple.backend.events.TerrainGenerationEvent;
+import com.meeple.backend.events.TerrainPopulationEvent;
 import com.meeple.backend.game.world.TerrainSampleInfo.TerrainType;
 import com.meeple.backend.game.world.features.TreeFeature;
 import com.meeple.backend.noise.CircleNoise;
@@ -44,25 +47,32 @@ public class World extends EventHandler {
 	private static final float SampleScale = TerrainSampleSize / TerrainSize;
 	private static final float gravityDamageScale = 1f;
 
+	public class Region {
+		protected Map<Vector2i, Terrain> terrains;
+		protected float minZ, maxZ;
+		protected AtomicBoolean hasUpdated = new AtomicBoolean(false);
+	}
+
 	public class TerrainStorage {
+
 		private Supplier<Map<Vector2i, Terrain>> regionSupplier = new CollectionSuppliers.MapSupplier<>();
-		public Map<Vector2i, Map<Vector2i, Terrain>> terrains = new HashMap<>();
+		public Map<Vector2i, Region> terrains = new HashMap<>();
 
 		public Terrain getTerrain(float worldX, float worldY) {
 
 			Vector2i regionIndex = getRegionIndex(worldX, worldY);
-			Map<Vector2i, Terrain> region = terrains.get(regionIndex);
+			Region region = terrains.get(regionIndex);
 			if (region != null) {
 				Vector2i terrainIndex = getTerrainIndex(worldX, worldY);
-				return region.get(terrainIndex);
+				return region.terrains.get(terrainIndex);
 			}
 			return null;
 		}
 
 		public Terrain getTerrain(Vector2i terrainIndex) {
-			Map<Vector2i, Terrain> region = terrains.get(getRegionIndex(terrainIndex.x, terrainIndex.y));
+			Region region = terrains.get(getRegionIndex(terrainIndex.x, terrainIndex.y));
 			if (region != null) {
-				return region.get(getTerrainIndex(terrainIndex.x, terrainIndex.y));
+				return region.terrains.get(getTerrainIndex(terrainIndex.x, terrainIndex.y));
 			}
 			return null;
 		}
@@ -92,20 +102,23 @@ public class World extends EventHandler {
 		 */
 		public boolean generateRegion(int regionX, int regionY, boolean force) {
 			Vector2i key = new Vector2i(regionX, regionY);
-			Map<Vector2i, Terrain> region = terrains.get(key);
+			Region region = terrains.get(key);
 			if (force || region == null) {
-				region = regionSupplier.get();
+
+				region = new Region();
+				region.terrains = regionSupplier.get();
 				for (int _x = 0; _x < World.RegionSize; _x++) {
 					for (int _y = 0; _y < World.RegionSize; _y++) {
 						int x = _x + (regionX * World.RegionSize);
 						int y = _y + (regionY * World.RegionSize);
 						Vector2i terrPos = new Vector2i(x, y);
 						Terrain terr = generateNewTerrain(terrPos.x, terrPos.y);
-						region.put(terrPos, terr);
+						region.terrains.put(terrPos, terr);
 					}
 				}
 				World.this.sendEventAsync(new RegionGenerationEvent(key, region));
 				terrains.put(key, region);
+				region.hasUpdated.lazySet(true);
 				return true;
 			}
 			return false;
@@ -122,27 +135,29 @@ public class World extends EventHandler {
 		 */
 		public boolean fixChunksInRegion(int regionX, int regionY) {
 			Vector2i key = new Vector2i(regionX, regionY);
-			Map<Vector2i, Terrain> region = terrains.get(key);
+			Region region = terrains.get(key);
 			boolean anyUpdates = false;
 			if (region != null) {
-				Map<Vector2i, Terrain> updated = regionSupplier.get();
+				Region updated = new Region();
+				updated.terrains = regionSupplier.get();
 				for (int _x = 0; _x < World.RegionSize; _x++) {
 					for (int _y = 0; _y < World.RegionSize; _y++) {
 						int x = _x + (regionX * World.RegionSize);
 						int y = _y + (regionY * World.RegionSize);
 						Vector2i terrPos = new Vector2i(x, y);
-						Terrain terrain = region.get(terrPos);
+						Terrain terrain = region.terrains.get(terrPos);
 						if (terrain == null) {
 							terrain = generateNewTerrain(x, y);
-							updated.put(terrPos, terrain);
+							updated.terrains.put(terrPos, terrain);
 							anyUpdates |= true;
 						}
 					}
 				}
 				if (anyUpdates) {
 					World.this.sendEventAsync(new RegionGenerationEvent(key, updated));
-					region.putAll(updated);
+					region.terrains.putAll(updated.terrains);
 					terrains.put(key, region);
+					region.hasUpdated.lazySet(true);
 					return anyUpdates;
 				} else {
 					return false;
@@ -154,38 +169,58 @@ public class World extends EventHandler {
 
 		protected Terrain generateNewTerrain(int x, int y) {
 			Terrain terrain = new Terrain(x, y);
-			
-			
-			World.this.sendEventAsync( 
-				new Runnable() {
-
-					@Override
-					public void run() {
-						generateTiles(terrain);
-						for (int i = 0; i < 1; i++) {
-							TreeFeature tf = new TreeFeature();
-							terrain.features.add(tf);
-
-						}
-
-					}
-				},	new TerrainGenerationEvent(terrain));
+			generateTiles(terrain);
+			World.this.sendEventAsync(new TerrainPopulationEvent(terrain), new TerrainGenerationEvent(terrain));
 			return terrain;
 		}
 
 		protected void generateTiles(Terrain terrain) {
+
 			for (int x = 0; x < World.TerrainSampleSize; x++) {
 				for (int y = 0; y < World.TerrainSampleSize; y++) {
-					float sampleX = (terrain.chunkX + x) * World.TerrainSampleSize;
-					float sampleY = (terrain.chunkY + y) * World.TerrainSampleSize;
-					terrain.tiles[x][y] = sample(sampleX, sampleY);
-					new TerrainSampleInfo();
-					terrain.tiles[x][y].height = 0;
-					terrain.tiles[x][y].type = TerrainType.Ground;
+					terrain.tiles[x][y] = new TerrainSampleInfo();
+					switch (generatorType) {
+					case Flat: {
+						terrain.tiles[x][y].height = 0;
+						terrain.tiles[x][y].type = TerrainType.Ground;
+						break;
+					}
+					case Random: {
+
+						float normX = (float) x / (float) World.TerrainSampleSize;
+						float normY = (float) y / (float) World.TerrainSampleSize;
+
+						float actualX = normX * World.TerrainSize;
+						float actualY = normY * World.TerrainSize;
+
+						float sampleX = terrain.worldX + actualX;
+						float sampleY = terrain.worldY + actualY;
+						//						System.out.print("[" + sampleX + " " + sampleY + "] ");
+						terrain.tiles[x][y] = sample(sampleX, sampleY);
+
+						break;
+
+					}
+
+					}
+					terrain.minZ = Math.min(terrain.minZ, terrain.tiles[x][y].height);
+					terrain.maxZ = Math.max(terrain.maxZ, terrain.tiles[x][y].height);
+
 				}
+				//				System.out.println();
+			}
+			//			System.out.println();
+
+			int a = 0;
+			if (a == 0) {
+
 			}
 		}
 
+	}
+
+	public enum WorldGeneratorType {
+		Flat, Random, Custom;
 	}
 
 	protected TerrainStorage terrainStorage = new TerrainStorage();
@@ -195,6 +230,7 @@ public class World extends EventHandler {
 
 	private NoiseStack terrainHeightGenerator = new NoiseStack();
 	private NoiseStack featureGenerator = new NoiseStack();
+	private WorldGeneratorType generatorType = WorldGeneratorType.Random;
 
 	public boolean generated = false;;
 
@@ -267,6 +303,10 @@ public class World extends EventHandler {
 		int tileX = (int) (x - terrain.worldX);
 		int tileY = (int) (y - terrain.worldY);
 		return terrain.tiles[tileX][tileY];
+	}
+
+	public void setGeneratorType(WorldGeneratorType generatorType) {
+		this.generatorType = generatorType;
 	}
 
 	public void setupGenerator(String seedText) {

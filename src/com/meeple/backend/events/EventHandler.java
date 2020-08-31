@@ -28,30 +28,23 @@ public class EventHandler {
 		FrameUtils.addToSetMap(listeners, e, listener, listenerSetSuppler);
 	}
 
-	public void sendEventAsync(EventBase event) {
+	public void sendEventAsync(EventBase... eventS) {
 		SwingUtilities.invokeLater(() ->
 		{
-			sendEventNow(event);
+			sendEventNow(eventS);
 		});
 	}
 
-	public void sendEventAsync(Runnable runWhen, EventBase event) {
-		SwingUtilities.invokeLater(() ->
-		{
-			runWhen.run();
-			sendEventNow(event);
-		});
-	}
+	public <T extends EntityBase> void sendEventNow(EventBase... events) {
 
-	public <T extends EntityBase> void sendEventNow(EventBase event) {
-
-		Set<Consumer<? extends EventBase>> set = listeners.get(event.getClass());
-		if (set != null && !set.isEmpty()) {
-			for (Iterator<Consumer<? extends EventBase>> i = set.iterator(); i.hasNext();) {
-				Consumer<? extends EventBase> listener = i.next();
-				((Consumer<EventBase>) listener).accept(event);
+		for (EventBase event : events) {
+			Set<Consumer<? extends EventBase>> set = listeners.get(event.getClass());
+			if (set != null && !set.isEmpty()) {
+				for (Iterator<Consumer<? extends EventBase>> i = set.iterator(); i.hasNext();) {
+					Consumer<? extends EventBase> listener = i.next();
+					((Consumer<EventBase>) listener).accept(event);
+				}
 			}
-
 		}
 	}
 
