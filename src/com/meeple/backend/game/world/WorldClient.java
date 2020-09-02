@@ -2,7 +2,6 @@ package com.meeple.backend.game.world;
 
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -10,7 +9,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
-import java.util.Spliterator;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
@@ -126,10 +124,10 @@ public class WorldClient {
 		FrustumIntersection fu = new FrustumIntersection(vpMatrix, false);
 
 		//OPTIMISE by only searching nearby regions rather than all terrains ever
-		for (Entry<Vector2i, Region> entry : world.getStorage().terrains.entrySet()) {
+		for (Entry<Vector2i, Region> entry : world.getStorage().regions.entrySet()) {
 			Vector2i regionIndex = entry.getKey();
 			Region region = entry.getValue();
-			Map<Vector2i, Terrain> regionData = region.terrains;
+			Terrain[][] regionData = region.terrains;
 			boolean test = false;
 			if (true) {
 				float minX = regionIndex.x * World.RegionalWorldSize;
@@ -139,27 +137,28 @@ public class WorldClient {
 				test = fu.testPlaneXY(minX, minY, maxX, maxY);
 
 			}
-			for (Terrain terrain : regionData.values()) {
+			for (int x = 0; x < World.RegionSize; x++) {
+				for (int y = 0; y < World.RegionSize; y++) {
+					Terrain terrain = regionData[x][y];
+					synchronized (terrainMeshes) {
 
-				synchronized (terrainMeshes) {
+						Mesh mesh = terrainMeshes.get(terrain);
+						if (mesh != null) {
+							if (test) {
+								visibleTerrains.add(mesh);
 
-					Mesh mesh = terrainMeshes.get(terrain);
-					if (mesh != null) {
-						if (test) {
-							visibleTerrains.add(mesh);
-
-							// } else {
-							// visibleTerrains.remove(mesh);
+								// } else {
+								// visibleTerrains.remove(mesh);
+							}
+						}
+					}
+					synchronized (terrainOutlineMeshes) {
+						Mesh outline = terrainOutlineMeshes.get(terrain);
+						if (outline != null && test && showOutlines) {
+							visibleTerrainOutlines.add(outline);
 						}
 					}
 				}
-				synchronized (terrainOutlineMeshes) {
-					Mesh outline = terrainOutlineMeshes.get(terrain);
-					if (outline != null && test && showOutlines) {
-						visibleTerrainOutlines.add(outline);
-					}
-				}
-
 			}
 		}
 		synchronized (world.entities) {
@@ -284,70 +283,67 @@ public class WorldClient {
 	}
 
 	public void regionGenerated(RegionGenerationEvent regionEvent) {
+		if (regionEvent.getRegion().needsRemesh.get()) {
 
-		Collection<Terrain> vals = regionEvent.getRegion().terrains.values();
-		Spliterator<Terrain> mainSplit = vals.spliterator();
-		// Spliterator<Terrain> scndSplit = mainSplit.trySplit();
+			logger.info("submitting region " + regionEvent.getRegionIndex());
 
-		logger.info("submitting region " + regionEvent.getRegionIndex());
-		Runnable r1 = submit(regionEvent.getRegionIndex(), mainSplit);
+			Runnable result = null;
+			{
 
-		service.execute(r1);/*
-							 * Runnable r2 = submit(scndSplit); service.execute(() -> { r2.run(); if
-							 * (barrier != null) { barrier.arrive(); } });
-							 */
+				int fSize = (int) World.RegionSize * World.RegionSize;
+
+				result = () ->
+				{
+					boolean finished = innerSubmit(fSize, regionEvent.getRegionIndex(), regionEvent.getRegion().terrains, barrier);
+					regionEvent.getRegion().needsRemesh.lazySet(!finished);
+				};
+				if (barrier != null) {
+					barrier.bulkRegister((int) fSize);
+					logger.info("Now waiting on " + barrier.getRegisteredParties());
+				}
+			}
+
+			service.execute(result);
+		}
+
 	}
 
-	private Runnable submit(Vector2i key, Spliterator<Terrain> terrains) {
-		long size = terrains.getExactSizeIfKnown();
-		if (size == -1) {
-			size = terrains.estimateSize();
-		}
-		int fSize = (int) size;
-
-		Runnable result = () ->
-		{
-			innerSubmit(fSize, key, terrains, barrier);
-		};
-		if (barrier != null) {
-			barrier.bulkRegister((int) fSize);
-			logger.info("Now waiting on " + barrier.getRegisteredParties());
-		}
-		return result;
-	}
-
-	private void innerSubmit(int fSize, Vector2i key, Spliterator<Terrain> terrains, Phaser phaser) {
+	private boolean innerSubmit(int fSize, Vector2i key, Terrain[][] terrains, Phaser phaser) {
 
 		long start = System.nanoTime();
 
 		logger.info("Processing " + fSize + " regionional chunks for Region[" + key.x + "." + key.y + "]");
 		Wrapper<Integer> actual = new WrapperImpl<>(0);
-		terrains.forEachRemaining((terrain) ->
-		{
-			if (!Thread.currentThread().isInterrupted()) {
-				TerrainMeshUpload upload = new TerrainMeshUpload();
 
-				Mesh terrainMesh = new Mesh();
-				Mesh outlineMesh = new Mesh();
-				generator(terrain, terrainMesh, outlineMesh);
-				upload.terrain = terrain;
-				upload.mesh = terrainMesh;
-				upload.outline = outlineMesh;
+		for (int x = 0; x < World.RegionSize; x++) {
+			for (int y = 0; y < World.RegionSize; y++) {
+				Terrain terrain = terrains[x][y];
 
-				toUpload.add(upload);
+				if (!Thread.currentThread().isInterrupted()) {
+					TerrainMeshUpload upload = new TerrainMeshUpload();
 
-				if (phaser != null) {
-					phaser.arrive();
+					Mesh terrainMesh = new Mesh();
+					Mesh outlineMesh = new Mesh();
+					generator(terrain, terrainMesh, outlineMesh);
+					upload.terrain = terrain;
+					upload.mesh = terrainMesh;
+					upload.outline = outlineMesh;
+
+					toUpload.add(upload);
+
+					if (phaser != null) {
+						phaser.arrive();
+					}
+					actual.setWrapped(actual.getWrappedOrDefault(0) + 1);
+				} else {
+					return false;
 				}
-				actual.setWrapped(actual.getWrappedOrDefault(0) + 1);
-			} else {
-				return;
 			}
-		});
+		}
 		long end = System.nanoTime();
 		float time = FrameUtils.nanosToSeconds(end - start);
 		logger.info("Processed " + actual.getWrapped() + " regionional chunks for Region[" + key.x + "." + key.y + "]\r\n\t\t" + " - took " + time + "s, With an average of " + (time / actual.getWrapped()) + "s per terrain");
-
+		return true;
 	}
 
 	public static void generator(Terrain currentTerrain, Mesh main, Mesh outline) {
@@ -372,13 +368,14 @@ public class WorldClient {
 				float x = x1 * (World.TerrainSize);
 				float y = y1 * (World.TerrainSize);
 
-				int tileX = (int) (x1 * (World.TerrainSampleSize - 1));
-				int tileY = (int) (y1 * (World.TerrainSampleSize - 1));
+				//[-1] for 0-index arrays, [+1] for terrain overlap
+				int tileX = (int) (x1 * (World.TerrainSampleSize - 1 + 1));
+				int tileY = (int) (y1 * (World.TerrainSampleSize - 1 + 1));
 
 				TerrainSampleInfo sample = null;
 				if (i == vertCount - 1 && j == vertCount - 1) {
 					sample = currentTerrain.tiles[tileX][tileY];//get from edge
-				}else {
+				} else {
 					sample = currentTerrain.tiles[tileX][tileY];
 				}
 

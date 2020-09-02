@@ -17,7 +17,7 @@ public class Terrain {
 	protected final Set<TerrainFeature> features = new HashSet<>();
 	public final TerrainSampleInfo[][] tiles;
 
-	private final AtomicBoolean hasUpdated = new AtomicBoolean(false);
+	private transient final AtomicBoolean hasUpdated = new AtomicBoolean(false);
 	protected float minZ, maxZ;
 
 	public Terrain(int gridX, int gridY) {
@@ -35,7 +35,7 @@ public class Terrain {
 				worldX + World.TerrainSize,
 				0,
 				worldY + World.TerrainSize) };
-		tiles = new TerrainSampleInfo[World.TerrainSampleSize][World.TerrainSampleSize];
+		tiles = new TerrainSampleInfo[World.TerrainSampleSize + 1][World.TerrainSampleSize + 1];
 
 	}
 
@@ -66,10 +66,6 @@ public class Terrain {
 		return new AABBf(bounds[0], bounds[1]);
 	}
 
-	public void setTile(int x, int y, TerrainSampleInfo tile) {
-		tiles[x][y] = tile;
-		hasUpdated.lazySet(true);
-	}
 
 	/**
 	 * Check whether or not the  

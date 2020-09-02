@@ -177,10 +177,10 @@ public class WorldBuildingView {
 
 		{
 			int y = 1;
-			Region region1 = world.getStorage().terrains.get(new Vector2i(1, 1));
-			Region region2 = world.getStorage().terrains.get(new Vector2i(1, 2));
-			Terrain terrain1 = region1.terrains.get(new Vector2i(0, 3));
-			Terrain terrain2 = region2.terrains.get(new Vector2i(0, 0));
+			Region region1 = world.getStorage().regions.get(new Vector2i(1, 1));
+			Region region2 = world.getStorage().regions.get(new Vector2i(1, 2));
+			Terrain terrain1 = region1.terrains[0][3];
+			Terrain terrain2 = region2.terrains[0][0];
 
 			TerrainSampleInfo tsi1 = terrain1.tiles[y][terrain1.tiles.length - 1];
 			TerrainSampleInfo tsi2 = terrain2.tiles[y][0];

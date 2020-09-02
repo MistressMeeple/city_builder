@@ -36,8 +36,8 @@ import com.meeple.temp.IslandOrig.IslandSize;
 
 public class World extends EventHandler {
 
-	public static final int TerrainSize = 4;//100;
-	public static final int TerrainSampleSize = 4;//100;
+	public static final int TerrainSize = 100;
+	public static final int TerrainSampleSize = 100;
 	public static final int TerrainVertexCount = TerrainSampleSize - 1;//128;
 	public static final float TerrainHeightScale = 10f;
 	/**
@@ -49,31 +49,24 @@ public class World extends EventHandler {
 	private static final float gravityDamageScale = 1f;
 
 	public class Region {
-		public Map<Vector2i, Terrain> terrains;
+		public Terrain[][] terrains = new Terrain[RegionSize][RegionSize];
 		protected float minZ, maxZ;
+
+		protected AtomicBoolean needsRemesh= new AtomicBoolean(false);
 		protected AtomicBoolean hasUpdated = new AtomicBoolean(false);
 	}
 
 	public class TerrainStorage {
 
-		private Supplier<Map<Vector2i, Terrain>> regionSupplier = new CollectionSuppliers.MapSupplier<>();
-		public Map<Vector2i, Region> terrains = new HashMap<>();
+		public Map<Vector2i, Region> regions = new HashMap<>();
 
 		public Terrain getTerrain(float worldX, float worldY) {
 
 			Vector2i regionIndex = getRegionIndex(worldX, worldY);
-			Region region = terrains.get(regionIndex);
+			Region region = regions.get(regionIndex);
 			if (region != null) {
 				Vector2i terrainIndex = getTerrainIndex(worldX, worldY);
-				return region.terrains.get(terrainIndex);
-			}
-			return null;
-		}
-
-		public Terrain getTerrain(Vector2i terrainIndex) {
-			Region region = terrains.get(getRegionIndex(terrainIndex.x, terrainIndex.y));
-			if (region != null) {
-				return region.terrains.get(getTerrainIndex(terrainIndex.x, terrainIndex.y));
+				return region.terrains[terrainIndex.x][terrainIndex.y];
 			}
 			return null;
 		}
@@ -103,22 +96,22 @@ public class World extends EventHandler {
 		 */
 		public boolean generateRegion(int regionX, int regionY, boolean force) {
 			Vector2i key = new Vector2i(regionX, regionY);
-			Region region = terrains.get(key);
+			Region region = regions.get(key);
 			if (force || region == null) {
 
 				region = new Region();
-				region.terrains = regionSupplier.get();
 				for (int _x = 0; _x < World.RegionSize; _x++) {
 					for (int _y = 0; _y < World.RegionSize; _y++) {
 						int x = _x + (regionX * World.RegionSize);
 						int y = _y + (regionY * World.RegionSize);
 						Vector2i terrPos = new Vector2i(x, y);
 						Terrain terr = generateNewTerrain(terrPos.x, terrPos.y);
-						region.terrains.put(new Vector2i(_x, _y), terr);
+						region.terrains[_x][_y] = terr;
 					}
 				}
+				region.needsRemesh.set(true);
 				World.this.sendEventAsync(new RegionGenerationEvent(key, region));
-				terrains.put(key, region);
+				regions.put(key, region);
 				region.hasUpdated.lazySet(true);
 				return true;
 			}
@@ -136,28 +129,36 @@ public class World extends EventHandler {
 		 */
 		public boolean fixChunksInRegion(int regionX, int regionY) {
 			Vector2i key = new Vector2i(regionX, regionY);
-			Region region = terrains.get(key);
+			Region region = regions.get(key);
+			
+			//TODO use a different event for updating a region
+			
 			boolean anyUpdates = false;
 			if (region != null) {
 				Region updated = new Region();
-				updated.terrains = regionSupplier.get();
 				for (int _x = 0; _x < World.RegionSize; _x++) {
 					for (int _y = 0; _y < World.RegionSize; _y++) {
 						int x = _x + (regionX * World.RegionSize);
 						int y = _y + (regionY * World.RegionSize);
 						Vector2i terrPos = new Vector2i(x, y);
-						Terrain terrain = region.terrains.get(terrPos);
+						Terrain terrain = region.terrains[terrPos.x][terrPos.y];
 						if (terrain == null) {
 							terrain = generateNewTerrain(x, y);
-							updated.terrains.put(new Vector2i(_x, _y), terrain);
+							updated.terrains[_x][_y] = terrain;
 							anyUpdates |= true;
 						}
 					}
 				}
 				if (anyUpdates) {
 					World.this.sendEventAsync(new RegionGenerationEvent(key, updated));
-					region.terrains.putAll(updated.terrains);
-					terrains.put(key, region);
+					for (int x = 0; x < World.RegionSize; x++) {
+						for (int y = 0; y < World.RegionSize; y++) {
+							if (updated.terrains[x][y] != null) {
+								region.terrains[x][y] = updated.terrains[x][y];
+							}
+						}
+					}
+					regions.put(key, region);
 					region.hasUpdated.lazySet(true);
 					return anyUpdates;
 				} else {
@@ -177,8 +178,8 @@ public class World extends EventHandler {
 
 		protected void generateTiles(Terrain terrain) {
 
-			for (int x = 0; x < World.TerrainSampleSize; x++) {
-				for (int y = 0; y < World.TerrainSampleSize; y++) {
+			for (int x = 0; x < World.TerrainSampleSize + 1; x++) {
+				for (int y = 0; y < World.TerrainSampleSize + 1; y++) {
 					terrain.tiles[x][y] = new TerrainSampleInfo();
 					switch (generatorType) {
 					case Flat: {
@@ -222,17 +223,49 @@ public class World extends EventHandler {
 			}
 		}
 
-		public void setTile(int worldX, int worldY, TerrainSampleInfo tileInfo) {
-			/*
-						Region region1 = world.getStorage().terrains.get(new Vector2i(1, 1));
-						Region region2 = world.getStorage().terrains.get(new Vector2i(1, 2));
-						Terrain terrain1 = region1.terrains.get(new Vector2i(0,3));
-						Terrain terrain2 = region2.terrains.get(new Vector2i(0, 0));
-			
-						TerrainSampleInfo tsi1 = terrain1.tiles[y][terrain1.tiles.length - 1];
-						TerrainSampleInfo tsi2 = terrain2.tiles[y][0];
-						System.out.println(tsi1.height == tsi2.height);*/
+		public void setTile(float worldX, float worldY, TerrainSampleInfo tileInfo) {
+			Vector2i worldTileIndex = new Vector2i();
+			Vector2i regionIndex = new Vector2i();
+			Vector2i terrainIndex = new Vector2i();
+			Vector2i terrainTileIndex = new Vector2i();
+			{
+				//convert to tile coords
+				worldTileIndex.x = (int) worldX;
+				worldTileIndex.y = (int) worldY;
+			}
+			{
+				//extract region coords
+				regionIndex.x = worldTileIndex.x / RegionSize;
+				regionIndex.y = worldTileIndex.y / RegionSize;
+			}
+			{
+				//extract terrain index coords
+				terrainIndex.x = 0;
+				terrainIndex.y = 0;
+			}
+			{
+				//extract tile index coords
+				terrainTileIndex.x = 0;
+				terrainTileIndex.y = 0;
+			}
+			{
+				//set tile
+				_setTile(regionIndex, terrainIndex, terrainTileIndex, tileInfo);
 
+			}
+			{
+				//if any are on the edges (tile index 0 or max) then update the neighbours too
+			}
+			{
+				//mark any terrains changed to need rebuilding and notify their regions
+			}
+		}
+
+		private void _setTile(Vector2i regionIndex, Vector2i terrainIndex, Vector2i terrainTileIndex, TerrainSampleInfo tileInfo) {
+
+			Region region = regions.get(regionIndex);
+			Terrain terrain = region.terrains[terrainIndex.x][terrainIndex.y];
+			terrain.tiles[terrainTileIndex.x][terrainTileIndex.y] = tileInfo;
 		}
 
 	}
