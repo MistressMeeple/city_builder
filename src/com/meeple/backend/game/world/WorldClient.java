@@ -129,7 +129,7 @@ public class WorldClient {
 		for (Entry<Vector2i, Region> entry : world.getStorage().terrains.entrySet()) {
 			Vector2i regionIndex = entry.getKey();
 			Region region = entry.getValue();
-			Map<Vector2i,Terrain> regionData = region.terrains;
+			Map<Vector2i, Terrain> regionData = region.terrains;
 			boolean test = false;
 			if (true) {
 				float minX = regionIndex.x * World.RegionalWorldSize;
@@ -137,7 +137,7 @@ public class WorldClient {
 				float maxX = (regionIndex.x + 1) * World.RegionalWorldSize;
 				float maxY = (regionIndex.y + 1) * World.RegionalWorldSize;
 				test = fu.testPlaneXY(minX, minY, maxX, maxY);
-				
+
 			}
 			for (Terrain terrain : regionData.values()) {
 
@@ -360,20 +360,29 @@ public class WorldClient {
 		int renderCount = 6 * (World.TerrainVertexCount - 1) * (World.TerrainVertexCount - 1);
 		IntBuffer indices = BufferUtils.createIntBuffer(renderCount);
 
-		for (int i = 0; i < World.TerrainVertexCount; i++) {
+		final int vertCount = World.TerrainVertexCount;
 
-			for (int j = 0; j < World.TerrainVertexCount; j++) {
+		for (int i = 0; i < vertCount; i++) {
 
-				float x1 = (float) j / ((float) World.TerrainVertexCount - 1);
-				float y1 = (float) i / ((float) World.TerrainVertexCount - 1);
+			for (int j = 0; j < vertCount; j++) {
+
+				float x1 = (float) j / ((float) vertCount - 1);
+				float y1 = (float) i / ((float) vertCount - 1);
 
 				float x = x1 * (World.TerrainSize);
 				float y = y1 * (World.TerrainSize);
+
 				int tileX = (int) (x1 * (World.TerrainSampleSize - 1));
 				int tileY = (int) (y1 * (World.TerrainSampleSize - 1));
-				TerrainSampleInfo sample = currentTerrain.tiles[tileX][tileY];
 
-				float height = sample.height  * World.TerrainSampleSize;
+				TerrainSampleInfo sample = null;
+				if (i == vertCount - 1 && j == vertCount - 1) {
+					sample = currentTerrain.tiles[tileX][tileY];//get from edge
+				}else {
+					sample = currentTerrain.tiles[tileX][tileY];
+				}
+
+				float height = sample.height * World.TerrainSampleSize;
 				switch (sample.type) {
 				case Beach:
 					colours.put(0.7f);
@@ -409,10 +418,10 @@ public class WorldClient {
 				normals.put(0f);
 				normals.put(1f);
 
-				if (i < World.TerrainVertexCount - 1 && j < World.TerrainVertexCount - 1) {
-					int topLeft = (i * World.TerrainVertexCount) + j;
+				if (i < vertCount - 1 && j < vertCount - 1) {
+					int topLeft = (i * vertCount) + j;
 					int topRight = topLeft + 1;
-					int bottomLeft = ((i + 1) * World.TerrainVertexCount) + j;
+					int bottomLeft = ((i + 1) * vertCount) + j;
 					int bottomRight = bottomLeft + 1;
 					indices.put(topLeft);
 					indices.put(bottomLeft);

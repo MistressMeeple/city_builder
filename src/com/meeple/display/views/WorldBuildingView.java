@@ -17,6 +17,7 @@ import java.util.function.BiFunction;
 
 import org.apache.log4j.Logger;
 import org.joml.Matrix4f;
+import org.joml.Vector2i;
 import org.joml.Vector3f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
@@ -32,9 +33,12 @@ import com.meeple.backend.ShaderPrograms;
 import com.meeple.backend.ShaderPrograms.Program;
 import com.meeple.backend.events.RegionGenerationEvent;
 import com.meeple.backend.events.TerrainGenerationEvent;
+import com.meeple.backend.game.world.Terrain;
 import com.meeple.backend.game.world.TerrainSampleInfo;
 import com.meeple.backend.game.world.TerrainSampleInfo.TerrainType;
 import com.meeple.backend.game.world.World;
+import com.meeple.backend.game.world.World.Region;
+import com.meeple.backend.game.world.World.WorldGeneratorType;
 import com.meeple.backend.game.world.WorldClient;
 import com.meeple.backend.view.FreeFlyCameraController;
 import com.meeple.backend.view.VPMatrix;
@@ -46,7 +50,6 @@ import com.meeple.shared.frame.OGL.ShaderProgram.GLTexture;
 import com.meeple.shared.frame.OGL.ShaderProgram.IndexBufferObject;
 import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
-import com.meeple.shared.frame.OGL.ShaderProgramSystem2.ShaderClosable;
 
 public class WorldBuildingView {
 
@@ -124,7 +127,9 @@ public class WorldBuildingView {
 		worldClient.setupProgram(client.glContext);
 		VPMatrix.bindToProgram(worldClient.getShaderProgram().programID, vpMatrix.getBindingPoint());
 		world.setupGenerator("1");
-//		world.generate();
+		world.setGeneratorType(WorldGeneratorType.Random);
+
+		//		world.generate();
 
 	}
 
@@ -169,16 +174,25 @@ public class WorldBuildingView {
 		glClearColor(background.r(), background.g(), background.b(), background.a());
 		// NOTE this denotes that GL is using a new frame.
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		
+
 		{
+			int y = 1;
+			Region region1 = world.getStorage().terrains.get(new Vector2i(1, 1));
+			Region region2 = world.getStorage().terrains.get(new Vector2i(1, 2));
+			Terrain terrain1 = region1.terrains.get(new Vector2i(0, 3));
+			Terrain terrain2 = region2.terrains.get(new Vector2i(0, 0));
+
+			TerrainSampleInfo tsi1 = terrain1.tiles[y][terrain1.tiles.length - 1];
+			TerrainSampleInfo tsi2 = terrain2.tiles[y][0];
+			
 
 			world.tick(delta);
 			vpMatrix.setPerspective(fov, (float) client.windowWidth / client.windowHeight, 0.01f, 1000.0f);
 			vpMatrix.activeCamera(primaryCamera);
-			
+
 			if (playerController.tick(delta, client)) {
 				worldClient.cameraCheck(world, vpMatrix.getVPMatrix());
-				logger.info("updated camera - re-checking world");
+
 			}
 
 			vpMatrix.upload();
@@ -210,7 +224,6 @@ public class WorldBuildingView {
 			vpMatrix.getCamera(primaryCamera).rotateX((float) -Math.toDegrees(85));
 
 		}
-
 
 		// NOTE in the future this will be replaced with a "has terrain updated" check rather
 		// than the first time it render  but this will do for now

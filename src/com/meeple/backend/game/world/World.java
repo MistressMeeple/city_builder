@@ -23,6 +23,7 @@ import com.meeple.backend.events.RegionGenerationEvent;
 import com.meeple.backend.events.TerrainGenerationEvent;
 import com.meeple.backend.events.TerrainPopulationEvent;
 import com.meeple.backend.game.world.TerrainSampleInfo.TerrainType;
+import com.meeple.backend.game.world.World.Region;
 import com.meeple.backend.game.world.features.TreeFeature;
 import com.meeple.backend.noise.CircleNoise;
 import com.meeple.backend.noise.MultiCircleNoise;
@@ -35,9 +36,9 @@ import com.meeple.temp.IslandOrig.IslandSize;
 
 public class World extends EventHandler {
 
-	public static final int TerrainSize = 100;
-	public static final int TerrainVertexCount = 128;
-	public static final int TerrainSampleSize = 100;
+	public static final int TerrainSize = 4;//100;
+	public static final int TerrainSampleSize = 4;//100;
+	public static final int TerrainVertexCount = TerrainSampleSize - 1;//128;
 	public static final float TerrainHeightScale = 10f;
 	/**
 	 * this number squared is how many terrains per region
@@ -48,7 +49,7 @@ public class World extends EventHandler {
 	private static final float gravityDamageScale = 1f;
 
 	public class Region {
-		protected Map<Vector2i, Terrain> terrains;
+		public Map<Vector2i, Terrain> terrains;
 		protected float minZ, maxZ;
 		protected AtomicBoolean hasUpdated = new AtomicBoolean(false);
 	}
@@ -113,7 +114,7 @@ public class World extends EventHandler {
 						int y = _y + (regionY * World.RegionSize);
 						Vector2i terrPos = new Vector2i(x, y);
 						Terrain terr = generateNewTerrain(terrPos.x, terrPos.y);
-						region.terrains.put(terrPos, terr);
+						region.terrains.put(new Vector2i(_x, _y), terr);
 					}
 				}
 				World.this.sendEventAsync(new RegionGenerationEvent(key, region));
@@ -148,7 +149,7 @@ public class World extends EventHandler {
 						Terrain terrain = region.terrains.get(terrPos);
 						if (terrain == null) {
 							terrain = generateNewTerrain(x, y);
-							updated.terrains.put(terrPos, terrain);
+							updated.terrains.put(new Vector2i(_x, _y), terrain);
 							anyUpdates |= true;
 						}
 					}
@@ -195,8 +196,12 @@ public class World extends EventHandler {
 
 						float sampleX = terrain.worldX + actualX;
 						float sampleY = terrain.worldY + actualY;
+
 						//						System.out.print("[" + sampleX + " " + sampleY + "] ");
+
 						terrain.tiles[x][y] = sample(sampleX, sampleY);
+						terrain.tiles[x][y].worldX = (int) terrain.worldX + x;
+						terrain.tiles[x][y].worldY = (int) terrain.worldY + y;
 
 						break;
 
@@ -215,6 +220,19 @@ public class World extends EventHandler {
 			if (a == 0) {
 
 			}
+		}
+
+		public void setTile(int worldX, int worldY, TerrainSampleInfo tileInfo) {
+			/*
+						Region region1 = world.getStorage().terrains.get(new Vector2i(1, 1));
+						Region region2 = world.getStorage().terrains.get(new Vector2i(1, 2));
+						Terrain terrain1 = region1.terrains.get(new Vector2i(0,3));
+						Terrain terrain2 = region2.terrains.get(new Vector2i(0, 0));
+			
+						TerrainSampleInfo tsi1 = terrain1.tiles[y][terrain1.tiles.length - 1];
+						TerrainSampleInfo tsi2 = terrain2.tiles[y][0];
+						System.out.println(tsi1.height == tsi2.height);*/
+
 		}
 
 	}
@@ -251,6 +269,11 @@ public class World extends EventHandler {
 		 * 
 		 * } }
 		 */
+
+		terrainStorage.generateRegion(1, 0, true);
+		terrainStorage.generateRegion(1, 1, true);
+		terrainStorage.generateRegion(1, 2, true);
+
 		Vector2i pos = new Vector2i();
 		boolean flip = true;// leave alone
 		GridMovement move = GridMovement.RIGHT;
@@ -258,7 +281,7 @@ public class World extends EventHandler {
 
 			for (int i = 0; i < range; i++) {
 
-				terrainStorage.generateRegion(pos.x, pos.y, true);
+				//				terrainStorage.generateRegion(pos.x, pos.y, true);
 				switch (move) {
 				case RIGHT:// right
 					pos.x += 1;
