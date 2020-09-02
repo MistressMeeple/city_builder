@@ -15,7 +15,7 @@ public class Terrain {
 	protected final float worldX, worldY;
 	protected final Vector3f[] bounds;
 	protected final Set<TerrainFeature> features = new HashSet<>();
-	protected final TerrainSampleInfo[][] tiles;
+	public final TerrainSampleInfo[][] tiles;
 
 	private final AtomicBoolean hasUpdated = new AtomicBoolean(false);
 	protected float minZ, maxZ;
