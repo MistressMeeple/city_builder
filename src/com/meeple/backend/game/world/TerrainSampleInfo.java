@@ -4,8 +4,14 @@ public class TerrainSampleInfo {
 	public static enum TerrainType {
 		Void, Ground, Beach, Water
 	}
-public int worldX,worldY;
+
 	public float height;
-	public TerrainType type;
+	public TerrainType type = TerrainType.Ground;
+
+	public void set(TerrainSampleInfo other) {
+		this.height = other.height;
+		if (other.type != null)
+			this.type = other.type;
+	}
 
 }

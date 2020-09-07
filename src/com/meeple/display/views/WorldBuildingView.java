@@ -16,6 +16,7 @@ import java.util.Random;
 import java.util.function.BiFunction;
 
 import org.apache.log4j.Logger;
+import org.joml.AxisAngle4f;
 import org.joml.Matrix4f;
 import org.joml.Vector2i;
 import org.joml.Vector3f;
@@ -127,7 +128,7 @@ public class WorldBuildingView {
 		worldClient.setupProgram(client.glContext);
 		VPMatrix.bindToProgram(worldClient.getShaderProgram().programID, vpMatrix.getBindingPoint());
 		world.setupGenerator("1");
-		world.setGeneratorType(WorldGeneratorType.Random);
+		world.setGeneratorType(WorldGeneratorType.Flat);
 
 		//		world.generate();
 
@@ -175,23 +176,54 @@ public class WorldBuildingView {
 		// NOTE this denotes that GL is using a new frame.
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		{
-			int y = 1;
-			Region region1 = world.getStorage().regions.get(new Vector2i(1, 1));
-			Region region2 = world.getStorage().regions.get(new Vector2i(1, 2));
-			Terrain terrain1 = region1.terrains[0][3];
-			Terrain terrain2 = region2.terrains[0][0];
+		Vector3f translation3 = vpMatrix.getViewPosition(primaryCamera);
+		String pos = translation3.toString(new DecimalFormat("0.000"));
+		
+		if (Nuklear.nk_begin(client.nkContext.context, "", NkRect.create().set(0, 0, 300, 60), Nuklear.NK_WINDOW_NO_SCROLLBAR)) {
+			Nuklear.nk_layout_row_dynamic(client.nkContext.context, 30f, 1);
+			Nuklear.nk_label(client.nkContext.context, pos, Nuklear.NK_TEXT_ALIGN_LEFT);
+			Nuklear.nk_label(client.nkContext.context, vpMatrix.getCamera(primaryCamera).getRotation(new AxisAngle4f()).x+ " " , Nuklear.NK_TEXT_ALIGN_LEFT);
+			Nuklear.nk_end(client.nkContext.context);
+		}
+		boolean forceTerrainUpdate = false;
+		if (client.userInput.isKeyPressed(GLFW.GLFW_KEY_E)) {
+			TerrainSampleInfo tsi = new TerrainSampleInfo();
+			tsi.set(world.getStorage().getTile(translation3.x, translation3.y));
+			//			TerrainSampleInfo tsi = new TerrainSampleInfo();
+			tsi.height += 1f * delta.deltaSeconds;
+			world.getStorage().setTile(translation3.x, translation3.y, tsi);
+			forceTerrainUpdate = true;
+		}
+		if (client.userInput.isKeyPressed(GLFW.GLFW_KEY_Q)) {
+			TerrainSampleInfo tsi = new TerrainSampleInfo();
+			tsi.type = TerrainType.Ground;
+			tsi.height = 0f;
+			world.getStorage().setTile(translation3.x, translation3.y, tsi);
+			forceTerrainUpdate = true;
+		}
 
-			TerrainSampleInfo tsi1 = terrain1.tiles[y][terrain1.tiles.length - 1];
-			TerrainSampleInfo tsi2 = terrain2.tiles[y][0];
-			
+		if (client.userInput.isKeyPressed(GLFW.GLFW_KEY_F5)) {
+			vpMatrix.getCamera(primaryCamera).identity();
+			vpMatrix.getCamera(primaryCamera).rotateX((float) Math.toDegrees(90));
+			vpMatrix.getCamera(primaryCamera).translate(-World.TerrainSize, -World.TerrainSize, -5);
+
+		}
+		if (client.userInput.isKeyPressed(GLFW.GLFW_KEY_F6)) {
+			vpMatrix.getCamera(primaryCamera).identity();
+			vpMatrix.getCamera(primaryCamera).rotateX((float) -Math.toDegrees(85));
+			//			vpMatrix.getCamera(primaryCamera).rotateX((float) Math.toDegrees(90));
+			vpMatrix.getCamera(primaryCamera).translate(0, 0, -1);
+
+		}
+
+		{
 
 			world.tick(delta);
 			vpMatrix.setPerspective(fov, (float) client.windowWidth / client.windowHeight, 0.01f, 1000.0f);
 			vpMatrix.activeCamera(primaryCamera);
 
-			if (playerController.tick(delta, client)) {
-				worldClient.cameraCheck(world, vpMatrix.getVPMatrix());
+			worldClient.cameraCheck(world, vpMatrix.getVPMatrix());
+			if (playerController.tick(delta, client) || forceTerrainUpdate) {
 
 			}
 
@@ -200,29 +232,6 @@ public class WorldBuildingView {
 			worldClient.preRender(client.glContext);
 
 			worldClient.render();
-		}
-
-		Vector3f translation3 = vpMatrix.getViewPosition(primaryCamera);
-		String pos = translation3.toString(new DecimalFormat("0.000"));
-		if (Nuklear.nk_begin(client.nkContext.context, "", NkRect.create().set(0, 0, 300, 30), Nuklear.NK_WINDOW_NO_SCROLLBAR)) {
-			Nuklear.nk_layout_row_dynamic(client.nkContext.context, 30f, 1);
-			Nuklear.nk_label(client.nkContext.context, pos, Nuklear.NK_TEXT_ALIGN_LEFT);
-
-			Nuklear.nk_end(client.nkContext.context);
-		}
-
-		if (client.userInput.isKeyPressed(GLFW.GLFW_KEY_F5)) {
-			vpMatrix.getCamera(primaryCamera).identity();
-			vpMatrix.getCamera(primaryCamera).rotateX((float) Math.toDegrees(90));
-			vpMatrix.getCamera(primaryCamera).translate(-mapTest.length / 2, -mapTest[0].length / 2, -5);
-
-		}
-		if (client.userInput.isKeyPressed(GLFW.GLFW_KEY_F6)) {
-			vpMatrix.getCamera(primaryCamera).identity();
-			//			vpMatrix.getCamera(primaryCamera).rotateX((float) Math.toDegrees(90));
-			vpMatrix.getCamera(primaryCamera).translate(0, 0, 0);
-			vpMatrix.getCamera(primaryCamera).rotateX((float) -Math.toDegrees(85));
-
 		}
 
 		// NOTE in the future this will be replaced with a "has terrain updated" check rather

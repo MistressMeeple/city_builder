@@ -11,16 +11,21 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.Phaser;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 
 import org.apache.log4j.Logger;
 import org.joml.FrustumIntersection;
+import org.joml.Math;
 import org.joml.Matrix4f;
 import org.joml.Vector2i;
 import org.joml.Vector3f;
 import org.lwjgl.BufferUtils;
+import org.lwjgl.opengl.GL46;
 
 import com.meeple.backend.Model;
 import com.meeple.backend.ShaderPrograms;
@@ -40,8 +45,6 @@ import com.meeple.shared.frame.OGL.ShaderProgram.IndexBufferObject;
 import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2.ShaderClosable;
-import com.meeple.shared.frame.wrapper.Wrapper;
-import com.meeple.shared.frame.wrapper.WrapperImpl;
 
 public class WorldClient {
 
@@ -114,6 +117,7 @@ public class WorldClient {
 
 	Mesh tree;
 	Model treeModel;
+	private AtomicInteger failedBuilds = new AtomicInteger(0);
 
 	public void cameraCheck(World world, Matrix4f vpMatrix, EntityBase... nonRendering) {
 
@@ -124,39 +128,71 @@ public class WorldClient {
 		FrustumIntersection fu = new FrustumIntersection(vpMatrix, false);
 
 		//OPTIMISE by only searching nearby regions rather than all terrains ever
+		//currently the bigger the loaded world the longer this check will take
 		for (Entry<Vector2i, Region> entry : world.getStorage().regions.entrySet()) {
 			Vector2i regionIndex = entry.getKey();
 			Region region = entry.getValue();
 			Terrain[][] regionData = region.terrains;
-			boolean test = false;
+			int test = 0;
 			if (true) {
 				float minX = regionIndex.x * World.RegionalWorldSize;
 				float minY = regionIndex.y * World.RegionalWorldSize;
 				float maxX = (regionIndex.x + 1) * World.RegionalWorldSize;
 				float maxY = (regionIndex.y + 1) * World.RegionalWorldSize;
-				test = fu.testPlaneXY(minX, minY, maxX, maxY);
+				test = fu.intersectAab(minX, minY, -100, maxX, maxY, 100);
 
 			}
-			for (int x = 0; x < World.RegionSize; x++) {
-				for (int y = 0; y < World.RegionSize; y++) {
-					Terrain terrain = regionData[x][y];
-					synchronized (terrainMeshes) {
+			if (test == FrustumIntersection.INSIDE || test == FrustumIntersection.INTERSECT) {
+				for (int x = 0; x < World.TerrainsPerRegion; x++) {
+					for (int y = 0; y < World.TerrainsPerRegion; y++) {
 
-						Mesh mesh = terrainMeshes.get(terrain);
-						if (mesh != null) {
-							if (test) {
-								visibleTerrains.add(mesh);
+						Terrain terrain = regionData[x][y];
+						if (terrain.needsRemesh()) {
+							Runnable remeshTerrain = () ->
+							{
+								genTerrainMesh(terrain);
+							};
+							Future<?> task = service.submit(remeshTerrain);
+							if (false) {
+								Object result;
+								try {
+									result = task.get();
+									if (result instanceof Throwable) {
+										((Throwable) result).printStackTrace();
+									}
+								} catch (InterruptedException | ExecutionException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
 
-								// } else {
-								// visibleTerrains.remove(mesh);
 							}
 						}
-					}
-					synchronized (terrainOutlineMeshes) {
-						Mesh outline = terrainOutlineMeshes.get(terrain);
-						if (outline != null && test && showOutlines) {
-							visibleTerrainOutlines.add(outline);
+						int padding = World.TerrainSize / 2;
+						boolean terrainInView = fu.testAab(
+							terrain.bounds[0].x - padding, terrain.bounds[0].y - padding, terrain.bounds[0].z - padding, terrain.bounds[1].x + padding, terrain.bounds[1].y + padding, terrain.bounds[1].z + padding);
+//						logger.trace("terrain " + terrain.worldX + " " + terrain.worldY + " " + terrainInView);
+						if (terrainInView) {
+
+							synchronized (terrainMeshes) {
+
+								Mesh mesh = terrainMeshes.get(terrain);
+								if (mesh != null) {
+									visibleTerrains.add(mesh);
+
+									// } else {
+									// visibleTerrains.remove(mesh);
+								}
+
+							}
+							synchronized (terrainOutlineMeshes) {
+								Mesh outline = terrainOutlineMeshes.get(terrain);
+								if (outline != null && showOutlines) {
+									visibleTerrainOutlines.add(outline);
+								}
+							}
+
 						}
+
 					}
 				}
 			}
@@ -220,11 +256,14 @@ public class WorldClient {
 
 	public void render() {
 		try (ShaderClosable sc = ShaderProgramSystem2.useProgram(Program._3D_Unlit_Flat.program)) {
+//			logger.info("rendering " + visibleTerrains.size() + " terrains");
 			for (Mesh terrain : visibleTerrains) {
 				ShaderProgramSystem2.tryFullRenderMesh(terrain);
 			}
 			for (Mesh terrainOutline : visibleTerrainOutlines) {
+				GL46.glLineWidth(1f);
 				ShaderProgramSystem2.tryFullRenderMesh(terrainOutline);
+				GL46.glLineWidth(1f);
 
 				//				ShaderProgramSystem2.tryFullRenderMesh(terrainOutline);
 			}
@@ -290,16 +329,46 @@ public class WorldClient {
 			Runnable result = null;
 			{
 
-				int fSize = (int) World.RegionSize * World.RegionSize;
+				int fSize = (int) World.TerrainsPerRegion * World.TerrainsPerRegion;
 
 				result = () ->
 				{
-					boolean finished = innerSubmit(fSize, regionEvent.getRegionIndex(), regionEvent.getRegion().terrains, barrier);
+					boolean finished = false;
+
+					long start = System.nanoTime();
+
+					logger.info("Processing " + fSize + " regionional chunks for Region[" + regionEvent.getRegionIndex().x + "." + regionEvent.getRegionIndex().y + "]");
+					int actual = 0;
+
+					for (int x = 0; x < World.TerrainsPerRegion; x++) {
+						for (int y = 0; y < World.TerrainsPerRegion; y++) {
+							Terrain terrain = regionEvent.getRegion().terrains[x][y];
+
+							if (!Thread.currentThread().isInterrupted() && terrain.needsRemesh()) {
+
+								boolean generated = genTerrainMesh(terrain);
+								if (generated) {
+									actual += 1;
+								} else {
+									finished &= generated;
+								}
+
+							}
+							if (barrier != null) {
+								barrier.arrive();
+							}
+						}
+					}
+					long end = System.nanoTime();
+					float time = FrameUtils.nanosToSeconds(end - start);
+					logger.info("Processed " + actual + " regionional chunks for Region[" + regionEvent.getRegionIndex().x + "." + regionEvent.getRegionIndex().y + "]\r\n\t\t" +
+						" - took " + time + "s, With an average of " + ((float) time / (float) actual) + "s per terrain");
+
 					regionEvent.getRegion().needsRemesh.lazySet(!finished);
 				};
 				if (barrier != null) {
 					barrier.bulkRegister((int) fSize);
-					logger.info("Now waiting on " + barrier.getRegisteredParties());
+					//					logger.info("Now waiting on " + barrier.getRegisteredParties());
 				}
 			}
 
@@ -308,143 +377,178 @@ public class WorldClient {
 
 	}
 
-	private boolean innerSubmit(int fSize, Vector2i key, Terrain[][] terrains, Phaser phaser) {
+	private boolean genTerrainMesh(Terrain terrain) {
+		boolean hasMeshed = false;
+		if (!Thread.currentThread().isInterrupted() && terrain.needsRemesh()) {
+			logger.trace("Generating terrain[" + terrain.worldX + "," + terrain.worldY + "] mesh");
+			TerrainMeshUpload upload = new TerrainMeshUpload();
 
-		long start = System.nanoTime();
+			Mesh terrainMesh = new Mesh();
+			Mesh outlineMesh = new Mesh();
 
-		logger.info("Processing " + fSize + " regionional chunks for Region[" + key.x + "." + key.y + "]");
-		Wrapper<Integer> actual = new WrapperImpl<>(0);
-
-		for (int x = 0; x < World.RegionSize; x++) {
-			for (int y = 0; y < World.RegionSize; y++) {
-				Terrain terrain = terrains[x][y];
-
-				if (!Thread.currentThread().isInterrupted()) {
-					TerrainMeshUpload upload = new TerrainMeshUpload();
-
-					Mesh terrainMesh = new Mesh();
-					Mesh outlineMesh = new Mesh();
-					generator(terrain, terrainMesh, outlineMesh);
+			boolean generated = false;
+			try {
+				generated = generator(terrain, terrainMesh, outlineMesh);
+				if (generated) {
 					upload.terrain = terrain;
 					upload.mesh = terrainMesh;
 					upload.outline = outlineMesh;
-
 					toUpload.add(upload);
-
-					if (phaser != null) {
-						phaser.arrive();
-					}
-					actual.setWrapped(actual.getWrappedOrDefault(0) + 1);
+					terrain.needsRemesh(false);
+					logger.trace("Successfully to generate terrain[" + terrain.worldX + "," + terrain.worldY + "] mesh");
 				} else {
-					return false;
+					logger.trace("Failed to generate terrain[" + terrain.worldX + "," + terrain.worldY + "] mesh");
 				}
+				hasMeshed = generated;
+			} catch (Exception ex) {
+				ex.printStackTrace();
 			}
+
 		}
-		long end = System.nanoTime();
-		float time = FrameUtils.nanosToSeconds(end - start);
-		logger.info("Processed " + actual.getWrapped() + " regionional chunks for Region[" + key.x + "." + key.y + "]\r\n\t\t" + " - took " + time + "s, With an average of " + (time / actual.getWrapped()) + "s per terrain");
-		return true;
+		return hasMeshed;
 	}
 
-	public static void generator(Terrain currentTerrain, Mesh main, Mesh outline) {
+	public static boolean generator(Terrain currentTerrain, Mesh main, Mesh outline) {
+		final int vertCount = World.TerrainSampleSize + 1;
+		int count = vertCount * vertCount;
+		FloatBuffer vertices;
+		FloatBuffer normals;
+		FloatBuffer colours;
+		IntBuffer indices;
+		IntBuffer indicesOutline;
 
-		int count = World.TerrainVertexCount * World.TerrainVertexCount;
+		try {
+			vertices = BufferUtils.createFloatBuffer(count * 3);
+			normals = BufferUtils.createFloatBuffer(count * 3);
+			colours = BufferUtils.createFloatBuffer(count * 4);
+			int renderCount = 6 * (vertCount - 1) * (vertCount - 1);
+			indices = BufferUtils.createIntBuffer(renderCount);
 
-		FloatBuffer vertices = BufferUtils.createFloatBuffer(count * 3);
-		FloatBuffer normals = BufferUtils.createFloatBuffer(count * 3);
-		FloatBuffer colours = BufferUtils.createFloatBuffer(count * 4);
-		int renderCount = 6 * (World.TerrainVertexCount - 1) * (World.TerrainVertexCount - 1);
-		IntBuffer indices = BufferUtils.createIntBuffer(renderCount);
+			int renderCountOutine = 6 * (vertCount - 1) * (vertCount - 1);
+			indicesOutline = BufferUtils.createIntBuffer(renderCountOutine);
+			float minZ = Float.MAX_VALUE;
+			float maxZ = Float.MIN_VALUE;
 
-		final int vertCount = World.TerrainVertexCount;
+			boolean completed = true;
 
-		for (int i = 0; i < vertCount; i++) {
-
-			for (int j = 0; j < vertCount; j++) {
-
-				float x1 = (float) j / ((float) vertCount - 1);
-				float y1 = (float) i / ((float) vertCount - 1);
-
-				float x = x1 * (World.TerrainSize);
-				float y = y1 * (World.TerrainSize);
-
-				//[-1] for 0-index arrays, [+1] for terrain overlap
-				int tileX = (int) (x1 * (World.TerrainSampleSize - 1 + 1));
-				int tileY = (int) (y1 * (World.TerrainSampleSize - 1 + 1));
-
-				TerrainSampleInfo sample = null;
-				if (i == vertCount - 1 && j == vertCount - 1) {
-					sample = currentTerrain.tiles[tileX][tileY];//get from edge
-				} else {
-					sample = currentTerrain.tiles[tileX][tileY];
+			for (int i = 0; i < vertCount; i++) {
+				if (Thread.currentThread().isInterrupted()) {
+					completed = false;
+					break;
 				}
+				for (int j = 0; j < vertCount; j++) {
+					if (Thread.currentThread().isInterrupted()) {
+						completed = false;
+						break;
+					}
 
-				float height = sample.height * World.TerrainSampleSize;
-				switch (sample.type) {
-				case Beach:
-					colours.put(0.7f);
-					colours.put(0.7f);
-					colours.put(0f);
-					colours.put(1f);
-					break;
-				case Ground:
-					float colVal = 0.5f;
-					colours.put(0f);
-					colours.put(colVal);
-					colours.put(0f);
-					colours.put(1f);
-					break;
-				case Water:
+					float x1 = (float) j / ((float) vertCount - 1);
+					float y1 = (float) i / ((float) vertCount - 1);
 
-					colours.put(0f);
-					colours.put(0f);
-					colours.put(1f);
-					colours.put(1f);
-					height -= 10f;
-					break;
-				default:
-					break;
+					float x = x1 * (World.TerrainSize);
+					float y = y1 * (World.TerrainSize);
+
+					//[-1] for 0-index arrays, [+1] for terrain overlap
+					int tileX = (int) (x1 * (World.TerrainSampleSize - 1 + 1));
+					int tileY = (int) (y1 * (World.TerrainSampleSize - 1 + 1));
+
+					TerrainSampleInfo sample = currentTerrain.tiles[tileX][tileY];
+
+					float height = sample.height;
+					minZ = Math.min(minZ, height);
+					maxZ = Math.max(maxZ, height);
+
+					switch (sample.type) {
+					case Beach:
+						colours.put(0.7f);
+						colours.put(0.7f);
+						colours.put(0f);
+						colours.put(1f);
+						break;
+					case Ground:
+						float colVal = 0.5f;
+						colours.put(0f);
+						colours.put(colVal);
+						colours.put(0f);
+						colours.put(1f);
+						break;
+					case Water:
+
+						colours.put(0f);
+						colours.put(0f);
+						colours.put(1f);
+						colours.put(1f);
+						height -= 10f;
+						break;
+					default:
+						break;
+
+					}
+
+					vertices.put(x);
+					vertices.put(y);
+					vertices.put(height);
+
+					normals.put(0f);
+					normals.put(0f);
+					normals.put(1f);
+
+					if (i < vertCount - 1 && j < vertCount - 1) {
+						int topLeft = (i * vertCount) + j;
+						int topRight = topLeft + 1;
+						int bottomLeft = ((i + 1) * vertCount) + j;
+						int bottomRight = bottomLeft + 1;
+						indices.put(topLeft);
+						indices.put(bottomLeft);
+						indices.put(topRight);
+						indices.put(topRight);
+						indices.put(bottomLeft);
+						indices.put(bottomRight);
+
+						indicesOutline.put(topRight);
+						indicesOutline.put(topLeft);
+
+						indicesOutline.put(topLeft);
+						indicesOutline.put(bottomLeft);
+
+						indicesOutline.put(bottomLeft);
+						indicesOutline.put(topRight);
+						/*
+											indicesOutline.put(topRight);
+											indicesOutline.put(bottomRight);
+											
+											indicesOutline.put(bottomRight);					
+											indicesOutline.put(bottomLeft);*/
+					}
 
 				}
-
-				vertices.put(x);
-				vertices.put(y);
-				vertices.put(height);
-
-				normals.put(0f);
-				normals.put(0f);
-				normals.put(1f);
-
-				if (i < vertCount - 1 && j < vertCount - 1) {
-					int topLeft = (i * vertCount) + j;
-					int topRight = topLeft + 1;
-					int bottomLeft = ((i + 1) * vertCount) + j;
-					int bottomRight = bottomLeft + 1;
-					indices.put(topLeft);
-					indices.put(bottomLeft);
-					indices.put(topRight);
-					indices.put(topRight);
-					indices.put(bottomLeft);
-					indices.put(bottomRight);
-				}
-
 			}
-		}
-		main.drawMode(GLDrawMode.Triangles);
-		main.name("terrain" + currentTerrain.worldX + "." + currentTerrain.worldY);
-		main.vertexCount(renderCount);
-		main.index(new IndexBufferObject().data(indices).bufferUsage(BufferUsage.StaticDraw).dataSize(3));
-		main.addAttribute(ShaderPrograms.vertAtt.build().bufferUsage(BufferUsage.StaticDraw).data(vertices));
-		main.addAttribute(ShaderPrograms.colourAtt.build().data(colours));
-		main.addAttribute(ShaderPrograms.transformAtt.build().data(new Matrix4f().translate(currentTerrain.worldX, currentTerrain.worldY, 0).get(new float[16])));
+			if (completed) {
+				main.drawMode(GLDrawMode.Triangles);
+				main.name("terrain" + currentTerrain.worldX + "." + currentTerrain.worldY);
+				main.vertexCount(renderCount);
+				main.index(new IndexBufferObject().data(indices).bufferUsage(BufferUsage.StaticDraw).dataSize(3));
+				main.addAttribute(ShaderPrograms.vertAtt.build().bufferUsage(BufferUsage.StaticDraw).data(vertices));
+				main.addAttribute(ShaderPrograms.colourAtt.build().data(colours));
+				main.addAttribute(ShaderPrograms.transformAtt.build().data(new Matrix4f().translate(currentTerrain.worldX, currentTerrain.worldY, 0).get(new float[16])));
 
-		outline.drawMode(GLDrawMode.Line);
-		outline.name("terrain_outline_" + currentTerrain.worldX + "." + currentTerrain.worldY);
-		outline.vertexCount(renderCount);
-		outline.index(new IndexBufferObject().data(indices).bufferUsage(BufferUsage.StaticDraw).dataSize(3));
-		outline.addAttribute(ShaderPrograms.vertAtt.build().bufferUsage(BufferUsage.StaticDraw).data(vertices));
-		outline.addAttribute(ShaderPrograms.colourAtt.build().instanced(true, 1).data(new float[] { 0, 0, 0, 1 }));
-		outline.addAttribute(ShaderPrograms.transformAtt.build().data(new Matrix4f().translate(currentTerrain.worldX, currentTerrain.worldY, 0.1f).get(new float[16])));
+				outline.drawMode(GLDrawMode.Line);
+				outline.name("terrain_outline_" + currentTerrain.worldX + "." + currentTerrain.worldY);
+				outline.vertexCount(renderCountOutine);
+				outline.index(new IndexBufferObject().data(indicesOutline).bufferUsage(BufferUsage.StaticDraw).dataSize(3));
+				outline.addAttribute(ShaderPrograms.vertAtt.build().bufferUsage(BufferUsage.StaticDraw).data(vertices));
+				outline.addAttribute(ShaderPrograms.colourAtt.build().instanced(true, 1).data(new float[] { 0, 0, 0, 1 }));
+				outline.addAttribute(ShaderPrograms.transformAtt.build().data(new Matrix4f().translate(currentTerrain.worldX, currentTerrain.worldY, 0).get(new float[16])));
+
+				currentTerrain.bounds[0].z = minZ;
+				currentTerrain.bounds[1].z = maxZ;
+			}
+
+			return completed;
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			return false;
+		}
 
 	}
 
