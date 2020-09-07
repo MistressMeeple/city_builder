@@ -684,6 +684,25 @@ public class FrameUtils {
 	}
 
 	/**
+	 * Performs float/float but negative numbers will result be shifted by -1.
+	 * <ul>
+	 * <li>0 / 10 = 0</li>
+	 * <li>11 / 10 = 1</li>
+	 * <li>-5 / 10 = -1</li>
+	 * </ul>
+	 * 
+	 * @param index
+	 * @param division
+	 * @return
+	 */
+	public static float actualIndex(float index, float division) {
+		if (index < 0) {
+			return (index / division) - 1;
+		}
+		return (index / division);
+	}
+
+	/**
 	 * Attempts to retrieve a value from a map. This method will return the default
 	 * value provided instead of throwing and NPE.
 	 * 
