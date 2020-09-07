@@ -114,64 +114,67 @@ public class Display extends Client {
 
 	@Override
 	public void render(FrameTimings delta) {
+		try {
+			switch (currentTab) {
+			case Island:
+			case Noise:
+				noisePreview.renderShared(vpMatrix, this, delta);
+				break;
+			case Test:
+				worldView.preRender();
+				break;
+			case WorldBuilding:
 
-		switch (currentTab) {
-		case Island:
-		case Noise:
-			noisePreview.renderShared(vpMatrix, this, delta);
-			break;
-		case Test:
-			worldView.preRender();
-			break;
-		case WorldBuilding:
+				break;
 
-			break;
-
-		}
-		layout(nkContext, (int) (windowWidth * 0.75f), 0, (int) (windowWidth * 0.25f), windowHeight);
-
-		switch (currentTab) {
-		case Island:
-			noisePreview.renderIsland(this, vpMatrix, delta);
-			break;
-		case Noise:
-			noisePreview.renderNoise(this, delta);
-			break;
-		case Test:
-
-			if (!worldView.world.generated) {
-
-				worldView.worldClient.StartHold();
-				worldView.world.generate();
-				worldView.playerController.register(this.windowID, this.userInput);
-				worldView.playerController.operateOn(vpMatrix.getCamera(worldView.primaryCamera));
 			}
-			float prog = worldView.worldClient.progress();
+			layout(nkContext, (int) (windowWidth * 0.75f), 0, (int) (windowWidth * 0.25f), windowHeight);
 
-			if (prog < 1f) {
-				if (nk_begin(this.nkContext.context, "loading", NkRect.create().set(50, 50, 500, 500), 0)) {
+			switch (currentTab) {
+			case Island:
+				noisePreview.renderIsland(this, vpMatrix, delta);
+				break;
+			case Noise:
+				noisePreview.renderNoise(this, delta);
+				break;
+			case Test:
 
-					nk_layout_row_dynamic(this.nkContext.context, 50, 1);
-					nk_label(this.nkContext.context, "Loading", NK_TEXT_ALIGN_CENTERED);
-					long max = 100;
-					PointerBuffer pb = BufferUtils.createPointerBuffer(1);
-					pb.put((long) (max * worldView.worldClient.progress()));
-					pb.flip();
-					nk_progress(this.nkContext.context, pb, max, false);
+				if (!worldView.world.generated) {
 
+					worldView.worldClient.StartHold();
+					worldView.world.generate();
+					worldView.playerController.register(this.windowID, this.userInput);
+					worldView.playerController.operateOn(vpMatrix.getCamera(worldView.primaryCamera));
 				}
-				nk_end(this.nkContext.context);
-			} else {
-				worldView.worldClient.free();
-			}
-			if (worldView.world.generated && prog == 1f) {
-				worldView.render(this, vpMatrix, delta);
-			}
-			break;
-		case WorldBuilding:
-			worldBuildingView.render(this, vpMatrix,delta);
-			break;
+				float prog = worldView.worldClient.progress();
 
+				if (prog < 1f) {
+					if (nk_begin(this.nkContext.context, "loading", NkRect.create().set(50, 50, 500, 500), 0)) {
+
+						nk_layout_row_dynamic(this.nkContext.context, 50, 1);
+						nk_label(this.nkContext.context, "Loading", NK_TEXT_ALIGN_CENTERED);
+						long max = 100;
+						PointerBuffer pb = BufferUtils.createPointerBuffer(1);
+						pb.put((long) (max * worldView.worldClient.progress()));
+						pb.flip();
+						nk_progress(this.nkContext.context, pb, max, false);
+
+					}
+					nk_end(this.nkContext.context);
+				} else {
+					worldView.worldClient.free();
+				}
+				if (worldView.world.generated && prog == 1f) {
+					worldView.render(this, vpMatrix, delta);
+				}
+				break;
+			case WorldBuilding:
+				worldBuildingView.render(this, vpMatrix, delta);
+				break;
+
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 
 	}
