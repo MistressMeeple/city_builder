@@ -33,7 +33,6 @@ import org.lwjgl.nuklear.Nuklear;
 import org.lwjgl.opengl.GL46;
 import org.lwjgl.system.MemoryStack;
 
-import com.meeple.backend.view.VPMatrix;
 import com.meeple.citybuild.RayHelper;
 import com.meeple.citybuild.client.render.Screen;
 import com.meeple.citybuild.client.render.WorldRenderer;
@@ -51,9 +50,7 @@ import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
 import com.meeple.shared.frame.OGL.ShaderProgram.VertexAttribute;
-import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraMode;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpringArm;
-import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.ViewMatrix;
 import com.meeple.shared.frame.nuklear.NuklearManager;
 import com.meeple.shared.frame.nuklear.NuklearMenuSystem;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;

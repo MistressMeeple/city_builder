@@ -3,10 +3,6 @@ package com.meeple.display.views.WorldBuilding;
 import org.apache.log4j.Logger;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
-import org.joml.Vector4f;
-
-import com.meeple.shared.frame.CursorHelper;
-import com.meeple.shared.frame.CursorHelper.SpaceState;
 
 public class RayTracing {
 

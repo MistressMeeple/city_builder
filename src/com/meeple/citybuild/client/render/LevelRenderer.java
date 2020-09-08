@@ -41,8 +41,6 @@ import com.meeple.citybuild.server.WorldGenerator.TileTypes;
 import com.meeple.citybuild.server.WorldGenerator.Tiles;
 import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.Tickable;
-import com.meeple.shared.frame.CursorHelper;
-import com.meeple.shared.frame.CursorHelper.SpaceState;
 import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.OGL.KeyInputSystem;

@@ -12,8 +12,6 @@ import java.nio.FloatBuffer;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-import javax.rmi.PortableRemoteObject;
-
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.opengl.GL46;
