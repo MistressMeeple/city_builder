@@ -40,7 +40,7 @@ public class FreeFlyCameraController extends BaseCameraController {
 			double nYaw = -Math.toRadians(xpos - oldX);
 			double nPitch = -Math.toRadians(ypos - oldY);
 			pitch += nPitch;
-			yaw += nYaw;
+			yaw -= nYaw;
 			oldX = xpos;
 			oldY = ypos;
 			hasChanged.lazySet(true);
@@ -216,10 +216,10 @@ public class FreeFlyCameraController extends BaseCameraController {
 		}
 
 		if (userInput.isPressed(client.options.playerLeft)) {
-			movement.y -= 1f;
+			movement.y += 1f;
 		}
 		if (userInput.isPressed(client.options.playerRight)) {
-			movement.y += 1f;
+			movement.y -= 1f;
 		}
 
 		if (userInput.isPressed(client.options.playerJump)) {

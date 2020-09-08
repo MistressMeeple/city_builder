@@ -12,6 +12,8 @@ import java.nio.FloatBuffer;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+import javax.rmi.PortableRemoteObject;
+
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.opengl.GL46;
@@ -134,7 +136,7 @@ public class VPMatrix {
 	public void setPerspective(float fov, float aspectRatio, float near, float far) {
 		projectionMatrix.setPerspective((float) Math.toRadians(fov), (float) aspectRatio, near, far);
 		// NOTE invert either X or Y axis for my prefered coord system
-		projectionMatrix.scale(-1, 1, 1);
+//		projectionMatrix.scale(-1, 1, 1);
 	}
 
 	public void activeCamera(CameraKey camera) {
