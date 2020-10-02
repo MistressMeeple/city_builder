@@ -175,6 +175,11 @@ public class WorldClient {
 		return inRange;
 	}
 
+	/**
+	 * This is a debug flag to check crashes for the terrain-generator tasks 
+	 */
+	private static boolean joinGeneratorTasks = false;
+
 	public void cameraCheck(World world, Matrix4f vpMatrix, Vector3f playerPosition, EntityBase... nonRendering) {
 
 		//TODO move render distance to a variable rather than fixed local-scope. 
@@ -229,7 +234,7 @@ public class WorldClient {
 									Future<?> task = service.submit(remeshTerrain);
 									//a debug option, joins the task and reports any crashes. only use in debug because it joins this and that threadh together (wait till process task finishes)
 									//this will cause hang time per generated terrain
-									if (false) {
+									if (joinGeneratorTasks) {
 										Object result;
 										try {
 											result = task.get();
