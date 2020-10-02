@@ -48,7 +48,7 @@ public class WorldView {
 
 	public void setup(Client client, VPMatrix vpMatrix) {
 		primaryCamera = vpMatrix.newCamera();
-		world = new World();
+		world = new World("test");
 		world.setupGenerator(seedText);
 
 		{

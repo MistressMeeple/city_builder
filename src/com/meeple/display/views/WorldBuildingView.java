@@ -62,7 +62,7 @@ public class WorldBuildingView {
 	private WorldBuildingTerrainMeshHelper worldBuildingTerrainMeshHelper = new WorldBuildingTerrainMeshHelper();
 
 	private TerrainType[][] mapTest = new TerrainType[160][160];
-	World world = new World();
+	World world = new World("Test");
 	WorldClient worldClient;
 
 	Mesh textured = new Mesh();

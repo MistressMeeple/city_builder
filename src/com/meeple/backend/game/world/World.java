@@ -1,13 +1,18 @@
 package com.meeple.backend.game.world;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.log4j.Logger;
 import org.joml.AABBf;
 import org.joml.Vector2f;
 import org.joml.Vector2i;
@@ -30,6 +35,7 @@ import com.meeple.shared.frame.FrameUtils.GridMovement;
 import com.meeple.temp.IslandOrig.IslandSize;
 
 public class World extends EventHandler {
+	private static Logger logger = Logger.getLogger(World.class);
 
 	public static final int TerrainSize = 200;
 	public static final int TerrainSampleSize = 128;
@@ -539,6 +545,7 @@ public class World extends EventHandler {
 		Flat, Random, Custom;
 	}
 
+	private String name;
 	protected TerrainStorage terrainStorage = new TerrainStorage();
 
 	public Set<EntityBase> entities = new HashSet<>();
@@ -548,14 +555,18 @@ public class World extends EventHandler {
 	private NoiseStack featureGenerator = new NoiseStack();
 	private WorldGeneratorType generatorType = WorldGeneratorType.Random;
 
-	public boolean generated = false;;
+	public boolean generated = false;
 
-	public World() {
-
+	public World(String name) {
+		this.name = name;
 	}
 
 	public TerrainStorage getStorage() {
 		return this.terrainStorage;
+	}
+
+	public String getName() {
+		return name;
 	}
 
 	public void generate() {
@@ -719,6 +730,22 @@ public class World extends EventHandler {
 			}
 		}
 
+	}
+
+	public void save() throws FileNotFoundException {
+		String regionFilename = "reg[%s, %s].txt";
+		logger.warn("Not yet implimented");
+		for (Entry<Vector2i, Region> regionEntry : terrainStorage.regions.entrySet()) {
+			Vector2i regionIndex = regionEntry.getKey();
+			Region region = regionEntry.getValue();
+			File regOutFile = new File("/" + this.name + "/" + regionFilename);
+			//			FileOutputStream out = new FileOutputStream(regOutFile);
+
+		}
+	}
+
+	public void load() {
+		logger.warn("Not yet implimented");
 	}
 
 }
