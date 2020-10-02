@@ -9,6 +9,7 @@ import static org.lwjgl.util.par.ParShapes.par_shapes_create_parametric_sphere;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.nuklear.NkColorf;
 import org.lwjgl.util.par.ParShapes;
@@ -159,9 +160,10 @@ public class WorldView {
 		world.tick(delta);
 		vpMatrix.setPerspective(fov, (float) client.windowWidth / client.windowHeight, 0.01f, 10000.0f);
 		vpMatrix.activeCamera(primaryCamera);
+		Vector3f playerPosition = vpMatrix.getViewPosition(primaryCamera);
 
 		if (playerController.tick(delta, client)) {
-			worldClient.cameraCheck(world, vpMatrix.getVPMatrix(), playerController.getBound());
+			worldClient.cameraCheck(world, vpMatrix.getVPMatrix(), playerPosition, playerController.getBound());
 		}
 
 		{
@@ -176,11 +178,11 @@ public class WorldView {
 
 				if (playerController.getBound() == null) {
 					playerController.bindTo(playerEntity);
-					worldClient.cameraCheck(world, vpMatrix.getVPMatrix(), playerController.getBound());
+					worldClient.cameraCheck(world, vpMatrix.getVPMatrix(), playerPosition, playerController.getBound());
 				} else {
 					playerController.unbind();
 
-					worldClient.cameraCheck(world, vpMatrix.getVPMatrix(), playerController.getBound());
+					worldClient.cameraCheck(world, vpMatrix.getVPMatrix(), playerPosition, playerController.getBound());
 				}
 			}
 		}

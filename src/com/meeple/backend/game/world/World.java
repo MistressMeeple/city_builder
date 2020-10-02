@@ -45,6 +45,7 @@ public class World extends EventHandler {
 	private static final float gravityDamageScale = 1f;
 
 	public class Region {
+		public final Vector2f[] bounds = { new Vector2f(), new Vector2f() };
 		public Terrain[][] terrains = new Terrain[TerrainsPerRegion][TerrainsPerRegion];
 		protected float minZ, maxZ;
 
@@ -140,6 +141,17 @@ public class World extends EventHandler {
 			if (force || region == null) {
 
 				region = new Region();
+
+				float region_minX = regionX * World.RegionalWorldSize;
+				float region_minY = regionY * World.RegionalWorldSize;
+				float region_maxX = (regionX + 1) * World.RegionalWorldSize;
+				float region_maxY = (regionY + 1) * World.RegionalWorldSize;
+
+				region.bounds[0].x = region_minX;
+				region.bounds[0].y = region_minY;
+				region.bounds[1].x = region_maxX;
+				region.bounds[1].y = region_maxY;
+
 				for (int _x = 0; _x < World.TerrainsPerRegion; _x++) {
 					for (int _y = 0; _y < World.TerrainsPerRegion; _y++) {
 						int x = _x + (regionX * World.TerrainsPerRegion);
@@ -305,7 +317,6 @@ public class World extends EventHandler {
 			return result;
 
 		}
-
 
 		public void setTile(float worldX, float worldY, TerrainSampleInfo tileInfo) {
 			//OPTIMISE possibly by not getting region each check. the neighbourgh still might be in same region
@@ -568,7 +579,7 @@ public class World extends EventHandler {
 
 			for (int i = 0; i < range; i++) {
 
-				//				terrainStorage.generateRegion(pos.x, pos.y, true);
+				terrainStorage.generateRegion(pos.x, pos.y, true);
 				switch (move) {
 				case RIGHT:// right
 					pos.x += 1;

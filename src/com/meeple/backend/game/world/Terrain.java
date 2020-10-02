@@ -29,12 +29,12 @@ public class Terrain {
 		this.bounds = new Vector3f[] {
 			new Vector3f(
 				worldX,
-				0,
-				worldY),
+				worldY,
+				0),
 			new Vector3f(
 				worldX + World.TerrainSize,
-				0,
-				worldY + World.TerrainSize) };
+				worldY + World.TerrainSize,
+				0) };
 		tiles = new TerrainSampleInfo[World.TerrainSampleSize + 1][World.TerrainSampleSize + 1];
 
 	}

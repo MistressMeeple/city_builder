@@ -219,12 +219,12 @@ public class WorldBuildingView {
 			vpMatrix.setPerspective(fov, (float) client.windowWidth / client.windowHeight, 0.01f, 1000.0f);
 			vpMatrix.activeCamera(primaryCamera);
 
-			worldClient.cameraCheck(world, vpMatrix.getVPMatrix());
+			vpMatrix.upload();
+
+			worldClient.cameraCheck(world, vpMatrix.getVPMatrix(),translation3);
 			if (playerController.tick(delta, client) || forceTerrainUpdate) {
 
 			}
-
-			vpMatrix.upload();
 
 			worldClient.preRender(client.glContext);
 
