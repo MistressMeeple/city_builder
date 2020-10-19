@@ -2,7 +2,7 @@ package com.meeple.backend.game.world;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
+import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -18,6 +18,7 @@ import org.joml.Vector2f;
 import org.joml.Vector2i;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
+import org.joml.Vector4i;
 
 import com.meeple.backend.FrameTimings;
 import com.meeple.backend.entity.EntityBase;
@@ -77,6 +78,12 @@ public class World extends EventHandler {
 		public Vector2i getTerrainIndex(float worldX, float worldY) {
 			float modX = worldX % RegionalWorldSize;
 			float modY = worldY % RegionalWorldSize;
+			if (modX < 0) {
+				modX = RegionalWorldSize + modX;
+			}
+			if (modY < 0) {
+				modY = RegionalWorldSize + modY;
+			}
 			//			modX += (sizePerTile / 2);
 			//			modY += (sizePerTile / 2);
 			float actualX = FrameUtils.actualIndex(modX, World.TerrainSize);
@@ -86,7 +93,8 @@ public class World extends EventHandler {
 			return new Vector2i(finalX, finalY);
 		}
 
-		public Vector2i getTileIndex(float worldX, float worldY) {
+		public Vector4i getTileIndex(float worldX, float worldY) {
+
 
 			float regionModX = (worldX) % RegionalWorldSize;
 			float regionModY = (worldY) % RegionalWorldSize;
@@ -113,7 +121,7 @@ public class World extends EventHandler {
 			int maxY = Math.max(0, minY);
 			int finalX = maxX;
 			int finalY = maxY;
-			return new Vector2i(finalX, finalY);
+			return new Vector4i(0,0,finalX, finalY);
 		}
 
 		public Region getRegion(float worldX, float worldY) {
@@ -281,7 +289,8 @@ public class World extends EventHandler {
 			float worldXFix = worldX;//- (sizePerTile / 2);
 			float worldYFix = worldY;// + (sizePerTile / 2);
 
-			Vector2i tileIndex = getTileIndex(worldXFix, worldYFix);
+			Vector4i getLoc = getTileIndex(worldXFix, worldYFix);
+			Vector2i tileIndex = new Vector2i(getLoc.z,getLoc.w);
 
 			Vector2i regionIndex = getRegionIndex(worldXFix, worldYFix);
 			Region region = regions.get(regionIndex);
@@ -302,7 +311,8 @@ public class World extends EventHandler {
 				try {
 					terrain = region.terrains[terrainIndex.x][terrainIndex.y];
 				} catch (Exception e) {
-					System.out.println("terrain index wrong");
+					logger.warn("terrain index wrong");
+					e.printStackTrace();
 				}
 
 				Vector2i terrainTileIndex = new Vector2i();
@@ -330,7 +340,8 @@ public class World extends EventHandler {
 			float worldXFix = worldX;//- (sizePerTile / 2);
 			float worldYFix = worldY;// + (sizePerTile / 2);
 
-			Vector2i tileIndex = getTileIndex(worldXFix, worldYFix);
+			Vector4i getLoc = getTileIndex(worldXFix, worldYFix);
+			Vector2i tileIndex = new Vector2i(getLoc.z,getLoc.w);
 
 			Vector2i regionIndex = getRegionIndex(worldXFix, worldYFix);
 			Region region = regions.get(regionIndex);
@@ -724,21 +735,21 @@ public class World extends EventHandler {
 						// IF NOT BOUNCY
 						velocity.zero();
 					}
-
 				}
-
 			}
 		}
-
 	}
 
 	public void save() throws FileNotFoundException {
+		DecimalFormat format = new DecimalFormat();
+		format.setPositivePrefix("+");
 		String regionFilename = "reg[%s, %s].txt";
 		logger.warn("Not yet implimented");
 		for (Entry<Vector2i, Region> regionEntry : terrainStorage.regions.entrySet()) {
 			Vector2i regionIndex = regionEntry.getKey();
 			Region region = regionEntry.getValue();
-			File regOutFile = new File("/" + this.name + "/" + regionFilename);
+			File regOutFile = new File("saves/" + this.name + "/" + String.format(regionFilename, format.format(regionIndex.x), format.format(regionIndex.y)));
+			logger.info(regOutFile.getAbsolutePath());
 			//			FileOutputStream out = new FileOutputStream(regOutFile);
 
 		}

@@ -11,6 +11,7 @@ import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.glClear;
 import static org.lwjgl.opengl.GL11.glClearColor;
 
+import java.io.FileNotFoundException;
 import java.text.DecimalFormat;
 import java.util.Random;
 import java.util.function.BiFunction;
@@ -210,7 +211,15 @@ public class WorldBuildingView {
 			vpMatrix.getCamera(primaryCamera).rotateX((float) -Math.toDegrees(85));
 			//			vpMatrix.getCamera(primaryCamera).rotateX((float) Math.toDegrees(90));
 			vpMatrix.getCamera(primaryCamera).translate(0, 0, -1);
+		}
 
+		if (client.userInput.isKeyPressed(GLFW.GLFW_KEY_F9)) {
+			try {
+				world.save();
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 
 		{
