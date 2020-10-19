@@ -22,8 +22,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import javax.activation.UnsupportedDataTypeException;
-
 import org.apache.log4j.Logger;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL46;
@@ -461,7 +459,7 @@ public class ShaderProgramSystem2 {
 			}
 			case Fixed: {
 				System.out.println("Sorry I have no idea how to represent fixed in java... ");
-				throw new RuntimeException(new UnsupportedDataTypeException());
+				throw new RuntimeException(new UnsupportedOperationException());
 			}
 			}
 
@@ -506,7 +504,7 @@ public class ShaderProgramSystem2 {
 			}
 			case Fixed: {
 				System.out.println("Sorry I have no idea how to represent fixed in java... ");
-				throw new RuntimeException(new UnsupportedDataTypeException());
+				throw new RuntimeException(new UnsupportedOperationException());
 			}
 			default: {
 				break;
