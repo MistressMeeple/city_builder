@@ -70,19 +70,20 @@ public class WorldGenerator {
 
 	}
 
+	//TODO customise this
 	public void create(LevelData level, long seed) {
-		for (int x = 0; x < 2; x++) {
-			for (int y = 0; y < 2; y++) {
+		for (int x = -2; x < 2; x++) {
+			for (int y = -2; y < 2; y++) {
 
 				Chunk mainChunk = level.new Chunk();
 				for (int tx = 0; tx < mainChunk.tiles.length; tx++) {
 					for (int ty = 0; ty < mainChunk.tiles[tx].length; ty++) {
 
-						if (tx == 0 || ty == 0 || tx == mainChunk.tiles.length - 1 || ty == mainChunk.tiles[0].length - 1) {
-							mainChunk.tiles[tx][ty].type = Tiles.Hole;
-						} else {
+						//if (tx == 0 || ty == 0 || tx == mainChunk.tiles.length - 1 || ty == mainChunk.tiles[0].length - 1 ) {
+						//	mainChunk.tiles[tx][ty].type = Tiles.Hole;
+						//} else {
 							mainChunk.tiles[tx][ty].type = Tiles.Ground;
-						}
+						//}
 					}
 				}
 
