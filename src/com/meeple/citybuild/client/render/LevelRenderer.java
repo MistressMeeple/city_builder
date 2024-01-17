@@ -53,7 +53,7 @@ public class LevelRenderer {
 
 	public static boolean disableAlphaTest = false;
 
-	public UniformManager<String[], Integer[]>.Uniform<VPMatrix> setupWorldProgram(ShaderProgram program, VPMatrixSystem VPMatrixSystem, VPMatrix vpMatrix) {
+	public static UniformManager<String[], Integer[]>.Uniform<VPMatrix> setupWorldProgram(ShaderProgram program, VPMatrixSystem VPMatrixSystem, VPMatrix vpMatrix) {
 		UniformManager<String[], Integer[]>.Uniform<VPMatrix> u = ShaderProgramSystem.multiUpload.register(new String[] { "vpMatrix", "projectionMatrix", "viewMatrix" }, VPMatrixSystem);
 
 		ShaderProgramSystem.addUniform(program, ShaderProgramSystem.multiUpload, u);
@@ -70,7 +70,7 @@ public class LevelRenderer {
 		return u;
 	}
 
-	public UniformManager<String, Integer>.Uniform<ProjectionMatrix> setupUIProgram(ShaderProgram program, ProjectionMatrixSystem pSystem, ProjectionMatrix pMatrix) {
+	public static UniformManager<String, Integer>.Uniform<ProjectionMatrix> setupUIProgram(ShaderProgram program, ProjectionMatrixSystem pSystem, ProjectionMatrix pMatrix) {
 
 		UniformManager<String, Integer>.Uniform<ProjectionMatrix> u = ShaderProgramSystem.singleUpload.register("projectionMatrix", pSystem);
 		ShaderProgramSystem.addUniform(program, ShaderProgramSystem.singleUpload, u);
@@ -82,14 +82,13 @@ public class LevelRenderer {
 		try {
 			ShaderProgramSystem.create(program);
 		} catch (Exception err) {
-			// TODO Auto-generated catch block
 			err.printStackTrace();
 		}
 		return u;
 
 	}
 
-	public UniformManager<String[], Integer[]>.Uniform<VPMatrix> setupMainProgram(ShaderProgram program, VPMatrixSystem VPMatrixSystem, VPMatrix vpMatrix) {
+	public static UniformManager<String[], Integer[]>.Uniform<VPMatrix> setupMainProgram(ShaderProgram program, VPMatrixSystem VPMatrixSystem, VPMatrix vpMatrix) {
 		UniformManager<String[], Integer[]>.Uniform<VPMatrix> u = ShaderProgramSystem.multiUpload.register(new String[] { "vpMatrix", "projectionMatrix", "viewMatrix" }, VPMatrixSystem);
 
 		ShaderProgramSystem.addUniform(program, ShaderProgramSystem.multiUpload, u);
@@ -101,13 +100,12 @@ public class LevelRenderer {
 		try {
 			ShaderProgramSystem.create(program);
 		} catch (Exception err) {
-
 			err.printStackTrace();
 		}
 		return u;
 	}
 
-	public void setupLitProgram(ShaderProgram program, int maxLights, int maxMaterials) {
+	public static void setupLitProgram(ShaderProgram program, int maxLights, int maxMaterials) {
 		String fragSource = ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/lighting.frag"));
 		fragSource = fragSource.replaceAll("\\{maxmats\\}", "" + maxMaterials);
 		fragSource = fragSource.replaceAll("\\{maxlights\\}", maxLights + "");
@@ -118,7 +116,6 @@ public class LevelRenderer {
 		try {
 			ShaderProgramSystem.create(program);
 		} catch (Exception err) {
-			// TODO Auto-generated catch block
 			err.printStackTrace();
 		}
 
@@ -167,11 +164,11 @@ public class LevelRenderer {
 	Map<Chunk, MeshExt> baked = new CollectionSuppliers.MapSupplier<Chunk, MeshExt>().get();
 	Map<TileTypes, Map<String, MeshExt>> tileMeshes = new CollectionSuppliers.MapSupplier<TileTypes, Map<String, MeshExt>>().get();
 
-	private void bakeTile(Tile tile) {
+	/*private void bakeTile(Tile tile) {
 		switch (tile.type) {
 
 		}
-	}
+	}*/
 
 	private MeshExt bakeChunk(Vector3f chunkPos, Chunk chunk) {
 		MeshExt m = new MeshExt();
@@ -225,6 +222,16 @@ public class LevelRenderer {
 						m.colourAttrib.data.add(colour.w);
 						m.mesh.renderCount += 1;
 						break;
+					case Water:
+						colour = new Vector4f(0.1f, 0f, 0.7f, 1f);
+						FrameUtils.appendToList(m.offsetAttrib.data, tilePos);
+						m.colourAttrib.data.add(colour.x);
+						m.colourAttrib.data.add(colour.y);
+						m.colourAttrib.data.add(colour.z);
+						m.colourAttrib.data.add(colour.w);
+						m.mesh.renderCount += 1;
+						break;
+
 
 				}
 
