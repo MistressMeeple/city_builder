@@ -43,8 +43,10 @@ public abstract class GameManager {
 	}
 
 	/**
-	 * Reads the provided {@linkplain File} and converts to a {@linkplain LevelData}.<br>
-	 * Returns null if failed to read.  
+	 * Reads the provided {@linkplain File} and converts to a
+	 * {@linkplain LevelData}.<br>
+	 * Returns null if failed to read.
+	 * 
 	 * @param fileIn
 	 * @return Level read from file or null
 	 */
@@ -56,10 +58,8 @@ public abstract class GameManager {
 		logger.trace("Loading level from file: " + fileIn.toString());
 		try (ObjectInputStream oos = new ObjectInputStream(new FileInputStream(fileIn))) {
 			level = (LevelData) oos.readObject();
-
 		} catch (FileNotFoundException err) {
 			logger.error("File not found while loading", err);
-
 		} catch (IOException err) {
 			logger.error("IO Exception while loading", err);
 		} catch (ClassNotFoundException err) {
@@ -85,7 +85,7 @@ public abstract class GameManager {
 			logger.error("we arent saving!");
 			if (false) {
 				try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(fileOut))) {
-					//				oos.writeObject(level.getWrapped());
+					// oos.writeObject(level.getWrapped());
 				} catch (FileNotFoundException err) {
 					logger.error("File not found while loading", err);
 				} catch (IOException err) {
@@ -111,13 +111,13 @@ public abstract class GameManager {
 			while (!Thread.currentThread().isInterrupted() && !level.quit.get()) {
 				if (!level.pause.get()) {
 
-					///Time management
+					/// Time management
 					long curr = System.nanoTime();
 					delta.nanos = curr - prev.getWrappedOrDefault(curr);
 					delta.seconds = FrameUtils.nanosToSeconds(delta.nanos);
 					delta.totalNanos += delta.nanos;
 					prev.setWrapped(curr);
-					//					logger.trace("level tick");
+					// logger.trace("level tick");
 
 					if (level.frameTimeManager != null)
 						level.frameTimeManager.run();
@@ -182,16 +182,17 @@ public abstract class GameManager {
 		try {
 			levelThread.interrupt();
 		} catch (Exception e) {
-			//silent catch
+			// silent catch
 		}
 	}
 
 	/**
-	* Finds the chunk that contains the world coord parameter
-	* @param level to search
-	* @param worldCoords position to find
-	* @return Chunk that owns the coords
-	*/
+	 * Finds the chunk that contains the world coord parameter
+	 * 
+	 * @param level       to search
+	 * @param worldCoords position to find
+	 * @return Chunk that owns the coords
+	 */
 	public Chunk getChunk(Vector3f worldCoords) {
 		Vector2i chunkLoc = new Vector2i(chunk(worldCoords.x), chunk(worldCoords.y));
 		Chunk c = level.chunks.get(chunkLoc);
@@ -200,9 +201,10 @@ public abstract class GameManager {
 
 	/**
 	 * Finds the tile that contains the world coord passed
-	 * @param level to search
-	 * @param worldCoords to find the tile 
-	 * @return Tile that owns the coords 
+	 * 
+	 * @param level       to search
+	 * @param worldCoords to find the tile
+	 * @return Tile that owns the coords
 	 */
 	public Tile getTile(Vector3f worldCoords) {
 		Tile result = null;
@@ -231,10 +233,11 @@ public abstract class GameManager {
 	}
 
 	/**
-	 * Searches the sphere for all entities and returns a set containing any found. 
-	 * @param level level to search
+	 * Searches the sphere for all entities and returns a set containing any found.
+	 * 
+	 * @param level       level to search
 	 * @param worldCoords sphere center
-	 * @param radius of sphere
+	 * @param radius      of sphere
 	 * @return set of entities found
 	 */
 	public Set<Entity> getEntities(Vector3f worldCoords, float radius) {
@@ -260,8 +263,11 @@ public abstract class GameManager {
 	private static int tileIndex(float chunk) {
 		float calc = chunk % (LevelData.chunkSize * LevelData.tileSize);
 		float calc2 = calc / LevelData.tileSize;
-		int result = (int) calc2;
-
+		int calc3 = (int) calc2;
+		int result = calc3;
+		if (chunk < 0) {
+			result += LevelData.chunkSize - 1;
+		}
 		return result;
 	}
 
