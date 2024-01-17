@@ -75,7 +75,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		//		System.setErr(ConsolePrintMirror.errConsole);
 
 		//setup logger
-		Logger.getRootLogger().setLevel(org.apache.log4j.Level.ALL);
+		Logger.getRootLogger().setLevel(org.apache.log4j.Level.DEBUG);
 		Appender a = new ConsoleAppender(new PatternLayout(debugLayout));
 		BasicConfigurator.configure(a);
 
