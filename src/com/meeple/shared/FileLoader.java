@@ -9,20 +9,16 @@ import java.io.Reader;
 
 public class FileLoader {
 	public static Reader loadFile(String file) {
-
 		Reader stream = loadInternal(file);
 		if (stream == null) {
 			stream = FileLoader.loadExternal(file);
 		}
 		return stream;
-
 	}
 
 	private static Reader loadInternal(String file) {
-
 		InputStreamReader ret = null;
-		InputStream stream = FileLoader.class.getResourceAsStream("file");
-
+		InputStream stream = FileLoader.class.getResourceAsStream(file);
 		if (stream == null) {
 			stream = FileLoader.class.getResourceAsStream("/" + file);
 		}
@@ -39,7 +35,6 @@ public class FileLoader {
 		try {
 			f = new FileReader(new File(file));
 		} catch (FileNotFoundException err) {
-			// TODO Auto-generated catch block
 			err.printStackTrace();
 		}
 		return f;
