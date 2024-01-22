@@ -24,7 +24,7 @@ void main() {
 	vec3 baseColour = vColour.rgb;
 	float colStr = 1;
 	vec3 reflectTint =  vColour.rgb;
-	float refStr = 1
+	float refStr = 1;
 	float alpha = vColour.a;
 	
     vec3 matAmbientColour =  colStr * baseColour;
