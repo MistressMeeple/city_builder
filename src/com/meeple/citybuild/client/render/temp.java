@@ -47,6 +47,7 @@ import org.lwjgl.system.MemoryStack;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.LitShaderProgramDefinition;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.MeshAttributeGenerator;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ShaderProgramDefinition_3D_lit_mat;
+import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ViewMatrices;
 import com.meeple.citybuild.client.render.WorldRenderer.MeshExt;
 import com.meeple.citybuild.client.render.structs.Light;
 import com.meeple.citybuild.client.render.structs.Material;
@@ -77,19 +78,6 @@ public class temp {
 
 	private static String debugLayout = "[%r][%d{HH:mm:ss:SSS}][%t][%p] (%F:%L) %m%n";
 	private static final int maxMaterials = 10;
-
-	private static final int maxLights = 2;
-	private static final int vpMatrixBindingpoint = 2;
-	private static final int lightBufferBindingPoint = 3;
-	private static final int materialBufferBindingPoint = 4;
-
-	/**
-	 * Names of the attributes, these are stored in the mesh instanced map with
-	 * these values as keys
-	 */
-	private static final String transformMatName = "meshTransformMatrix", materialIndexName = "meshMaterialIndex",
-			normalMatName = "meshNormalMatrix", colourName = "colour";
-
 	public static void main(String[] args) {
 
 		Logger.getRootLogger().setLevel(org.apache.log4j.Level.ALL);
@@ -142,33 +130,11 @@ public class temp {
 	 */
 	Model primaryModel = new Model();
 	Model primaryLightModel = new Model();
-	Model[][] models = new Model[1][1];
 	/**
 	 * this holds the models mesh instance data
 	 */
 	Map<Model, Set<MeshInstance>> instances = new CollectionSuppliers.MapSupplier<Model, Set<MeshInstance>>().get();
-
-	Matrix4f fixMatrix = new Matrix4f(
-			1,
-			0,
-			0,
-			0,
-			0,
-			0,
-			1,
-			0,
-			0,
-			1,
-			0,
-			0,
-			0,
-			0,
-			0,
-			1);
-	Matrix4f viewMatrix = new Matrix4f();
-	Matrix4f projectionMatrix = new Matrix4f();
-	Matrix4f viewProjectionMatrix = new Matrix4f();
-	Matrix4f vpfMatrix = new Matrix4f();
+	ViewMatrices viewMatrices = new ViewMatrices();
 
 	Vector3f viewPosition = new Vector3f();
 	Vector3f lightPosition = new Vector3f(5f, 0f, 1f);
@@ -244,6 +210,13 @@ public class temp {
 			RenderableVAO axis = drawAxis(100);
 			ShaderProgramSystem2.loadVAO(glContext, debugProgram, axis);
 			GL46.glLineWidth(3f);
+
+			viewMatrices.projectionMatrix
+					.setPerspective(
+							(float) Math.toRadians(fov),
+							(float) width / height,
+							0.01f,
+							100.0f);
 
 			/**
 			 * now everything is setup we can show the window and start rendering
@@ -387,22 +360,12 @@ public class temp {
 		// set camera rotation
 		if (true) {
 			rotation = total * 0.0125f * (float) Math.PI;
-			// } else {
-			// rotation = (float) Math.toRadians(90);
 		}
-		// update projection matrix, not needed per frame but easier to have.
-		projectionMatrix
-				.setPerspective(
-						(float) Math.toRadians(fov),
-						(float) width / height,
-						0.01f,
-						100.0f);
-
 		// projectionMatrix.rotate(axisAngle)
 		// setting the view position defined by the rotation previously set and a radius
 		viewPosition.set(15f * (float) Math.cos(rotation), 15f, 15f * (float) Math.sin(rotation));
 		// setting the view matrix to look at 000 from view position
-		viewMatrix
+		viewMatrices.viewMatrix
 				.setLookAt(
 						viewPosition.x,
 						viewPosition.y,
@@ -413,11 +376,7 @@ public class temp {
 						0f,
 						1f,
 						0f);
-		// update VP matrix
-		projectionMatrix.mul(viewMatrix, viewProjectionMatrix);
-		// multiply VP matrix by the fix and store in VPF
-		viewProjectionMatrix.mul(fixMatrix, vpfMatrix);
-
+		viewMatrices.viewMatrixUpdate.set(true);
 		// handles the rotation of light source/model
 		if (true) {
 			float rotation2 = -total * 0.25f * (float) Math.PI;
@@ -441,8 +400,7 @@ public class temp {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glEnable(GL_DEPTH_TEST);
 
-		ShaderProgramDefinitions.collection.writeVPFMatrix(projectionMatrix, viewMatrix, viewProjectionMatrix,
-				vpfMatrix);
+		ShaderProgramDefinitions.collection.writeVPFMatrix(viewMatrices);
 		try (ShaderClosable sc = ShaderProgramSystem2.useProgram(program)) {
 
 			for (MeshInstance meshInstance : instances.get(primaryModel)) {
@@ -531,7 +489,6 @@ public class temp {
 		return elementArrayBufferData;
 	}
 
-
 	/**
 	 * sets up the mesh with attributes/VBOs and uses the AIMesh data provided
 	 * 
@@ -539,7 +496,7 @@ public class temp {
 	 * @param maxMeshes maximum instances of the mesh
 	 * @return Mesh to be rendered with shader program
 	 */
-	//TODO sometimes causes jemalloc exceptions
+	// TODO sometimes causes jemalloc exceptions
 	private ShaderProgram.RenderableVAO setupMesh(AIMesh aim, long maxMeshes) {
 
 		ShaderProgramDefinition_3D_lit_mat.Mesh mesh = ShaderProgramDefinitions.collection._3D_lit_mat
@@ -664,6 +621,13 @@ public class temp {
 				if (width > 0 && height > 0 && (temp.this.width != width || temp.this.height != height)) {
 					temp.this.width = width;
 					temp.this.height = height;
+					viewMatrices.projectionMatrix
+							.setPerspective(
+									(float) Math.toRadians(fov),
+									(float) width / height,
+									0.01f,
+									100.0f);
+					viewMatrices.projectionMatrixUpdate.set(true);
 				}
 			}
 		});
@@ -711,6 +675,13 @@ public class temp {
 				} else if (fov > 120.0f) {
 					fov = 120.0f;
 				}
+				viewMatrices.projectionMatrix
+						.setPerspective(
+								(float) Math.toRadians(fov),
+								(float) width / height,
+								0.01f,
+								100.0f);
+				viewMatrices.projectionMatrixUpdate.set(true);
 			}
 		});
 

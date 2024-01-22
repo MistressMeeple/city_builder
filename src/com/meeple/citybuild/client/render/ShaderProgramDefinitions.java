@@ -1,6 +1,7 @@
 package com.meeple.citybuild.client.render;
 
 import java.lang.ref.WeakReference;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
@@ -23,6 +24,23 @@ import com.meeple.shared.frame.OGL.ShaderProgram.GLDataType;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
 
 public class ShaderProgramDefinitions {
+    public static class ViewMatrices {
+        public Matrix4f fixMatrix = new Matrix4f(
+                1, 0, 0, 0,
+                0, 0, 1, 0,
+                0, 1, 0, 0,
+                0, 0, 0, 1);
+        public Matrix4f projectionMatrix = new Matrix4f();
+        public Matrix4f viewMatrix = new Matrix4f();
+
+        protected AtomicBoolean fixMatrixUpdate = new AtomicBoolean(true);
+        protected AtomicBoolean projectionMatrixUpdate = new AtomicBoolean(true);
+        protected AtomicBoolean viewMatrixUpdate = new AtomicBoolean(true);
+
+        protected Matrix4f viewProjectionMatrix = new Matrix4f();
+        protected Matrix4f viewProjectionFixMatrix = new Matrix4f();
+
+    }
 
     /* matrix to convert from z forward to z up, aka the fix matrix */
     public static final Matrix4f fixMatrix = new Matrix4f(
@@ -37,7 +55,7 @@ public class ShaderProgramDefinitions {
      * Unknown good limits for the game yet
      */
     protected static final int maxLights = 10;
-    public static int maxMaterials = 15;
+    protected static final int maxMaterials = 15;
 
     /**
      * Binding locations for the shared uniforms.
@@ -203,6 +221,36 @@ public class ShaderProgramDefinitions {
                 glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 3, vp.get(store));
             if (vpf != null)
                 glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 4, vpf.get(store));
+
+            glBindBuffer(GL46.GL_UNIFORM_BUFFER, 0);
+        }
+
+        public void writeVPFMatrix(ViewMatrices matrices) {
+            glBindBuffer(GL46.GL_UNIFORM_BUFFER, matrixBuffer);
+            float[] store = new float[16];
+
+            boolean fixUpdate = matrices.fixMatrixUpdate.compareAndSet(true, false);
+            boolean projectionUpdate = matrices.projectionMatrixUpdate.compareAndSet(true, false);
+            boolean viewUpdate = matrices.viewMatrixUpdate.compareAndSet(true, false);
+
+            if (fixUpdate){
+                glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 0, matrices.fixMatrix.get(store));
+            }
+            if (projectionUpdate){
+                glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 1, matrices.projectionMatrix.get(store));
+            }
+
+            if (viewUpdate){
+                glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 2, matrices.viewMatrix.get(store));
+            }
+
+            if (viewUpdate || projectionUpdate)
+                matrices.projectionMatrix.mul(matrices.viewMatrix, matrices.viewProjectionMatrix);
+                glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 3, matrices.viewProjectionMatrix.get(store));
+
+            if (viewUpdate || projectionUpdate || fixUpdate)
+                matrices.viewProjectionMatrix.mul(matrices.fixMatrix, matrices.viewProjectionFixMatrix);
+                glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 4, matrices.viewProjectionFixMatrix.get(store));
 
             glBindBuffer(GL46.GL_UNIFORM_BUFFER, 0);
         }
