@@ -209,13 +209,12 @@ public class ShaderProgramDefinitions {
 
     }
 
-    public static final String 
-        vertex_AttributeName = "vertex", 
-        colour_AttributeName = "colour", 
-        normal_AttributeName = "normal", 
-        meshTransform_AttributeName = "modelMatrix", 
-        normalMatrix_AttributeName = "normalMatrix", 
-        materialIndex_AttributeName = "materialIndex";
+    public static final String vertex_AttributeName = "vertex",
+            colour_AttributeName = "colour",
+            normal_AttributeName = "normal",
+            meshTransform_AttributeName = "modelMatrix",
+            normalMatrix_AttributeName = "normalMatrix",
+            materialIndex_AttributeName = "materialIndex";
 
     public static class MeshAttributeGenerator {
         public static Attribute generateVertexAttribute() {
@@ -366,7 +365,8 @@ public class ShaderProgramDefinitions {
 
             mesh.colourAttribute = MeshAttributeGenerator.generateColourAttribute(maxInstances);
             mesh.VBOs.add(mesh.colourAttribute);
-            mesh.instanceAttributes.put(colour_AttributeName, new WeakReference<ShaderProgram.Attribute>(mesh.colourAttribute));
+            mesh.instanceAttributes.put(colour_AttributeName,
+                    new WeakReference<ShaderProgram.Attribute>(mesh.colourAttribute));
 
             mesh.modelRenderType = GLDrawMode.Line;
 
@@ -393,27 +393,32 @@ public class ShaderProgramDefinitions {
 
         public E createMesh(long maxInstances) {
             E mesh = super.createMesh(maxInstances);
+            if (mesh.vertexAttribute == null) {
+                mesh.vertexAttribute = MeshAttributeGenerator.generateVertexAttribute();
+                mesh.VBOs.add(mesh.vertexAttribute);
+            }
+            if (mesh.normalAttribute == null) {
+                mesh.normalAttribute = MeshAttributeGenerator.generateNormalAttribute();
+                mesh.VBOs.add(mesh.normalAttribute);
+            }
 
-            mesh.vertexAttribute = MeshAttributeGenerator.generateVertexAttribute();
-            mesh.VBOs.add(mesh.vertexAttribute);
-
-            mesh.normalAttribute = MeshAttributeGenerator.generateNormalAttribute();
-            mesh.VBOs.add(mesh.normalAttribute);
-
-            mesh.elementAttribute = MeshAttributeGenerator.generateElementAttribute();
-            mesh.VBOs.add(mesh.elementAttribute);
-            mesh.index = new WeakReference<ShaderProgram.BufferObject>(mesh.elementAttribute);
-
-            mesh.meshTransformAttribute = MeshAttributeGenerator.generateMeshTransformAttribute(maxInstances);
-            mesh.VBOs.add(mesh.meshTransformAttribute);
-            mesh.instanceAttributes.put(meshTransform_AttributeName,
-                    new WeakReference<ShaderProgram.Attribute>(mesh.meshTransformAttribute));
-
-            mesh.meshNormalMatrixAttribute = MeshAttributeGenerator.generateMeshNormalMatrixAttribute(maxInstances);
-            mesh.VBOs.add(mesh.meshNormalMatrixAttribute);
-            mesh.instanceAttributes.put(normalMatrix_AttributeName,
-                    new WeakReference<ShaderProgram.Attribute>(mesh.meshNormalMatrixAttribute));
-
+            if (mesh.elementAttribute == null) {
+                mesh.elementAttribute = MeshAttributeGenerator.generateElementAttribute();
+                mesh.VBOs.add(mesh.elementAttribute);
+                mesh.index = new WeakReference<ShaderProgram.BufferObject>(mesh.elementAttribute);
+            }
+            if (mesh.meshTransformAttribute == null) {
+                mesh.meshTransformAttribute = MeshAttributeGenerator.generateMeshTransformAttribute(maxInstances);
+                mesh.VBOs.add(mesh.meshTransformAttribute);
+                mesh.instanceAttributes.put(meshTransform_AttributeName,
+                        new WeakReference<ShaderProgram.Attribute>(mesh.meshTransformAttribute));
+            }
+            if (mesh.meshNormalMatrixAttribute == null) {
+                mesh.meshNormalMatrixAttribute = MeshAttributeGenerator.generateMeshNormalMatrixAttribute(maxInstances);
+                mesh.VBOs.add(mesh.meshNormalMatrixAttribute);
+                mesh.instanceAttributes.put(normalMatrix_AttributeName,
+                        new WeakReference<ShaderProgram.Attribute>(mesh.meshNormalMatrixAttribute));
+            }
             mesh.modelRenderType = GLDrawMode.Triangles;
 
             return mesh;
@@ -444,11 +449,12 @@ public class ShaderProgramDefinitions {
         @Override
         public Mesh createMesh(long maxInstances) {
             Mesh mesh = (Mesh) super.createMesh(maxInstances);
-
-            mesh.colourAttribute = MeshAttributeGenerator.generateColourAttribute(maxInstances);
-            mesh.VBOs.add(mesh.colourAttribute);
-            mesh.instanceAttributes.put(colour_AttributeName, new WeakReference<ShaderProgram.Attribute>(mesh.colourAttribute));
-
+            if (mesh.colourAttribute == null) {
+                mesh.colourAttribute = MeshAttributeGenerator.generateColourAttribute(maxInstances);
+                mesh.VBOs.add(mesh.colourAttribute);
+                mesh.instanceAttributes.put(colour_AttributeName,
+                        new WeakReference<ShaderProgram.Attribute>(mesh.colourAttribute));
+            }
             return mesh;
         }
 
@@ -463,7 +469,7 @@ public class ShaderProgramDefinitions {
             extends LitShaderProgramDefinition<ShaderProgramDefinition_3D_lit_mat.Mesh> {
 
         public class Mesh extends LitShaderProgramDefinition<ShaderProgramDefinition_3D_lit_mat.Mesh>.Mesh {
-            public Attribute materialIndexAttribute = new Attribute();
+            public Attribute materialIndexAttribute;
 
             protected Mesh() {
 
@@ -486,11 +492,12 @@ public class ShaderProgramDefinitions {
         @Override
         public Mesh createMesh(long maxInstances) {
             Mesh mesh = (Mesh) super.createMesh(maxInstances);
-
-            mesh.materialIndexAttribute = MeshAttributeGenerator.generateMaterialIndexAttribute(maxInstances);
-            mesh.VBOs.add(mesh.materialIndexAttribute);
-            mesh.instanceAttributes.put(materialIndex_AttributeName,
-                    new WeakReference<ShaderProgram.Attribute>(mesh.materialIndexAttribute));
+            if (mesh.materialIndexAttribute == null) {
+                mesh.materialIndexAttribute = MeshAttributeGenerator.generateMaterialIndexAttribute(maxInstances);
+                mesh.VBOs.add(mesh.materialIndexAttribute);
+                mesh.instanceAttributes.put(materialIndex_AttributeName,
+                        new WeakReference<ShaderProgram.Attribute>(mesh.materialIndexAttribute));
+            }
             return mesh;
         }
 

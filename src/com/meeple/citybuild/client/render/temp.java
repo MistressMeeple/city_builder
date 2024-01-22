@@ -256,8 +256,8 @@ public class temp {
 				glViewport(0, 0, fbWidth, fbHeight);
 				update();
 				render(program);
-
 				ShaderProgramSystem2.tryRender(debugProgram);
+
 				glfwSwapBuffers(window);
 			}
 
@@ -351,6 +351,7 @@ public class temp {
 				logger.trace("Mesh with name: " + mesh.mName().dataString() + " just been imported");
 
 				ShaderProgram.RenderableVAO dmesh = setupMesh(mesh, 15 /* arbitary number */);
+				dmesh.name = mesh.mName().dataString();
 				meshes.put(mesh.mName().dataString(), dmesh);
 				ShaderProgramSystem2.loadVAO(glc, program, dmesh);
 				mesh.clear();
@@ -530,30 +531,6 @@ public class temp {
 		return elementArrayBufferData;
 	}
 
-	private boolean compareAttributes(Attribute a, Attribute b) {
-	
-	boolean dataMatch = 
-			(a.bufferResourceType == b.bufferResourceType && a.bufferResourceType == BufferDataManagementType.Address && a.bufferAddress.longValue() == b.bufferAddress.longValue())||
-			(a.bufferResourceType == b.bufferResourceType && a.bufferResourceType == BufferDataManagementType.Empty) ||
-			(a.bufferResourceType == b.bufferResourceType && a.bufferResourceType == BufferDataManagementType.Buffer && a.buffer == b.buffer) ||
-			(a.bufferResourceType == b.bufferResourceType && a.bufferResourceType == BufferDataManagementType.List && a.data.equals(b.data)) ||
-			(a.bufferResourceType == b.bufferResourceType && a.bufferResourceType == BufferDataManagementType.Manual);
-		if (
-				a.bufferType == b.bufferType &&
-				a.bufferUsage == b.bufferUsage &&
-				a.dataSize == b.dataSize &&
-				a.dataType == b.dataType &&
-
-				a.name == b.name &&
-				a.normalised == b.normalised &&
-				a.instanced == b.instanced &&
-				a.instanceStride == b.instanceStride
-				&& 
-				dataMatch) {
-			return true;
-		}
-		return false;
-	}
 
 	/**
 	 * sets up the mesh with attributes/VBOs and uses the AIMesh data provided
@@ -562,45 +539,39 @@ public class temp {
 	 * @param maxMeshes maximum instances of the mesh
 	 * @return Mesh to be rendered with shader program
 	 */
+	//TODO sometimes causes jemalloc exceptions
 	private ShaderProgram.RenderableVAO setupMesh(AIMesh aim, long maxMeshes) {
 
-		ShaderProgramDefinition_3D_lit_mat.Mesh mesh2 = ShaderProgramDefinitions.collection._3D_lit_mat.createMesh(maxMeshes);
-		ShaderProgram.RenderableVAO mesh = new ShaderProgram.RenderableVAO();
-
+		ShaderProgramDefinition_3D_lit_mat.Mesh mesh = ShaderProgramDefinitions.collection._3D_lit_mat
+				.createMesh(maxMeshes);
 		{
-			Attribute vertexAttrib = MeshAttributeGenerator.generateVertexAttribute();
-            mesh.VBOs.add(vertexAttrib);
+			Attribute vertexAttrib = mesh.vertexAttribute;
 
 			AIVector3D.Buffer vertices = aim.mVertices();
 			aim.mVertices().free();
 			vertices.clear();
 			long bufferLen = (long) (AIVector3D.SIZEOF * vertices.remaining());
-			
+
 			vertexAttrib.bufferAddress = vertices.address();
 			vertexAttrib.bufferLen = bufferLen;
 			vertexAttrib.bufferResourceType = BufferDataManagementType.Address;
 
 		}
 		{
-			Attribute normalAttrib = MeshAttributeGenerator.generateNormalAttribute();
-            mesh.VBOs.add(normalAttrib);
+			Attribute normalAttrib = mesh.normalAttribute;
 			AIVector3D.Buffer normals = aim.mNormals();
 			normalAttrib.bufferAddress = normals.address();
 			normalAttrib.bufferLen = (long) (AIVector3D.SIZEOF * normals.remaining());
 			normalAttrib.bufferResourceType = BufferDataManagementType.Address;
-			
-			
-			//mesh2.normalAttribute.bufferLen = bufferLen;
-			//mesh2.normalAttribute.bufferResourceType = BufferDataManagementType.Address;
-		
-			
+
+			// mesh2.normalAttribute.bufferLen = bufferLen;
+			// mesh2.normalAttribute.bufferResourceType = BufferDataManagementType.Address;
+
 		}
 		{
-			BufferObject elementAttrib = MeshAttributeGenerator.generateElementAttribute();
-			mesh.VBOs.add(elementAttrib);
-			mesh.index = new WeakReference<ShaderProgram.BufferObject>(elementAttrib);
+			BufferObject elementAttrib = mesh.elementAttribute;
 			// elementAttrib.dataSize = 3;
-			
+
 			AIFace.Buffer facesBuffer = aim.mFaces();
 			int faceCount = aim.mNumFaces();
 			int elementCount = faceCount * 3;
@@ -611,68 +582,7 @@ public class temp {
 
 			mesh.vertexCount = elementCount;
 
-			
-			
-			mesh2.elementAttribute.bufferResourceType = BufferDataManagementType.Buffer;
-			mesh2.elementAttribute.buffer = elementArrayBufferData;
-			mesh2.vertexCount = elementCount;
-			//System.out.println("Element buffers the same? " + compareAttributes(mesh2.elementAttribute, elementAttrib));
 		}
-		{
-			Attribute materialIndexAttrib = new Attribute();
-			materialIndexAttrib.name = ShaderProgramDefinitions.materialIndex_AttributeName;
-			materialIndexAttrib.bufferType = BufferType.ArrayBuffer;
-			materialIndexAttrib.dataType = GLDataType.Float;
-			materialIndexAttrib.bufferUsage = BufferUsage.DynamicDraw;
-			materialIndexAttrib.dataSize = 1;
-			materialIndexAttrib.normalised = false;
-			materialIndexAttrib.instanced = true;
-			materialIndexAttrib.instanceStride = 1;
-			materialIndexAttrib.bufferResourceType = BufferDataManagementType.Empty;
-			materialIndexAttrib.bufferLen = maxMeshes;
-			mesh.VBOs.add(materialIndexAttrib);
-			mesh.instanceAttributes.put(materialIndexAttrib.name, new WeakReference<>(materialIndexAttrib));
-		}
-
-		{
-			Attribute meshTransformAttrib = new Attribute();
-			meshTransformAttrib.name = ShaderProgramDefinitions.meshTransform_AttributeName;
-			meshTransformAttrib.bufferType = BufferType.ArrayBuffer;
-			meshTransformAttrib.dataType = GLDataType.Float;
-			meshTransformAttrib.bufferUsage = BufferUsage.DynamicDraw;
-			meshTransformAttrib.dataSize = 16;
-			meshTransformAttrib.normalised = false;
-			meshTransformAttrib.instanced = true;
-			meshTransformAttrib.instanceStride = 1;
-			meshTransformAttrib.bufferResourceType = BufferDataManagementType.Empty;
-			meshTransformAttrib.bufferLen = maxMeshes;
-			mesh.VBOs.add(meshTransformAttrib);
-			// FrameUtils.appendToList(meshTransformAttrib.data, modelMatrix);
-			mesh.instanceAttributes.put(meshTransformAttrib.name, new WeakReference<>(meshTransformAttrib));
-		}
-		/**
-		 * It is important to use a data size of 16 rather than 9 because for some
-		 * reason the buffer adds padding to vec3 to 4 floats
-		 * easier to just make it a 4 float array
-		 */
-		{
-			Attribute meshNormalMatrixAttrib = new Attribute();
-			meshNormalMatrixAttrib.name = ShaderProgramDefinitions.normalMatrix_AttributeName;
-			meshNormalMatrixAttrib.bufferType = BufferType.ArrayBuffer;
-			meshNormalMatrixAttrib.dataType = GLDataType.Float;
-			meshNormalMatrixAttrib.bufferUsage = BufferUsage.DynamicDraw;
-			meshNormalMatrixAttrib.dataSize = 16;
-			meshNormalMatrixAttrib.normalised = false;
-			meshNormalMatrixAttrib.instanced = true;
-			meshNormalMatrixAttrib.instanceStride = 1;
-			meshNormalMatrixAttrib.bufferResourceType = BufferDataManagementType.Empty;
-			meshNormalMatrixAttrib.bufferLen = maxMeshes;
-			mesh.VBOs.add(meshNormalMatrixAttrib);
-			// FrameUtils.appendToList(meshTransformAttrib.data, modelMatrix);
-			mesh.instanceAttributes.put(meshNormalMatrixAttrib.name, new WeakReference<>(meshNormalMatrixAttrib));
-		}
-		mesh.modelRenderType = GLDrawMode.Triangles;
-		mesh2.modelRenderType = GLDrawMode.Triangles;
 
 		return mesh;
 
