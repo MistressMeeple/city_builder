@@ -1,5 +1,14 @@
 package com.meeple.shared.frame;
 
+import static org.lwjgl.opengl.GL11.GL_INVALID_ENUM;
+import static org.lwjgl.opengl.GL11.GL_INVALID_OPERATION;
+import static org.lwjgl.opengl.GL11.GL_INVALID_VALUE;
+import static org.lwjgl.opengl.GL11.GL_NO_ERROR;
+import static org.lwjgl.opengl.GL11.GL_OUT_OF_MEMORY;
+import static org.lwjgl.opengl.GL11.GL_STACK_OVERFLOW;
+import static org.lwjgl.opengl.GL11.GL_STACK_UNDERFLOW;
+import static org.lwjgl.opengl.GL11.glGetError;
+
 import java.nio.FloatBuffer;
 import java.util.Collection;
 import java.util.Iterator;
@@ -681,6 +690,33 @@ public class FrameUtils {
 				//forcefully shutdown
 				executorService.shutdownNow();
 			}
+		}
+	}
+	public static void checkOpenGLError(){		
+		int errorCode = glGetError();
+		while (errorCode != GL_NO_ERROR) {
+			switch (errorCode) {
+				case GL_INVALID_ENUM:
+					logger.warn("Invalid enum found");
+					break;
+				case GL_INVALID_VALUE:
+					logger.warn("Invalid value found");
+					break;
+				case GL_INVALID_OPERATION:
+					logger.warn("Invalid operation found");
+					break;
+				case GL_STACK_OVERFLOW:
+					logger.warn("Stack overflow found");
+					break;
+				case GL_STACK_UNDERFLOW:
+					logger.warn("Stack underflow found");
+					break;
+				case GL_OUT_OF_MEMORY:
+					logger.warn("Out of memory");
+					break;
+			}
+
+			errorCode = glGetError();
 		}
 	}
 
