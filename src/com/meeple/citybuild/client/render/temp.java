@@ -44,6 +44,8 @@ import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.Callback;
 import org.lwjgl.system.MemoryStack;
 
+import com.meeple.citybuild.client.render.ShaderProgramDefinitions.LitShaderProgramDefinition;
+import com.meeple.citybuild.client.render.ShaderProgramDefinitions.MeshAttributeGenerator;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ShaderProgramDefinition_3D_lit_mat;
 import com.meeple.citybuild.client.render.WorldRenderer.MeshExt;
 import com.meeple.citybuild.client.render.structs.Light;
@@ -69,9 +71,9 @@ import com.meeple.shared.frame.nuklear.IOUtil;
 import com.meeple.shared.frame.wrapper.Wrapper;
 import com.meeple.shared.frame.wrapper.WrapperImpl;
 
-public class ModelLoader {
+public class temp {
 
-	private static Logger logger = Logger.getLogger(ModelLoader.class);
+	private static Logger logger = Logger.getLogger(temp.class);
 
 	private static String debugLayout = "[%r][%d{HH:mm:ss:SSS}][%t][%p] (%F:%L) %m%n";
 	private static final int maxMaterials = 10;
@@ -85,7 +87,7 @@ public class ModelLoader {
 	 * Names of the attributes, these are stored in the mesh instanced map with
 	 * these values as keys
 	 */
-	private static final String transformMatName = "meshTransformMatrix", materialIndexName = "materialIndex",
+	private static final String transformMatName = "meshTransformMatrix", materialIndexName = "meshMaterialIndex",
 			normalMatName = "meshNormalMatrix", colourName = "colour";
 
 	public static void main(String[] args) {
@@ -94,7 +96,7 @@ public class ModelLoader {
 		Appender a = new ConsoleAppender(new PatternLayout(debugLayout));
 		BasicConfigurator.configure(a);
 
-		new ModelLoader().run();
+		new temp().run();
 	}
 
 	// window properties
@@ -107,10 +109,8 @@ public class ModelLoader {
 
 	//
 	// vertex shader uniforms
-	private int matrixBuffer;
-	private int lightBuffer;
+
 	// private int materialBuffer;
-	private int ambientBrightnessLocation;
 
 	/**
 	 * class that represents a set of meshes paired with their material index, and a
@@ -148,6 +148,23 @@ public class ModelLoader {
 	 */
 	Map<Model, Set<MeshInstance>> instances = new CollectionSuppliers.MapSupplier<Model, Set<MeshInstance>>().get();
 
+	Matrix4f fixMatrix = new Matrix4f(
+			1,
+			0,
+			0,
+			0,
+			0,
+			0,
+			1,
+			0,
+			0,
+			1,
+			0,
+			0,
+			0,
+			0,
+			0,
+			1);
 	Matrix4f viewMatrix = new Matrix4f();
 	Matrix4f projectionMatrix = new Matrix4f();
 	Matrix4f viewProjectionMatrix = new Matrix4f();
@@ -163,14 +180,6 @@ public class ModelLoader {
 	GLFWWindowSizeCallback wsCallback;
 
 	GLFWScrollCallback sCallback;
-
-	private static void bindUBONameToIndex(String name, int binding, ShaderProgram... programs) {
-		for (ShaderProgram program : programs) {
-			int actualIndex = GL46.glGetUniformBlockIndex(program.programID, name);
-			// binds the binding index to the interface block (by index)
-			glUniformBlockBinding(program.programID, actualIndex, binding);
-		}
-	}
 
 	void run() {
 		try (GLContext glContext = new GLContext()) {
@@ -188,25 +197,24 @@ public class ModelLoader {
 
 			/* Create all needed GL resources */
 			ShaderProgramDefinitions.collection.create(glContext);
-			ShaderProgramDefinitions.collection.writeFixMatrix(ShaderProgramDefinitions.fixMatrix);
-
+			ShaderProgram program = ShaderProgramDefinitions.collection._3D_lit_mat;
 			initLights();
 			initMaterials();
 
 			/* read/setup the scene meshes */
 			loadModel(
 					glContext,
-					ShaderProgramDefinitions.collection._3D_lit_mat,
+					program,
 					"resources/models/yert.fbx",
 					meshes);
 
 			{
-				Model imported = new Model();
+
 				int i = 0;
 				for (RenderableVAO a : meshes.values()) {
 					int mIndex = 0;
 					RenderableVAO dmesh = a;
-					ShaderProgramSystem2.loadVAO(glContext, ShaderProgramDefinitions.collection._3D_lit_mat, dmesh);
+					ShaderProgramSystem2.loadVAO(glContext, program, dmesh);
 
 					primaryModel.meshToMaterials.put(dmesh, mIndex + i);
 					primaryLightModel.meshToMaterials.put(dmesh, 0);
@@ -219,7 +227,6 @@ public class ModelLoader {
 						mi.meshDataIndex = index++;
 						FrameUtils.addToSetMap(instances, primaryModel, mi, new CollectionSuppliers.SetSupplier<>());
 					}
-
 					{
 						MeshInstance mi2 = new MeshInstance();
 						mi2.mesh = new WeakReference<>(dmesh);
@@ -227,37 +234,16 @@ public class ModelLoader {
 						FrameUtils.addToSetMap(instances, primaryLightModel, mi2,
 								new CollectionSuppliers.SetSupplier<>());
 					}
-
 					i++;
 				}
 			}
-
-			// setup the debug draw program
-			ShaderProgram debugProgram = new ShaderProgram();
-			{
-				String vertSource = ShaderProgramSystem2
-						.loadShaderSourceFromFile(("resources/shaders/3D_nolit_flat.vert"));
-				String fragSource = ShaderProgramSystem2
-						.loadShaderSourceFromFile(("resources/shaders/3D_nolit_flat.frag"));
-				debugProgram.shaderSources.put(GLShaderType.VertexShader, vertSource);
-				debugProgram.shaderSources.put(GLShaderType.FragmentShader, fragSource);
-
-				// setup the program
-				try {
-					ShaderProgramSystem2.create(glContext, debugProgram);
-				} catch (Exception err) {
-					err.printStackTrace();
-				}
-				bindUBONameToIndex("Matrices", vpMatrixBindingpoint, debugProgram);
-			}
-
-			// setup the axis draw mesh
-			RenderableVAO axis = null;
-			{
-				axis = drawAxis(100);
-				ShaderProgramSystem2.loadVAO(glContext, debugProgram, axis);
-				GL46.glLineWidth(3f);
-			}
+			/**
+			 * setup the debug draw program
+			 */
+			ShaderProgram debugProgram = ShaderProgramDefinitions.collection._3D_unlit_flat;
+			RenderableVAO axis = drawAxis(100);
+			ShaderProgramSystem2.loadVAO(glContext, debugProgram, axis);
+			GL46.glLineWidth(3f);
 
 			/**
 			 * now everything is setup we can show the window and start rendering
@@ -269,11 +255,10 @@ public class ModelLoader {
 				glfwPollEvents();
 				glViewport(0, 0, fbWidth, fbHeight);
 				update();
-				render(ShaderProgramDefinitions.collection._3D_lit_mat);
+				render(program);
 
 				ShaderProgramSystem2.tryRender(debugProgram);
 				glfwSwapBuffers(window);
-
 			}
 
 			c.free();
@@ -301,33 +286,28 @@ public class ModelLoader {
 		secondaryLight.attenuation.set(7, 10, 1f);
 		secondaryLight.colour.set(1, 1, 1);
 		secondaryLight.enabled = true;
-		ShaderProgramDefinitions.collection.updateLights(0, primaryLight,secondaryLight);
+		ShaderProgramDefinitions.collection.updateLights(0, primaryLight, secondaryLight);
 	}
 
 	private void initMaterials() {
+		Material m0 = new Material();
+		m0.baseColour.set(1, 1, 1, 1);
+		m0.reflectiveTint.set(1, 1, 0);
+		m0.baseColourStrength = 0.75f;
+		m0.reflectivityStrength = 0.1f;
 
+		Material m1 = new Material();
+		m1.baseColour.set(0.76f, 0.60f, 0.42f, 1);
+		m1.baseColourStrength = 1f;
+		m1.reflectiveTint.set(0.76f, 0.60f, 0.42f);
+		m1.reflectivityStrength = 0f;
 
-		
-			Material m1 = new Material();
-			m1.baseColour.set(1, 1, 1, 1);
-			m1.reflectiveTint.set(1, 1, 0);
-			m1.baseColourStrength = 0.75f;
-			m1.reflectivityStrength = 0.1f;
-		
-			Material m2 = new Material();
-			m2.baseColour.set(0.76f, 0.60f, 0.42f, 1);
-			m2.baseColourStrength = 1f;
-			m2.reflectiveTint.set(0.76f, 0.60f, 0.42f);
-			m2.reflectivityStrength = 0f;
+		Material m2 = new Material();
+		m2.baseColour.set(0, 0, 1, 1);
+		m2.reflectiveTint.set(0, 0, 1);
 
-			Material m3 = new Material();
-			m3.baseColour.set(0, 0, 1, 1);
-			m3.reflectiveTint.set(0, 0, 1);
-			
-		ShaderProgramDefinitions.collection.updateMaterials(0,m1,m2,m3);
+		ShaderProgramDefinitions.collection.updateMaterials(0, m0, m1, m2);
 	}
-
-	private Map<Chunk, MeshExt> baked = new CollectionSuppliers.MapSupplier<Chunk, MeshExt>().get();
 
 	/**
 	 * loads an AIScene from memory and converts all meshes found into our format
@@ -367,55 +347,15 @@ public class ModelLoader {
 			PointerBuffer meshesBuffer = scene.mMeshes();
 			for (int i = 0; i < meshCount; ++i) {
 				AIMesh mesh = AIMesh.create(meshesBuffer.get(i));
-				String meshName = mesh.mName().dataString();
-				logger.trace("Mesh with name: " + meshName + " just been imported");
 
-				int mIndex = 0;
-				ShaderProgram.RenderableVAO dmesh = setupMesh(mesh, 4 + (models.length * models[0].length));
-				dmesh.name = meshName;
-				/*
-				 * long vertAddress = mesh.mVertices().address();
-				 * long normAddress = mesh.mNormals().address();
-				 * 
-				 * {
-				 * 
-				 * int elementCount;
-				 * int faceCount = mesh.mNumFaces();
-				 * elementCount = faceCount * 3;
-				 * IntBuffer elementArrayBufferData = BufferUtils.createIntBuffer(elementCount);
-				 * AIFace.Buffer facesBuffer = mesh.mFaces();
-				 * for (int j = 0; j < faceCount; ++j) {
-				 * AIFace face = facesBuffer.get(j);
-				 * if (face.mNumIndices() != 3) {
-				 * 
-				 * } else {
-				 * elementArrayBufferData.put(face.mIndices());
-				 * }
-				 * }
-				 * }
-				 */
-				meshes.put(meshName, dmesh);
+				logger.trace("Mesh with name: " + mesh.mName().dataString() + " just been imported");
+
+				ShaderProgram.RenderableVAO dmesh = setupMesh(mesh, 15 /* arbitary number */);
+				meshes.put(mesh.mName().dataString(), dmesh);
 				ShaderProgramSystem2.loadVAO(glc, program, dmesh);
 				mesh.clear();
 				mesh.free();
 
-				if (false) {
-
-					for (int x = 0; x < models.length; x++) {
-						for (int y = 0; y < models[x].length; y++) {
-							models[x][y] = new Model();
-							models[x][y].meshToMaterials.put(dmesh, 2);
-							dmesh.renderCount += 1;
-
-							MeshInstance mi = new MeshInstance();
-							mi.mesh = new WeakReference<>(dmesh);
-							// mi.meshDataIndex = index++;
-							FrameUtils.addToSetMap(instances, models[x][y], mi,
-									new CollectionSuppliers.SetSupplier<>());
-							models[x][y].translation.setTranslation(x * 2, 0, y * 2);
-						}
-					}
-				}
 			}
 		}
 		aiReleaseImport(scene);
@@ -446,8 +386,8 @@ public class ModelLoader {
 		// set camera rotation
 		if (true) {
 			rotation = total * 0.0125f * (float) Math.PI;
-		} else {
-			rotation = (float) Math.toRadians(90);
+			// } else {
+			// rotation = (float) Math.toRadians(90);
 		}
 		// update projection matrix, not needed per frame but easier to have.
 		projectionMatrix
@@ -475,7 +415,7 @@ public class ModelLoader {
 		// update VP matrix
 		projectionMatrix.mul(viewMatrix, viewProjectionMatrix);
 		// multiply VP matrix by the fix and store in VPF
-		viewProjectionMatrix.mul(ShaderProgramDefinitions.fixMatrix, vpfMatrix);
+		viewProjectionMatrix.mul(fixMatrix, vpfMatrix);
 
 		// handles the rotation of light source/model
 		if (true) {
@@ -489,23 +429,6 @@ public class ModelLoader {
 			primaryLight.attenuation.y = primaryLight.attenuation.x * (1 * (float) (Math.sin(rotation2) + 1f) / 2f);
 
 		}
-		if (false) {
-			// TODO
-			/*
-			 * for (int i = 0; i < models.length; i++) {
-			 * 
-			 * float a = (-total + (i * 0.8f)) * 0.25f;
-			 * float b = a * (float) Math.PI;
-			 * Vector3f lpos = new Vector3f(
-			 * 10f * (float) Math.sin(b),
-			 * i * 0.05f,
-			 * 2 * (float) Math.cos(b));
-			 * models[i].translation.setTranslation(lpos);
-			 * }
-			 */
-		}
-		// light.translation.setTranslation(10, 0, 0);
-		// model.translation.translate(0, deltaSeconds, 0);
 	}
 
 	/**
@@ -525,44 +448,17 @@ public class ModelLoader {
 				writeMeshTranslation(meshInstance, primaryModel.translation);
 				writeMeshMaterialIndex(meshInstance, primaryModel.meshToMaterials.get(meshInstance.mesh.get()));
 			}
-
 			for (MeshInstance meshInstance : instances.get(primaryLightModel)) {
 				writeMeshTranslation(meshInstance, primaryLightModel.translation);
-				writeMeshMaterialIndex(meshInstance,
-						primaryLightModel.meshToMaterials.get(meshInstance.mesh.get()));
+				writeMeshMaterialIndex(meshInstance, primaryLightModel.meshToMaterials.get(meshInstance.mesh.get()));
 			}
 
-			ShaderProgramDefinitions.collection.updateLights(0, secondaryLight,primaryLight);
-			
-			glUniform1f(ambientBrightnessLocation, 0.5125f);
+			ShaderProgramDefinitions.collection.updateLights(0, secondaryLight, primaryLight);
+			// ShaderProgramDefinitions.collection._3D_lit_mat.setAmbientBrightness(0.0125f);
+			ShaderProgramDefinitions.collection.updateAmbientBrightness(1.5125f);
 		}
 
 		ShaderProgramSystem2.tryRender(program);
-		int errorCode = glGetError();
-		while (errorCode != GL_NO_ERROR) {
-			switch (errorCode) {
-				case GL_INVALID_ENUM:
-					logger.warn("Invalid enum found");
-					break;
-				case GL_INVALID_VALUE:
-					logger.warn("Invalid value found");
-					break;
-				case GL_INVALID_OPERATION:
-					logger.warn("Invalid operation found");
-					break;
-				case GL_STACK_OVERFLOW:
-					logger.warn("Stack overflow found");
-					break;
-				case GL_STACK_UNDERFLOW:
-					logger.warn("Stack underflow found");
-					break;
-				case GL_OUT_OF_MEMORY:
-					logger.warn("Out of memory");
-					break;
-			}
-
-			errorCode = glGetError();
-		}
 
 	}
 
@@ -580,8 +476,8 @@ public class ModelLoader {
 			normal.set(translation).invert().transpose();
 			float[] data = new Matrix4f(normal).get(new float[16]);
 			// upload translation and normal matrix
-			writeBuffer(instance, "modelMatrix", translation.get(new float[16]));
-			writeBuffer(instance, "normalMatrix", data);
+			writeBuffer(instance, ShaderProgramDefinitions.meshTransform_AttributeName, translation.get(new float[16]));
+			writeBuffer(instance, ShaderProgramDefinitions.normalMatrix_AttributeName, data);
 		} catch (Exception e) {
 			logger.warn("failed to update", e);
 
@@ -596,7 +492,7 @@ public class ModelLoader {
 	 */
 	private void writeMeshMaterialIndex(MeshInstance instance, int materialIndex) {
 		try {
-			writeBuffer(instance, materialIndexName, new float[] { materialIndex });
+			writeBuffer(instance, ShaderProgramDefinitions.materialIndex_AttributeName, new float[] { materialIndex });
 		} catch (Exception e) {
 			logger.warn("failed to update", e);
 		}
@@ -611,16 +507,14 @@ public class ModelLoader {
 	 * @throws Exception if anything fails, eg null pointers
 	 */
 	private void writeBuffer(MeshInstance instance, String name, float[] data) throws Exception {
-		RenderableVAO mesh = instance.mesh.get();
-		WeakReference<Attribute> instanced = mesh.instanceAttributes.get(name);
-		Attribute attrib = instanced.get();
+
+		Attribute attrib = instance.mesh.get().instanceAttributes.get(name).get();
 		long offset = instance.meshDataIndex * (attrib.dataSize * attrib.dataType.getBytes());
 
 		GL46.glBindBuffer(attrib.bufferType.getGLID(), attrib.VBOID);
 		GL46.glBufferSubData(attrib.bufferType.getGLID(), offset, data);
 		GL46.glBindBuffer(attrib.bufferType.getGLID(), 0);
 	}
-
 
 	private IntBuffer convertElementBuffer(AIFace.Buffer facesBuffer, int faceCount, int elementCount) {
 		IntBuffer elementArrayBufferData = BufferUtils.createIntBuffer(elementCount);
@@ -636,6 +530,31 @@ public class ModelLoader {
 		return elementArrayBufferData;
 	}
 
+	private boolean compareAttributes(Attribute a, Attribute b) {
+	
+	boolean dataMatch = 
+			(a.bufferResourceType == b.bufferResourceType && a.bufferResourceType == BufferDataManagementType.Address && a.bufferAddress.longValue() == b.bufferAddress.longValue())||
+			(a.bufferResourceType == b.bufferResourceType && a.bufferResourceType == BufferDataManagementType.Empty) ||
+			(a.bufferResourceType == b.bufferResourceType && a.bufferResourceType == BufferDataManagementType.Buffer && a.buffer == b.buffer) ||
+			(a.bufferResourceType == b.bufferResourceType && a.bufferResourceType == BufferDataManagementType.List && a.data.equals(b.data)) ||
+			(a.bufferResourceType == b.bufferResourceType && a.bufferResourceType == BufferDataManagementType.Manual);
+		if (
+				a.bufferType == b.bufferType &&
+				a.bufferUsage == b.bufferUsage &&
+				a.dataSize == b.dataSize &&
+				a.dataType == b.dataType &&
+
+				a.name == b.name &&
+				a.normalised == b.normalised &&
+				a.instanced == b.instanced &&
+				a.instanceStride == b.instanceStride
+				&& 
+				dataMatch) {
+			return true;
+		}
+		return false;
+	}
+
 	/**
 	 * sets up the mesh with attributes/VBOs and uses the AIMesh data provided
 	 * 
@@ -644,95 +563,125 @@ public class ModelLoader {
 	 * @return Mesh to be rendered with shader program
 	 */
 	private ShaderProgram.RenderableVAO setupMesh(AIMesh aim, long maxMeshes) {
-		ShaderProgramDefinition_3D_lit_mat.Mesh mesh = ShaderProgramDefinitions.collection._3D_lit_mat
-				.createMesh(maxMeshes);
+
+		ShaderProgramDefinition_3D_lit_mat.Mesh mesh2 = ShaderProgramDefinitions.collection._3D_lit_mat.createMesh(maxMeshes);
+		ShaderProgram.RenderableVAO mesh = new ShaderProgram.RenderableVAO();
+
 		{
+			Attribute vertexAttrib = MeshAttributeGenerator.generateVertexAttribute();
+            mesh.VBOs.add(vertexAttrib);
 
 			AIVector3D.Buffer vertices = aim.mVertices();
-			mesh.vertexAttribute.bufferAddress = vertices.address();
-
 			aim.mVertices().free();
 			vertices.clear();
-			mesh.vertexAttribute.bufferLen = (long) (AIVector3D.SIZEOF * vertices.remaining());
-			mesh.vertexAttribute.bufferResourceType = BufferDataManagementType.Address;
-			mesh.vertexAttribute.update.set(true);
+			long bufferLen = (long) (AIVector3D.SIZEOF * vertices.remaining());
+			
+			vertexAttrib.bufferAddress = vertices.address();
+			vertexAttrib.bufferLen = bufferLen;
+			vertexAttrib.bufferResourceType = BufferDataManagementType.Address;
+
 		}
 		{
-
+			Attribute normalAttrib = MeshAttributeGenerator.generateNormalAttribute();
+            mesh.VBOs.add(normalAttrib);
 			AIVector3D.Buffer normals = aim.mNormals();
-			mesh.normalAttribute.bufferAddress = normals.address();
-			mesh.normalAttribute.bufferLen = (long) (AIVector3D.SIZEOF * normals.remaining());
-			mesh.normalAttribute.bufferResourceType = BufferDataManagementType.Address;
-			mesh.normalAttribute.update.set(true);
-
+			normalAttrib.bufferAddress = normals.address();
+			normalAttrib.bufferLen = (long) (AIVector3D.SIZEOF * normals.remaining());
+			normalAttrib.bufferResourceType = BufferDataManagementType.Address;
+			
+			
+			//mesh2.normalAttribute.bufferLen = bufferLen;
+			//mesh2.normalAttribute.bufferResourceType = BufferDataManagementType.Address;
+		
+			
 		}
 		{
-
+			BufferObject elementAttrib = MeshAttributeGenerator.generateElementAttribute();
+			mesh.VBOs.add(elementAttrib);
+			mesh.index = new WeakReference<ShaderProgram.BufferObject>(elementAttrib);
+			// elementAttrib.dataSize = 3;
+			
 			AIFace.Buffer facesBuffer = aim.mFaces();
 			int faceCount = aim.mNumFaces();
 			int elementCount = faceCount * 3;
-			mesh.elementAttribute.bufferResourceType = BufferDataManagementType.Buffer;
+			elementAttrib.bufferResourceType = BufferDataManagementType.Buffer;
 
 			IntBuffer elementArrayBufferData = convertElementBuffer(facesBuffer, faceCount, elementCount);
-			mesh.elementAttribute.buffer = elementArrayBufferData;
-			mesh.elementAttribute.update.set(true);
+			elementAttrib.buffer = elementArrayBufferData;
+
 			mesh.vertexCount = elementCount;
+
+			
+			
+			mesh2.elementAttribute.bufferResourceType = BufferDataManagementType.Buffer;
+			mesh2.elementAttribute.buffer = elementArrayBufferData;
+			mesh2.vertexCount = elementCount;
+			//System.out.println("Element buffers the same? " + compareAttributes(mesh2.elementAttribute, elementAttrib));
 		}
-		mesh.modelRenderType = GLDrawMode.Triangles;
-
-		return mesh;
-
-	}
-
-	/**
-	 * sets up the mesh with attributes/VBOs and uses the AIMesh data provided
-	 * 
-	 * @param aim       mesh data to read from
-	 * @param maxMeshes maximum instances of the mesh
-	 * @return Mesh to be rendered with shader program
-	 */
-	private ShaderProgram.RenderableVAO setup_3D_nolit_flat_mesh(FloatBuffer vertices, FloatBuffer colours, int count) {
-		ShaderProgram.RenderableVAO mesh = new ShaderProgram.RenderableVAO();
 		{
-			Attribute vertexAttrib = new Attribute();
-			vertexAttrib.name = "vertex";
-			vertexAttrib.bufferType = BufferType.ArrayBuffer;
-			vertexAttrib.dataType = GLDataType.Float;
-			vertexAttrib.bufferUsage = BufferUsage.StaticDraw;
-			vertexAttrib.dataSize = 3;
-			vertexAttrib.normalised = false;
-
-			vertexAttrib.bufferResourceType = BufferDataManagementType.Buffer;
-			vertexAttrib.buffer = vertices;
-
-			mesh.VBOs.add(vertexAttrib);
+			Attribute materialIndexAttrib = new Attribute();
+			materialIndexAttrib.name = ShaderProgramDefinitions.materialIndex_AttributeName;
+			materialIndexAttrib.bufferType = BufferType.ArrayBuffer;
+			materialIndexAttrib.dataType = GLDataType.Float;
+			materialIndexAttrib.bufferUsage = BufferUsage.DynamicDraw;
+			materialIndexAttrib.dataSize = 1;
+			materialIndexAttrib.normalised = false;
+			materialIndexAttrib.instanced = true;
+			materialIndexAttrib.instanceStride = 1;
+			materialIndexAttrib.bufferResourceType = BufferDataManagementType.Empty;
+			materialIndexAttrib.bufferLen = maxMeshes;
+			mesh.VBOs.add(materialIndexAttrib);
+			mesh.instanceAttributes.put(materialIndexAttrib.name, new WeakReference<>(materialIndexAttrib));
 		}
 
 		{
-			Attribute colourAttrib = new Attribute();
-			colourAttrib.name = "colour";
-			colourAttrib.bufferType = BufferType.ArrayBuffer;
-			colourAttrib.dataType = GLDataType.Float;
-			colourAttrib.bufferUsage = BufferUsage.StaticDraw;
-			colourAttrib.dataSize = 4;
-			colourAttrib.normalised = false;
-			colourAttrib.instanced = false;
-			colourAttrib.instanceStride = 1;
-			colourAttrib.bufferResourceType = BufferDataManagementType.Buffer;
-			colourAttrib.buffer = colours;
-
-			mesh.VBOs.add(colourAttrib);
-			mesh.instanceAttributes.put(colourName, new WeakReference<>(colourAttrib));
+			Attribute meshTransformAttrib = new Attribute();
+			meshTransformAttrib.name = ShaderProgramDefinitions.meshTransform_AttributeName;
+			meshTransformAttrib.bufferType = BufferType.ArrayBuffer;
+			meshTransformAttrib.dataType = GLDataType.Float;
+			meshTransformAttrib.bufferUsage = BufferUsage.DynamicDraw;
+			meshTransformAttrib.dataSize = 16;
+			meshTransformAttrib.normalised = false;
+			meshTransformAttrib.instanced = true;
+			meshTransformAttrib.instanceStride = 1;
+			meshTransformAttrib.bufferResourceType = BufferDataManagementType.Empty;
+			meshTransformAttrib.bufferLen = maxMeshes;
+			mesh.VBOs.add(meshTransformAttrib);
+			// FrameUtils.appendToList(meshTransformAttrib.data, modelMatrix);
+			mesh.instanceAttributes.put(meshTransformAttrib.name, new WeakReference<>(meshTransformAttrib));
 		}
-
-		mesh.vertexCount = count;
+		/**
+		 * It is important to use a data size of 16 rather than 9 because for some
+		 * reason the buffer adds padding to vec3 to 4 floats
+		 * easier to just make it a 4 float array
+		 */
+		{
+			Attribute meshNormalMatrixAttrib = new Attribute();
+			meshNormalMatrixAttrib.name = ShaderProgramDefinitions.normalMatrix_AttributeName;
+			meshNormalMatrixAttrib.bufferType = BufferType.ArrayBuffer;
+			meshNormalMatrixAttrib.dataType = GLDataType.Float;
+			meshNormalMatrixAttrib.bufferUsage = BufferUsage.DynamicDraw;
+			meshNormalMatrixAttrib.dataSize = 16;
+			meshNormalMatrixAttrib.normalised = false;
+			meshNormalMatrixAttrib.instanced = true;
+			meshNormalMatrixAttrib.instanceStride = 1;
+			meshNormalMatrixAttrib.bufferResourceType = BufferDataManagementType.Empty;
+			meshNormalMatrixAttrib.bufferLen = maxMeshes;
+			mesh.VBOs.add(meshNormalMatrixAttrib);
+			// FrameUtils.appendToList(meshTransformAttrib.data, modelMatrix);
+			mesh.instanceAttributes.put(meshNormalMatrixAttrib.name, new WeakReference<>(meshNormalMatrixAttrib));
+		}
 		mesh.modelRenderType = GLDrawMode.Triangles;
+		mesh2.modelRenderType = GLDrawMode.Triangles;
 
 		return mesh;
 
 	}
 
 	private RenderableVAO drawAxis(int size) {
+		ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh mesh = ShaderProgramDefinitions.collection._3D_unlit_flat
+				.createMesh(1);
+
 		int count = 3;
 		FloatBuffer verts = BufferUtils.createFloatBuffer(2 * 3 * count);
 		FloatBuffer colours = BufferUtils.createFloatBuffer(2 * 4 * count);
@@ -753,25 +702,17 @@ public class ModelLoader {
 		verts.flip();
 		colours.flip();
 
-		RenderableVAO x = setup_3D_nolit_flat_mesh(verts, colours, count * 2);
-		x.name = "axis";
-		x.modelRenderType = GLDrawMode.Line;
+		mesh.vertexAttribute.bufferResourceType = BufferDataManagementType.Buffer;
+		mesh.vertexAttribute.buffer = verts;
 
-		return x;
-		/*
-		 * Mesh y = setup_3D_nolit_flat_mesh(new float[] { 0, 0, 0, 0, 100, 0 }, new
-		 * Vector4f(0, 1, 0, 1));
-		 * y.name = "model_y";
-		 * y.modelRenderType = GLDrawMode.Line;
-		 * ShaderProgramSystem2.loadVAO(glc, program, y);
-		 * 
-		 * Mesh z = setup_3D_nolit_flat_mesh(new float[] { 0, 0, 0, 0, 0, 100 }, new
-		 * Vector4f(0, 0, 1, 1));
-		 * z.name = "model_z";
-		 * z.modelRenderType = GLDrawMode.Line;
-		 * ShaderProgramSystem2.loadVAO(glc, program, z);
-		 */
+		mesh.colourAttribute.bufferResourceType = BufferDataManagementType.Buffer;
+		mesh.colourAttribute.buffer = colours;
 
+		mesh.vertexCount = count * 2;
+		mesh.name = "axis";
+		mesh.modelRenderType = GLDrawMode.Line;
+
+		return mesh;
 	}
 
 	/**
@@ -801,18 +742,18 @@ public class ModelLoader {
 			@Override
 			public void invoke(long window, int width, int height) {
 				if (width > 0 && height > 0
-						&& (ModelLoader.this.fbWidth != width || ModelLoader.this.fbHeight != height)) {
-					ModelLoader.this.fbWidth = width;
-					ModelLoader.this.fbHeight = height;
+						&& (temp.this.fbWidth != width || temp.this.fbHeight != height)) {
+					temp.this.fbWidth = width;
+					temp.this.fbHeight = height;
 				}
 			}
 		});
 		glfwSetWindowSizeCallback(window, wsCallback = new GLFWWindowSizeCallback() {
 			@Override
 			public void invoke(long window, int width, int height) {
-				if (width > 0 && height > 0 && (ModelLoader.this.width != width || ModelLoader.this.height != height)) {
-					ModelLoader.this.width = width;
-					ModelLoader.this.height = height;
+				if (width > 0 && height > 0 && (temp.this.width != width || temp.this.height != height)) {
+					temp.this.width = width;
+					temp.this.height = height;
 				}
 			}
 		});
