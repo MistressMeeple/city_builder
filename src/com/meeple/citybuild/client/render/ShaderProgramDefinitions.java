@@ -103,9 +103,9 @@ public class ShaderProgramDefinitions {
         private ShaderProgramCollection() {
         }
 
-        ShaderProgramDefinition_3D_lit_flat _3D_lit_flat = new ShaderProgramDefinition_3D_lit_flat();
-        ShaderProgramDefinition_3D_lit_mat _3D_lit_mat = new ShaderProgramDefinition_3D_lit_mat();
-        ShaderProgramDefinition_3D_unlit_flat _3D_unlit_flat = new ShaderProgramDefinition_3D_unlit_flat();
+        public ShaderProgramDefinition_3D_lit_flat _3D_lit_flat = new ShaderProgramDefinition_3D_lit_flat();
+        public ShaderProgramDefinition_3D_lit_mat _3D_lit_mat = new ShaderProgramDefinition_3D_lit_mat();
+        public ShaderProgramDefinition_3D_unlit_flat _3D_unlit_flat = new ShaderProgramDefinition_3D_unlit_flat();
 
         private int matrixBuffer;
         private int lightBuffer;
@@ -367,6 +367,7 @@ public class ShaderProgramDefinitions {
 
         public class Mesh extends RenderableVAO {
             public Attribute vertexAttribute;
+            public Attribute meshTransformAttribute;
 
             protected Mesh() {
             }
@@ -376,8 +377,17 @@ public class ShaderProgramDefinitions {
 
         public E createMesh(long maxInstances) {
             E mesh = newMesh();
-            mesh.vertexAttribute = MeshAttributeGenerator.generateVertexAttribute();
-            mesh.VBOs.add(mesh.vertexAttribute);
+            if(mesh.vertexAttribute == null){
+                mesh.vertexAttribute = MeshAttributeGenerator.generateVertexAttribute();
+                mesh.VBOs.add(mesh.vertexAttribute);
+            }
+            
+            if (mesh.meshTransformAttribute == null) {
+                mesh.meshTransformAttribute = MeshAttributeGenerator.generateMeshTransformAttribute(maxInstances);
+                mesh.VBOs.add(mesh.meshTransformAttribute);
+                mesh.instanceAttributes.put(meshTransform_AttributeName,
+                        new WeakReference<ShaderProgram.Attribute>(mesh.meshTransformAttribute));
+            }
             return mesh;
 
         }
@@ -410,12 +420,12 @@ public class ShaderProgramDefinitions {
 
         public Mesh createMesh(long maxInstances) {
             Mesh mesh = (Mesh) super.createMesh(maxInstances);
-
-            mesh.colourAttribute = MeshAttributeGenerator.generateColourAttribute(maxInstances);
-            mesh.VBOs.add(mesh.colourAttribute);
-            mesh.instanceAttributes.put(colour_AttributeName,
-                    new WeakReference<ShaderProgram.Attribute>(mesh.colourAttribute));
-
+            if(mesh.colourAttribute == null){
+                mesh.colourAttribute = MeshAttributeGenerator.generateColourAttribute(maxInstances);
+                mesh.VBOs.add(mesh.colourAttribute);
+                mesh.instanceAttributes.put(colour_AttributeName,
+                        new WeakReference<ShaderProgram.Attribute>(mesh.colourAttribute));
+            }
             mesh.modelRenderType = GLDrawMode.Line;
 
             return mesh;
@@ -429,7 +439,6 @@ public class ShaderProgramDefinitions {
         public class Mesh extends BaseShaderProgram<E>.Mesh {
             public Attribute normalAttribute;
             public BufferObject elementAttribute;
-            public Attribute meshTransformAttribute;
             public Attribute meshNormalMatrixAttribute;
 
             protected Mesh() {
@@ -454,12 +463,6 @@ public class ShaderProgramDefinitions {
                 mesh.elementAttribute = MeshAttributeGenerator.generateElementAttribute();
                 mesh.VBOs.add(mesh.elementAttribute);
                 mesh.index = new WeakReference<ShaderProgram.BufferObject>(mesh.elementAttribute);
-            }
-            if (mesh.meshTransformAttribute == null) {
-                mesh.meshTransformAttribute = MeshAttributeGenerator.generateMeshTransformAttribute(maxInstances);
-                mesh.VBOs.add(mesh.meshTransformAttribute);
-                mesh.instanceAttributes.put(meshTransform_AttributeName,
-                        new WeakReference<ShaderProgram.Attribute>(mesh.meshTransformAttribute));
             }
             if (mesh.meshNormalMatrixAttribute == null) {
                 mesh.meshNormalMatrixAttribute = MeshAttributeGenerator.generateMeshNormalMatrixAttribute(maxInstances);

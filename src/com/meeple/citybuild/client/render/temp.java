@@ -47,12 +47,11 @@ import org.lwjgl.system.MemoryStack;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.LitShaderProgramDefinition;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.MeshAttributeGenerator;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ShaderProgramDefinition_3D_lit_mat;
+import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ShaderProgramDefinition_3D_lit_mat.Mesh;
+import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ViewMatrices;
-import com.meeple.citybuild.client.render.WorldRenderer.MeshExt;
 import com.meeple.citybuild.client.render.structs.Light;
 import com.meeple.citybuild.client.render.structs.Material;
-import com.meeple.citybuild.client.render.structs.Struct;
-import com.meeple.citybuild.server.LevelData.Chunk;
 import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.OGL.GLContext;
@@ -60,11 +59,7 @@ import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferDataManagementType;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferObject;
-import com.meeple.shared.frame.OGL.ShaderProgram.BufferType;
-import com.meeple.shared.frame.OGL.ShaderProgram.BufferUsage;
-import com.meeple.shared.frame.OGL.ShaderProgram.GLDataType;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
-import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
 import com.meeple.shared.frame.OGL.ShaderProgram.RenderableVAO;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2.ShaderClosable;
@@ -95,36 +90,17 @@ public class temp {
 	int fbHeight = 768;
 	float fov = 60;
 
-	//
-	// vertex shader uniforms
-
-	// private int materialBuffer;
-
-	/**
-	 * class that represents a set of meshes paired with their material index, and a
-	 * shared transformation
-	 * 
-	 * @author Megan
-	 *
-	 */
 	class Model {
 		Map<ShaderProgram.RenderableVAO, Integer> meshToMaterials = new CollectionSuppliers.MapSupplier<ShaderProgram.RenderableVAO, Integer>()
 				.get();
 		Matrix4f translation = new Matrix4f();
 	}
 
-	/**
-	 * Holds the data about a mesh and which instance it refers to in the buffer
-	 * 
-	 * @author Megan
-	 *
-	 */
 	class MeshInstance {
 		WeakReference<ShaderProgram.RenderableVAO> mesh;
 		int meshDataIndex;
 	}
 
-	Map<String, RenderableVAO> meshes = new CollectionSuppliers.MapSupplier<String, RenderableVAO>().get();
 	/**
 	 * models used by program
 	 */
@@ -167,15 +143,9 @@ public class temp {
 			initLights();
 			initMaterials();
 
-			/* read/setup the scene meshes */
-			loadModel(
-					glContext,
-					program,
-					"resources/models/yert.fbx",
-					meshes);
-
+			Map<String, ShaderProgramDefinition_3D_lit_mat.Mesh> meshes = com.meeple.shared.ModelLoader.loadModelFromFile("resources/models/yert.fbx", 10, null);
+			
 			{
-
 				int i = 0;
 				for (RenderableVAO a : meshes.values()) {
 					int mIndex = 0;
@@ -203,11 +173,16 @@ public class temp {
 					i++;
 				}
 			}
+
 			/**
 			 * setup the debug draw program
 			 */
 			ShaderProgram debugProgram = ShaderProgramDefinitions.collection._3D_unlit_flat;
-			RenderableVAO axis = drawAxis(100);
+			ShaderProgramDefinition_3D_unlit_flat.Mesh axis = drawAxis(100);
+				
+			GL46.glBindBuffer(axis.meshTransformAttribute.bufferType.getGLID(), axis.meshTransformAttribute.VBOID);
+			GL46.glBufferSubData(axis.meshTransformAttribute.bufferType.getGLID(), 0, new Matrix4f().identity().get(new float[16]));
+
 			ShaderProgramSystem2.loadVAO(glContext, debugProgram, axis);
 			GL46.glLineWidth(3f);
 
@@ -282,59 +257,6 @@ public class temp {
 		ShaderProgramDefinitions.collection.updateMaterials(0, m0, m1, m2);
 	}
 
-	/**
-	 * loads an AIScene from memory and converts all meshes found into our format
-	 * 
-	 * @throws IOException
-	 */
-	void loadModel(GLContext glc, ShaderProgram program, String fileLocation, Map<String, RenderableVAO> meshes)
-			throws IOException {
-
-		// read the resource into a buffer, and load the scene from the buffer
-		ByteBuffer fileContent = IOUtil.ioResourceToByteBuffer(fileLocation, 2048 * 8);
-		AIPropertyStore store = aiCreatePropertyStore();
-		aiSetImportPropertyInteger(store, AI_CONFIG_PP_SBP_REMOVE,
-				Assimp.aiPrimitiveType_LINE | Assimp.aiPrimitiveType_POINT);
-		// aiSetImportPropertyInteger(store, AI_CONFIG_PP_FD_CHECKAREA , 0);
-		AIScene scene = aiImportFileFromMemoryWithProperties(
-				fileContent,
-				0 |
-				// aiProcess_JoinIdenticalVertices |
-						aiProcess_Triangulate
-						// aiProcessPreset_TargetRealtime_MaxQuality |
-						// | aiProcess_FindDegenerates
-						| aiProcess_GenNormals | aiProcess_FixInfacingNormals | aiProcess_GenSmoothNormals
-						// aiProcess_MakeLeftHanded |
-						// aiProcess_ImproveCacheLocality |
-						// | aiProcess_findi
-						| aiProcess_JoinIdenticalVertices | aiProcess_SortByPType,
-				(ByteBuffer) null,
-				store);
-		if (scene == null) {
-			throw new IllegalStateException(aiGetErrorString());
-		}
-
-		// reads all the mesh data from the scene into our formatting
-		if (true) {
-			int meshCount = scene.mNumMeshes();
-			PointerBuffer meshesBuffer = scene.mMeshes();
-			for (int i = 0; i < meshCount; ++i) {
-				AIMesh mesh = AIMesh.create(meshesBuffer.get(i));
-
-				logger.trace("Mesh with name: " + mesh.mName().dataString() + " just been imported");
-
-				ShaderProgram.RenderableVAO dmesh = setupMesh(mesh, 15 /* arbitary number */);
-				dmesh.name = mesh.mName().dataString();
-				meshes.put(mesh.mName().dataString(), dmesh);
-				ShaderProgramSystem2.loadVAO(glc, program, dmesh);
-				mesh.clear();
-				mesh.free();
-
-			}
-		}
-		aiReleaseImport(scene);
-		logger.trace("foo");
-	}
 
 	// ------these are for frame delta calculations
 	Wrapper<Long> prev = new WrapperImpl<>(System.nanoTime());
@@ -429,7 +351,6 @@ public class temp {
 	 */
 	private void writeMeshTranslation(MeshInstance instance, Matrix4f translation) {
 		try {
-
 			// calculate normal matrix
 			Matrix3f normal = new Matrix3f();
 			normal.set(translation).invert().transpose();
@@ -439,7 +360,6 @@ public class temp {
 			writeBuffer(instance, ShaderProgramDefinitions.normalMatrix_AttributeName, data);
 		} catch (Exception e) {
 			logger.warn("failed to update", e);
-
 		}
 	}
 
@@ -475,77 +395,8 @@ public class temp {
 		GL46.glBindBuffer(attrib.bufferType.getGLID(), 0);
 	}
 
-	private IntBuffer convertElementBuffer(AIFace.Buffer facesBuffer, int faceCount, int elementCount) {
-		IntBuffer elementArrayBufferData = BufferUtils.createIntBuffer(elementCount);
-		for (int i = 0; i < faceCount; ++i) {
-			AIFace face = facesBuffer.get(i);
-			if (face.mNumIndices() != 3) {
-				logger.trace("not 3 verts in a face. actually had " + face.mNumIndices());
-			} else {
-				elementArrayBufferData.put(face.mIndices());
-			}
-		}
-		elementArrayBufferData.flip();
-		return elementArrayBufferData;
-	}
 
-	/**
-	 * sets up the mesh with attributes/VBOs and uses the AIMesh data provided
-	 * 
-	 * @param aim       mesh data to read from
-	 * @param maxMeshes maximum instances of the mesh
-	 * @return Mesh to be rendered with shader program
-	 */
-	// TODO sometimes causes jemalloc exceptions
-	private ShaderProgram.RenderableVAO setupMesh(AIMesh aim, long maxMeshes) {
-
-		ShaderProgramDefinition_3D_lit_mat.Mesh mesh = ShaderProgramDefinitions.collection._3D_lit_mat
-				.createMesh(maxMeshes);
-		{
-			Attribute vertexAttrib = mesh.vertexAttribute;
-
-			AIVector3D.Buffer vertices = aim.mVertices();
-			aim.mVertices().free();
-			vertices.clear();
-			long bufferLen = (long) (AIVector3D.SIZEOF * vertices.remaining());
-
-			vertexAttrib.bufferAddress = vertices.address();
-			vertexAttrib.bufferLen = bufferLen;
-			vertexAttrib.bufferResourceType = BufferDataManagementType.Address;
-
-		}
-		{
-			Attribute normalAttrib = mesh.normalAttribute;
-			AIVector3D.Buffer normals = aim.mNormals();
-			normalAttrib.bufferAddress = normals.address();
-			normalAttrib.bufferLen = (long) (AIVector3D.SIZEOF * normals.remaining());
-			normalAttrib.bufferResourceType = BufferDataManagementType.Address;
-
-			// mesh2.normalAttribute.bufferLen = bufferLen;
-			// mesh2.normalAttribute.bufferResourceType = BufferDataManagementType.Address;
-
-		}
-		{
-			BufferObject elementAttrib = mesh.elementAttribute;
-			// elementAttrib.dataSize = 3;
-
-			AIFace.Buffer facesBuffer = aim.mFaces();
-			int faceCount = aim.mNumFaces();
-			int elementCount = faceCount * 3;
-			elementAttrib.bufferResourceType = BufferDataManagementType.Buffer;
-
-			IntBuffer elementArrayBufferData = convertElementBuffer(facesBuffer, faceCount, elementCount);
-			elementAttrib.buffer = elementArrayBufferData;
-
-			mesh.vertexCount = elementCount;
-
-		}
-
-		return mesh;
-
-	}
-
-	private RenderableVAO drawAxis(int size) {
+	private ShaderProgramDefinition_3D_unlit_flat.Mesh drawAxis(int size) {
 		ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh mesh = ShaderProgramDefinitions.collection._3D_unlit_flat
 				.createMesh(1);
 

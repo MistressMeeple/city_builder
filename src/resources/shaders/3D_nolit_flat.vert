@@ -13,12 +13,12 @@ layout (std140) uniform Matrices
 
 layout(location = 1) in vec4 vertex;
 layout(location = 2) in vec4 colour;
-
+layout(location = 3) in mat4  modelMatrix;
 
 out vec4 vColour;
 
 void main() {
 	vColour = colour;
-    vec4 position = vpfMatrix * vertex;
-    gl_Position =   position;
+    vec4 position = vertex;
+    gl_Position = vpfMatrix * position;
 }
