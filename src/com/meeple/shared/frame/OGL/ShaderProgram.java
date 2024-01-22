@@ -267,7 +267,7 @@ public class ShaderProgram {
 
 	}
 
-	public static class Mesh extends VAO {
+	public static class RenderableVAO extends VAO {
 		public String name;
 		public int vertexCount;
 		public GLDrawMode modelRenderType = GLDrawMode.Triangles;
@@ -277,6 +277,8 @@ public class ShaderProgram {
 		public int renderCount = 1;
 		public boolean visible = true;
 	}
+	
+	
 
 	public static class Attribute extends BufferObject {
 

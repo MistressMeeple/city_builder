@@ -35,7 +35,7 @@ import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferObject;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLStatus;
-import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
+import com.meeple.shared.frame.OGL.ShaderProgram.RenderableVAO;
 import com.meeple.shared.frame.OGL.ShaderProgram.VAO;
 
 public class ShaderProgramSystem {
@@ -570,7 +570,7 @@ public class ShaderProgramSystem {
 		};
 	}
 
-	public static ShaderClosable useModel(Mesh model) {
+	public static ShaderClosable useModel(RenderableVAO model) {
 		GL46.glBindVertexArray(model.VAOID);
 		return new ShaderClosable() {
 			@Override
@@ -619,7 +619,7 @@ public class ShaderProgramSystem {
 		}
 	}
 
-	public static void renderMesh(Mesh mesh) {
+	public static void renderMesh(RenderableVAO mesh) {
 
 		//check for index buffer
 		WeakReference<BufferObject> indexVboRef = mesh.index;
@@ -649,14 +649,14 @@ public class ShaderProgramSystem {
 		}
 	}
 
-	public static void tryRender(ShaderProgram program, Collection<Mesh> meshes) {
+	public static void tryRender(ShaderProgram program, Collection<RenderableVAO> meshes) {
 		try (ShaderClosable cl = useProgram(program)) {
 
 			//sync - important
 			synchronized (program.VAOs) {
 
-				for (Iterator<Mesh> meshI = meshes.iterator(); meshI.hasNext();) {
-					Mesh mesh = meshI.next();
+				for (Iterator<RenderableVAO> meshI = meshes.iterator(); meshI.hasNext();) {
+					RenderableVAO mesh = meshI.next();
 
 					try (ShaderClosable vaoc = useModel(mesh)) {
 						Collection<BufferObject> vboSet = mesh.VBOs;
@@ -708,8 +708,8 @@ public class ShaderProgramSystem {
 
 				for (Iterator<VAO> vaoI = program.VAOs.iterator(); vaoI.hasNext();) {
 					VAO vao = vaoI.next();
-					if (vao instanceof Mesh) {
-						Mesh mesh = (Mesh) vao;
+					if (vao instanceof RenderableVAO) {
+						RenderableVAO mesh = (RenderableVAO) vao;
 
 						//only render if visible
 						if (mesh.visible) {
@@ -768,8 +768,8 @@ public class ShaderProgramSystem {
 
 			for (Iterator<VAO> vaoI = program.VAOs.iterator(); vaoI.hasNext();) {
 				VAO vao = vaoI.next();
-				if (vao instanceof Mesh) {
-					Mesh model = (Mesh) vao;
+				if (vao instanceof RenderableVAO) {
+					RenderableVAO model = (RenderableVAO) vao;
 					//only render if visible
 					if (model.visible) {
 						GL46.glBindVertexArray(model.VAOID);

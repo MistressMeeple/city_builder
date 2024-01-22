@@ -5,7 +5,7 @@ import com.meeple.shared.frame.OGL.ShaderProgram.BufferType;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferUsage;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDataType;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
-import com.meeple.shared.frame.OGL.ShaderProgram.Mesh;
+import com.meeple.shared.frame.OGL.ShaderProgram.RenderableVAO;
 
 public class WorldRenderer extends RendererBase {
 
@@ -15,7 +15,7 @@ public class WorldRenderer extends RendererBase {
 		public Attribute offsetAttrib = new Attribute();
 		public Attribute rotationAttrib = new Attribute();
 		public Attribute zIndexAttrib = new Attribute();
-		public Mesh mesh = new Mesh();
+		public RenderableVAO mesh = new RenderableVAO();
 	}
 
 	/*
@@ -131,6 +131,11 @@ public class WorldRenderer extends RendererBase {
 		meshExt.mesh.singleFrameDiscard = true;
 	}
 
+	/**
+	 * @deprecated This is not the proper way to create temporary meshes
+	 * @param meshExt
+	 * @param vertices
+	 */
 	public static void setupDiscardMesh3D(MeshExt meshExt, int vertices) {
 
 		meshExt.positionAttrib.name = "position";

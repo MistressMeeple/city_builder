@@ -51,75 +51,6 @@ public class LevelRenderer {
 		Attribute translationAttrib = new Attribute();
 	}
 
-	public static boolean disableAlphaTest = false;
-
-	public static UniformManager<String[], Integer[]>.Uniform<VPMatrix> setupWorldProgram(ShaderProgram program, VPMatrixSystem VPMatrixSystem, VPMatrix vpMatrix) {
-		UniformManager<String[], Integer[]>.Uniform<VPMatrix> u = ShaderProgramSystem.multiUpload.register(new String[] { "vpMatrix", "projectionMatrix", "viewMatrix" }, VPMatrixSystem);
-
-		ShaderProgramSystem.addUniform(program, ShaderProgramSystem.multiUpload, u);
-		ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.multiUpload, u, vpMatrix);
-
-		program.shaderSources.put(GLShaderType.VertexShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/line3D.vert")));
-		program.shaderSources.put(GLShaderType.FragmentShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
-
-		try {
-			ShaderProgramSystem.create(program);
-		} catch (Exception err) {
-			err.printStackTrace();
-		}
-		return u;
-	}
-
-	public static UniformManager<String, Integer>.Uniform<ProjectionMatrix> setupUIProgram(ShaderProgram program, ProjectionMatrixSystem pSystem, ProjectionMatrix pMatrix) {
-
-		UniformManager<String, Integer>.Uniform<ProjectionMatrix> u = ShaderProgramSystem.singleUpload.register("projectionMatrix", pSystem);
-		ShaderProgramSystem.addUniform(program, ShaderProgramSystem.singleUpload, u);
-		ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.singleUpload, u, pMatrix);
-
-		program.shaderSources.put(GLShaderType.VertexShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/line2D-UI.vert")));
-		program.shaderSources.put(GLShaderType.FragmentShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
-
-		try {
-			ShaderProgramSystem.create(program);
-		} catch (Exception err) {
-			err.printStackTrace();
-		}
-		return u;
-
-	}
-
-	public static UniformManager<String[], Integer[]>.Uniform<VPMatrix> setupMainProgram(ShaderProgram program, VPMatrixSystem VPMatrixSystem, VPMatrix vpMatrix) {
-		UniformManager<String[], Integer[]>.Uniform<VPMatrix> u = ShaderProgramSystem.multiUpload.register(new String[] { "vpMatrix", "projectionMatrix", "viewMatrix" }, VPMatrixSystem);
-
-		ShaderProgramSystem.addUniform(program, ShaderProgramSystem.multiUpload, u);
-		ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.multiUpload, u, vpMatrix);
-
-		program.shaderSources.put(GLShaderType.VertexShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/3D-unlit.vert")));
-		program.shaderSources.put(GLShaderType.FragmentShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
-
-		try {
-			ShaderProgramSystem.create(program);
-		} catch (Exception err) {
-			err.printStackTrace();
-		}
-		return u;
-	}
-
-	public static void setupLitProgram(ShaderProgram program, int maxLights, int maxMaterials) {
-		String fragSource = ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/lighting.frag"));
-		fragSource = fragSource.replaceAll("\\{maxmats\\}", "" + maxMaterials);
-		fragSource = fragSource.replaceAll("\\{maxlights\\}", maxLights + "");
-		String vertSource = ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/lighting.vert"));
-		vertSource = vertSource.replaceAll("\\{maxlights\\}", maxLights + "");
-		program.shaderSources.put(GLShaderType.VertexShader, vertSource);
-		program.shaderSources.put(GLShaderType.FragmentShader, fragSource);
-		try {
-			ShaderProgramSystem.create(program);
-		} catch (Exception err) {
-			err.printStackTrace();
-		}
-
-	}
 
 	public void preRender(LevelData level, VPMatrix vp, ShaderProgram program) {
 		FrustumIntersection fi = new FrustumIntersection(vp.cache);
@@ -391,5 +322,71 @@ public class LevelRenderer {
 			//						ShaderProgramSystem.render(mainProgram);
 			return false;
 		};
+	}
+	public static UniformManager<String[], Integer[]>.Uniform<VPMatrix> setupWorldProgram(ShaderProgram program, VPMatrixSystem VPMatrixSystem, VPMatrix vpMatrix) {
+		UniformManager<String[], Integer[]>.Uniform<VPMatrix> u = ShaderProgramSystem.multiUpload.register(new String[] { "vpMatrix", "projectionMatrix", "viewMatrix" }, VPMatrixSystem);
+
+		ShaderProgramSystem.addUniform(program, ShaderProgramSystem.multiUpload, u);
+		ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.multiUpload, u, vpMatrix);
+
+		program.shaderSources.put(GLShaderType.VertexShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/line3D.vert")));
+		program.shaderSources.put(GLShaderType.FragmentShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
+
+		try {
+			ShaderProgramSystem.create(program);
+		} catch (Exception err) {
+			err.printStackTrace();
+		}
+		return u;
+	}
+
+	public static UniformManager<String, Integer>.Uniform<ProjectionMatrix> setupUIProgram(ShaderProgram program, ProjectionMatrixSystem pSystem, ProjectionMatrix pMatrix) {
+
+		UniformManager<String, Integer>.Uniform<ProjectionMatrix> u = ShaderProgramSystem.singleUpload.register("projectionMatrix", pSystem);
+		ShaderProgramSystem.addUniform(program, ShaderProgramSystem.singleUpload, u);
+		ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.singleUpload, u, pMatrix);
+
+		program.shaderSources.put(GLShaderType.VertexShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/line2D-UI.vert")));
+		program.shaderSources.put(GLShaderType.FragmentShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
+
+		try {
+			ShaderProgramSystem.create(program);
+		} catch (Exception err) {
+			err.printStackTrace();
+		}
+		return u;
+
+	}
+
+	public static UniformManager<String[], Integer[]>.Uniform<VPMatrix> setupMainProgram(ShaderProgram program, VPMatrixSystem VPMatrixSystem, VPMatrix vpMatrix) {
+		UniformManager<String[], Integer[]>.Uniform<VPMatrix> u = ShaderProgramSystem.multiUpload.register(new String[] { "vpMatrix", "projectionMatrix", "viewMatrix" }, VPMatrixSystem);
+
+		ShaderProgramSystem.addUniform(program, ShaderProgramSystem.multiUpload, u);
+		ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.multiUpload, u, vpMatrix);
+
+		program.shaderSources.put(GLShaderType.VertexShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/3D-unlit.vert")));
+		program.shaderSources.put(GLShaderType.FragmentShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
+
+		try {
+			ShaderProgramSystem.create(program);
+		} catch (Exception err) {
+			err.printStackTrace();
+		}
+		return u;
+	}
+
+	public static void setupLitProgram(ShaderProgram program, int maxLights, int maxMaterials) {
+		String fragSource = ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/lighting.frag"));
+		fragSource = fragSource.replaceAll("\\{maxmats\\}", "" + maxMaterials);
+		fragSource = fragSource.replaceAll("\\{maxlights\\}", maxLights + "");
+		String vertSource = ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/lighting.vert"));
+		vertSource = vertSource.replaceAll("\\{maxlights\\}", maxLights + "");
+		program.shaderSources.put(GLShaderType.VertexShader, vertSource);
+		program.shaderSources.put(GLShaderType.FragmentShader, fragSource);
+		try {
+			ShaderProgramSystem.create(program);
+		} catch (Exception err) {
+			err.printStackTrace();
+		}
 	}
 }
