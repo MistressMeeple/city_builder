@@ -33,9 +33,9 @@ public class ShaderProgramDefinitions {
         public Matrix4f projectionMatrix = new Matrix4f();
         public Matrix4f viewMatrix = new Matrix4f();
 
-        protected AtomicBoolean fixMatrixUpdate = new AtomicBoolean(true);
-        protected AtomicBoolean projectionMatrixUpdate = new AtomicBoolean(true);
-        protected AtomicBoolean viewMatrixUpdate = new AtomicBoolean(true);
+        public AtomicBoolean fixMatrixUpdate = new AtomicBoolean(true);
+        public AtomicBoolean projectionMatrixUpdate = new AtomicBoolean(true);
+        public AtomicBoolean viewMatrixUpdate = new AtomicBoolean(true);
 
         protected Matrix4f viewProjectionMatrix = new Matrix4f();
         protected Matrix4f viewProjectionFixMatrix = new Matrix4f();
@@ -393,7 +393,7 @@ public class ShaderProgramDefinitions {
         }
     }
 
-    protected static class ShaderProgramDefinition_3D_unlit_flat
+    public static class ShaderProgramDefinition_3D_unlit_flat
             extends BaseShaderProgram<ShaderProgramDefinition_3D_unlit_flat.Mesh> {
 
         public class Mesh extends BaseShaderProgram<Mesh>.Mesh {
@@ -433,7 +433,7 @@ public class ShaderProgramDefinitions {
         }
     }
 
-    protected static abstract class LitShaderProgramDefinition<E extends LitShaderProgramDefinition<E>.Mesh>
+    public static abstract class LitShaderProgramDefinition<E extends LitShaderProgramDefinition<E>.Mesh>
             extends BaseShaderProgram<E> {
 
         public class Mesh extends BaseShaderProgram<E>.Mesh {

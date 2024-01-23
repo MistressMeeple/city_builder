@@ -1,4 +1,4 @@
-package com.meeple.citybuild.client.render;
+package com.meeple.citybuild;
 
 import static org.lwjgl.assimp.Assimp.*;
 import static org.lwjgl.glfw.GLFW.*;
@@ -44,6 +44,7 @@ import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.Callback;
 import org.lwjgl.system.MemoryStack;
 
+import com.meeple.citybuild.client.render.ShaderProgramDefinitions;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.LitShaderProgramDefinition;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.MeshAttributeGenerator;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ShaderProgramDefinition_3D_lit_mat;
@@ -67,9 +68,9 @@ import com.meeple.shared.frame.nuklear.IOUtil;
 import com.meeple.shared.frame.wrapper.Wrapper;
 import com.meeple.shared.frame.wrapper.WrapperImpl;
 
-public class temp {
+public class ModelImportDemo {
 
-	private static Logger logger = Logger.getLogger(temp.class);
+	private static Logger logger = Logger.getLogger(ModelImportDemo.class);
 
 	private static String debugLayout = "[%r][%d{HH:mm:ss:SSS}][%t][%p] (%F:%L) %m%n";
 	private static final int maxMaterials = 10;
@@ -79,7 +80,7 @@ public class temp {
 		Appender a = new ConsoleAppender(new PatternLayout(debugLayout));
 		BasicConfigurator.configure(a);
 
-		new temp().run();
+		new ModelImportDemo().run();
 	}
 
 	// window properties
@@ -123,6 +124,37 @@ public class temp {
 
 	GLFWScrollCallback sCallback;
 
+	void convert(GLContext glContext, Map<String, ShaderProgramDefinition_3D_lit_mat.Mesh> meshes){
+		
+		{
+			int i = 0;
+			for (RenderableVAO a : meshes.values()) {
+				int mIndex = 0;
+				RenderableVAO dmesh = a;
+				ShaderProgramSystem2.loadVAO(glContext, ShaderProgramDefinitions.collection._3D_lit_mat, dmesh);
+
+				primaryModel.meshToMaterials.put(dmesh, mIndex + i);
+				primaryLightModel.meshToMaterials.put(dmesh, 0);
+				dmesh.renderCount = 2;
+
+				int index = 0;
+				{
+					MeshInstance mi = new MeshInstance();
+					mi.mesh = new WeakReference<>(dmesh);
+					mi.meshDataIndex = index++;
+					FrameUtils.addToSetMap(instances, primaryModel, mi, new CollectionSuppliers.SetSupplier<>());
+				}
+				if(false){
+					MeshInstance mi2 = new MeshInstance();
+					mi2.mesh = new WeakReference<>(dmesh);
+					mi2.meshDataIndex = index++;
+					FrameUtils.addToSetMap(instances, primaryLightModel, mi2,
+							new CollectionSuppliers.SetSupplier<>());
+				}
+				i++;
+			}
+		}
+	}
 	void run() {
 		try (GLContext glContext = new GLContext()) {
 
@@ -144,46 +176,15 @@ public class temp {
 			initMaterials();
 
 			Map<String, ShaderProgramDefinition_3D_lit_mat.Mesh> meshes = com.meeple.shared.ModelLoader.loadModelFromFile("resources/models/yert.fbx", 10, null);
-			
-			{
-				int i = 0;
-				for (RenderableVAO a : meshes.values()) {
-					int mIndex = 0;
-					RenderableVAO dmesh = a;
-					ShaderProgramSystem2.loadVAO(glContext, program, dmesh);
-
-					primaryModel.meshToMaterials.put(dmesh, mIndex + i);
-					primaryLightModel.meshToMaterials.put(dmesh, 0);
-					dmesh.renderCount = 2;
-
-					int index = 0;
-					{
-						MeshInstance mi = new MeshInstance();
-						mi.mesh = new WeakReference<>(dmesh);
-						mi.meshDataIndex = index++;
-						FrameUtils.addToSetMap(instances, primaryModel, mi, new CollectionSuppliers.SetSupplier<>());
-					}
-					{
-						MeshInstance mi2 = new MeshInstance();
-						mi2.mesh = new WeakReference<>(dmesh);
-						mi2.meshDataIndex = index++;
-						FrameUtils.addToSetMap(instances, primaryLightModel, mi2,
-								new CollectionSuppliers.SetSupplier<>());
-					}
-					i++;
-				}
-			}
+			convert(glContext, meshes);
 
 			/**
 			 * setup the debug draw program
 			 */
 			ShaderProgram debugProgram = ShaderProgramDefinitions.collection._3D_unlit_flat;
 			ShaderProgramDefinition_3D_unlit_flat.Mesh axis = drawAxis(100);
-				
-			GL46.glBindBuffer(axis.meshTransformAttribute.bufferType.getGLID(), axis.meshTransformAttribute.VBOID);
-			GL46.glBufferSubData(axis.meshTransformAttribute.bufferType.getGLID(), 0, new Matrix4f().identity().get(new float[16]));
-
 			ShaderProgramSystem2.loadVAO(glContext, debugProgram, axis);
+
 			GL46.glLineWidth(3f);
 
 			viewMatrices.projectionMatrix
@@ -230,10 +231,10 @@ public class temp {
 		primaryLight.colour.set(1, 1, 1);
 		primaryLight.enabled = false;
 
-		secondaryLight.position.set(0, 5, 0);
-		secondaryLight.attenuation.set(7, 10, 1f);
-		secondaryLight.colour.set(1, 1, 1);
-		secondaryLight.enabled = true;
+		secondaryLight.position.set(0, 5, 10);
+		secondaryLight.attenuation.set(7, 10, 5f);
+		secondaryLight.colour.set(0, 1, 1);
+		secondaryLight.enabled = false;
 		ShaderProgramDefinitions.collection.updateLights(0, primaryLight, secondaryLight);
 	}
 
@@ -301,14 +302,14 @@ public class temp {
 		viewMatrices.viewMatrixUpdate.set(true);
 		// handles the rotation of light source/model
 		if (true) {
-			float rotation2 = -total * 0.25f * (float) Math.PI;
+			float rotation2 = -total * 0.025f * (float) Math.PI;
 			lightPosition.set(10f * (float) Math.sin(rotation2), 10f * (float) Math.cos(rotation2), 5f);
 			// lightPosition.set(0, 5, 0);
 			// lightPosition.set(5, 0, 0);
-			primaryLightModel.translation.setTranslation(lightPosition.x, lightPosition.y, 1);
+			primaryLightModel.translation.setTranslation(lightPosition.x, lightPosition.y, 5);
 			primaryLight.position.set(lightPosition);
 			primaryLight.enabled = true;
-			primaryLight.attenuation.y = primaryLight.attenuation.x * (1 * (float) (Math.sin(rotation2) + 1f) / 2f);
+			//primaryLight.attenuation.y = primaryLight.attenuation.x * (1 * (float) (Math.sin(rotation2) + 1f) / 2f);
 
 		}
 	}
@@ -329,11 +330,10 @@ public class temp {
 				writeMeshTranslation(meshInstance, primaryModel.translation);
 				writeMeshMaterialIndex(meshInstance, primaryModel.meshToMaterials.get(meshInstance.mesh.get()));
 			}
-			for (MeshInstance meshInstance : instances.get(primaryLightModel)) {
+			/*for (MeshInstance meshInstance : instances.get(primaryLightModel)) {
 				writeMeshTranslation(meshInstance, primaryLightModel.translation);
 				writeMeshMaterialIndex(meshInstance, primaryLightModel.meshToMaterials.get(meshInstance.mesh.get()));
-			}
-
+			}*/
 			ShaderProgramDefinitions.collection.updateLights(0, secondaryLight, primaryLight);
 			// ShaderProgramDefinitions.collection._3D_lit_mat.setAmbientBrightness(0.0125f);
 			ShaderProgramDefinitions.collection.updateAmbientBrightness(1.5125f);
@@ -426,6 +426,11 @@ public class temp {
 		mesh.colourAttribute.bufferResourceType = BufferDataManagementType.Buffer;
 		mesh.colourAttribute.buffer = colours;
 
+		
+		FrameUtils.appendToList(mesh.meshTransformAttribute.data, new Matrix4f().identity());
+		mesh.meshTransformAttribute.bufferResourceType = BufferDataManagementType.List;
+		
+
 		mesh.vertexCount = count * 2;
 		mesh.name = "axis";
 		mesh.modelRenderType = GLDrawMode.Line;
@@ -460,18 +465,18 @@ public class temp {
 			@Override
 			public void invoke(long window, int width, int height) {
 				if (width > 0 && height > 0
-						&& (temp.this.fbWidth != width || temp.this.fbHeight != height)) {
-					temp.this.fbWidth = width;
-					temp.this.fbHeight = height;
+						&& (ModelImportDemo.this.fbWidth != width || ModelImportDemo.this.fbHeight != height)) {
+					ModelImportDemo.this.fbWidth = width;
+					ModelImportDemo.this.fbHeight = height;
 				}
 			}
 		});
 		glfwSetWindowSizeCallback(window, wsCallback = new GLFWWindowSizeCallback() {
 			@Override
 			public void invoke(long window, int width, int height) {
-				if (width > 0 && height > 0 && (temp.this.width != width || temp.this.height != height)) {
-					temp.this.width = width;
-					temp.this.height = height;
+				if (width > 0 && height > 0 && (ModelImportDemo.this.width != width || ModelImportDemo.this.height != height)) {
+					ModelImportDemo.this.width = width;
+					ModelImportDemo.this.height = height;
 					viewMatrices.projectionMatrix
 							.setPerspective(
 									(float) Math.toRadians(fov),
@@ -535,7 +540,7 @@ public class temp {
 				viewMatrices.projectionMatrixUpdate.set(true);
 			}
 		});
-
+		
 		GLFWVidMode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 		glfwSetWindowPos(window, (vidmode.width() - width) / 2, (vidmode.height() - height) / 2);
 		glfwMakeContextCurrent(window);

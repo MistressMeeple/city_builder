@@ -19,6 +19,6 @@ out vec4 vColour;
 
 void main() {
 	vColour = colour;
-    vec4 position = vertex;
+    vec4 position = modelMatrix * vertex;
     gl_Position = vpfMatrix * position;
 }

@@ -11,9 +11,13 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.log4j.Logger;
+import org.joml.Vector3f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
+import org.lwjgl.assimp.AIColor3D;
+import org.lwjgl.assimp.AIColor4D;
 import org.lwjgl.assimp.AIFace;
+import org.lwjgl.assimp.AIMaterial;
 import org.lwjgl.assimp.AIMesh;
 import org.lwjgl.assimp.AIPropertyStore;
 import org.lwjgl.assimp.AIScene;
@@ -21,7 +25,9 @@ import org.lwjgl.assimp.AIVector3D;
 import org.lwjgl.assimp.Assimp;
 
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions;
+import com.meeple.citybuild.client.render.ShaderProgramDefinitions.MeshAttributeGenerator;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ShaderProgramDefinition_3D_lit_mat;
+import com.meeple.citybuild.client.render.structs.Material;
 import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferDataManagementType;
@@ -60,7 +66,8 @@ public class ModelLoader {
                         aiProcess_Triangulate
                         // aiProcessPreset_TargetRealtime_MaxQuality |
                         // | aiProcess_FindDegenerates
-                        | aiProcess_GenNormals | aiProcess_FixInfacingNormals | aiProcess_GenSmoothNormals
+                        | aiProcess_GenNormals | aiProcess_FixInfacingNormals | aiProcess_GenSmoothNormals 
+                        | aiProcess_RemoveRedundantMaterials
                         // aiProcess_MakeLeftHanded |
                         // aiProcess_ImproveCacheLocality |
                         // | aiProcess_findi
@@ -80,6 +87,7 @@ public class ModelLoader {
             ShaderProgramDefinition_3D_lit_mat.Mesh sp_mesh = ShaderProgramDefinitions.collection._3D_lit_mat
                 .createMesh(maxModelInstances);
             setupMesh(sp_mesh, aiMesh, maxModelInstances);
+            
 
             meshes.put(meshName, sp_mesh);
             if (postConvertMesh != null) {
@@ -153,7 +161,27 @@ public class ModelLoader {
 
             mesh.vertexCount = elementCount;
         }
-        return mesh;
+        {
+            PointerBuffer colours = aim.mColors();
+            if(colours!=null){
+                Attribute colourAttribute = MeshAttributeGenerator.generateColourAttribute(maxMeshes);
+                
+                colourAttribute.bufferAddress = colours.address();
+                colourAttribute.bufferLen = (long) (AIColor4D.SIZEOF * aim.mNumVertices());
+                colourAttribute.bufferResourceType = BufferDataManagementType.Address;
+            }
 
+        }
+        return mesh;
+    }
+
+    private void setupMaterial(AIMaterial aim){
+        Material material = new Material();
+        AIColor4D colour = AIColor4D.malloc();
+        aiGetMaterialColor(aim, "", 0, 0, colour);
+        //material.baseColour = AI_MATKEY_COLOR_AMBIENT
+        //aim.mProperties
+        material.reflectiveTint.set(0, 0, 0); // AI_MATKEY_COLOR_REFLECTIVE
+        material.reflectivityStrength = 0f;// AI_MATKEY_REFLECTIVITY
     }
 }
