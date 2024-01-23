@@ -47,12 +47,12 @@ import org.lwjgl.stb.STBTTPackedchar;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.Platform;
 
-import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.window.ActiveWindowsComponent;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 import com.meeple.shared.frame.window.MirroredWindowCallbacks;
 import com.meeple.shared.frame.window.Window;
 import com.meeple.shared.frame.wrapper.Wrapper;
+import com.meeple.shared.utils.FrameUtils;
 
 public class NuklearManager {
 

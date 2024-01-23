@@ -17,7 +17,6 @@ import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWKeyCallbackI;
 
-import com.meeple.citybuild.RayHelper;
 import com.meeple.citybuild.client.gui.GameUI;
 import com.meeple.citybuild.client.gui.LoadingScreen;
 import com.meeple.citybuild.client.gui.MainMenuScreen;
@@ -29,8 +28,8 @@ import com.meeple.citybuild.server.Entity;
 import com.meeple.citybuild.server.GameManager;
 import com.meeple.shared.ClientOptionSystem;
 import com.meeple.shared.Delta;
+import com.meeple.shared.RayHelper;
 import com.meeple.shared.Tickable;
-import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.GLFWManager;
 import com.meeple.shared.frame.OGL.KeyInputSystem;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
@@ -43,6 +42,7 @@ import com.meeple.shared.frame.window.ClientWindowSystem.WindowEvent;
 import com.meeple.shared.frame.window.WindowManager;
 import com.meeple.shared.frame.wrapper.Wrapper;
 import com.meeple.shared.frame.wrapper.WrapperImpl;
+import com.meeple.shared.utils.FrameUtils;
 
 public class CityBuilderMain extends GameManager implements Consumer<ExecutorService> {
 

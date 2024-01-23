@@ -29,7 +29,6 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL46;
 import org.lwjgl.system.MemoryStack;
 
-import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.FileLoader;
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferObject;
@@ -37,6 +36,7 @@ import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLStatus;
 import com.meeple.shared.frame.OGL.ShaderProgram.RenderableVAO;
 import com.meeple.shared.frame.OGL.ShaderProgram.VAO;
+import com.meeple.shared.utils.CollectionSuppliers;
 
 public class ShaderProgramSystem2 {
 

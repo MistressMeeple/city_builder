@@ -40,9 +40,7 @@ import org.lwjgl.system.MemoryStack;
 import com.meeple.citybuild.client.render.Screen;
 import com.meeple.shared.ClientOptionSystem;
 import com.meeple.shared.ClientOptions;
-import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.Delta;
-import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.GLFWThread;
 import com.meeple.shared.frame.OAL.AudioData;
 import com.meeple.shared.frame.OGL.KeyInputSystem;
@@ -58,6 +56,8 @@ import com.meeple.shared.frame.nuklear.NuklearUIComponent;
 import com.meeple.shared.frame.thread.ThreadManager.Builder;
 import com.meeple.shared.frame.wrapper.Wrapper;
 import com.meeple.shared.frame.wrapper.WrapperImpl;
+import com.meeple.shared.utils.CollectionSuppliers;
+import com.meeple.shared.utils.FrameUtils;
 
 public interface ClientWindowSystem {
 

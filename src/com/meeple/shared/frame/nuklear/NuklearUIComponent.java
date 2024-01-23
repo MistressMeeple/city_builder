@@ -8,9 +8,9 @@ import java.util.function.Consumer;
 import org.lwjgl.nuklear.NkContext;
 import org.lwjgl.system.MemoryStack;
 
-import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.frame.component.Bounds2DComponent;
 import com.meeple.shared.frame.component.HasBounds2D;
+import com.meeple.shared.utils.CollectionSuppliers;
 
 public class NuklearUIComponent implements HasBounds2D {
 	public HasBounds2D container;

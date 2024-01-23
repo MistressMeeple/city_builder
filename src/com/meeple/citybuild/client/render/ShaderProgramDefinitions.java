@@ -11,8 +11,6 @@ import static com.meeple.shared.frame.OGL.ShaderProgram.*;
 import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL46;
 
-import com.meeple.citybuild.client.render.structs.Light;
-import com.meeple.citybuild.client.render.structs.Material;
 import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
@@ -21,6 +19,8 @@ import com.meeple.shared.frame.OGL.ShaderProgram.BufferObject;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferType;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferUsage;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDataType;
+import com.meeple.shared.frame.structs.Light;
+import com.meeple.shared.frame.structs.Material;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
 
 public class ShaderProgramDefinitions {

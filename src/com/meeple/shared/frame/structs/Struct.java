@@ -1,4 +1,4 @@
-package com.meeple.citybuild.client.render.structs;
+package com.meeple.shared.frame.structs;
 
 /**
  * A class that represents a struct in GLSL code. <br>

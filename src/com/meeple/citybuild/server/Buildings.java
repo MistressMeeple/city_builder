@@ -8,7 +8,7 @@ import org.joml.Vector2f;
 import org.joml.Vector2i;
 
 import com.meeple.citybuild.server.LevelData.Chunk.Tile;
-import com.meeple.shared.CollectionSuppliers;
+import com.meeple.shared.utils.CollectionSuppliers;
 
 public class Buildings {
 

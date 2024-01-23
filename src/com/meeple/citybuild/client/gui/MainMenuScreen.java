@@ -12,9 +12,9 @@ import org.lwjgl.system.MemoryStack;
 
 import com.meeple.citybuild.client.render.Screen;
 import com.meeple.shared.Delta;
-import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 import com.meeple.shared.frame.window.ClientWindowSystem.WindowEvent;
+import com.meeple.shared.utils.FrameUtils;
 
 public class MainMenuScreen extends Screen {
 	public static Logger logger = Logger.getLogger(MainMenuScreen.class);

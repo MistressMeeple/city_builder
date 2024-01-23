@@ -22,7 +22,7 @@ import org.lwjgl.glfw.GLFWWindowRefreshCallbackI;
 import org.lwjgl.glfw.GLFWWindowSizeCallbackI;
 import org.lwjgl.opengl.GLDebugMessageCallbackI;
 
-import com.meeple.shared.CollectionSuppliers;
+import com.meeple.shared.utils.CollectionSuppliers;
 
 public class MirroredWindowCallbacks {
 

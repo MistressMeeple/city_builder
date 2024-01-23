@@ -1,4 +1,4 @@
-package com.meeple.citybuild;
+package com.meeple;
 
 import static org.lwjgl.assimp.Assimp.*;
 import static org.lwjgl.glfw.GLFW.*;
@@ -51,10 +51,6 @@ import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ShaderProgram
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ShaderProgramDefinition_3D_lit_mat.Mesh;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ViewMatrices;
-import com.meeple.citybuild.client.render.structs.Light;
-import com.meeple.citybuild.client.render.structs.Material;
-import com.meeple.shared.CollectionSuppliers;
-import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
@@ -65,8 +61,12 @@ import com.meeple.shared.frame.OGL.ShaderProgram.RenderableVAO;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2.ShaderClosable;
 import com.meeple.shared.frame.nuklear.IOUtil;
+import com.meeple.shared.frame.structs.Light;
+import com.meeple.shared.frame.structs.Material;
 import com.meeple.shared.frame.wrapper.Wrapper;
 import com.meeple.shared.frame.wrapper.WrapperImpl;
+import com.meeple.shared.utils.CollectionSuppliers;
+import com.meeple.shared.utils.FrameUtils;
 
 public class ModelImportDemo {
 

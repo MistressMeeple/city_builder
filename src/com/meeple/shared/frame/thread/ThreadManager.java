@@ -5,10 +5,10 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
-import com.meeple.shared.CollectionSuppliers;
-import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.wrapper.Wrapper;
 import com.meeple.shared.frame.wrapper.WrapperImpl;
+import com.meeple.shared.utils.CollectionSuppliers;
+import com.meeple.shared.utils.FrameUtils;
 
 public class ThreadManager {
 	public static class Builder {

@@ -1,4 +1,4 @@
-package com.meeple.shared.frame;
+package com.meeple.shared.utils;
 
 import static org.lwjgl.opengl.GL11.GL_INVALID_ENUM;
 import static org.lwjgl.opengl.GL11.GL_INVALID_OPERATION;
@@ -43,6 +43,8 @@ public class FrameUtils {
 
 	private static Logger logger = Logger.getLogger(FrameUtils.class);
 
+	public static final long nanoToMilli = 1000 * 1000;
+	public static final long nanoToSeconds = 1000 * nanoToMilli;
 	public static float TWOPI = (float) (Math.PI * 2f);
 
 	public static void iterateRunnable(Collection<Runnable> set, boolean remove) {
@@ -286,15 +288,15 @@ public class FrameUtils {
 	};
 
 	public static long secondsToNanos(float seconds) {
-		return (long) (seconds * (1000 * 1000 * 1000));
+		return (long) (seconds * (nanoToSeconds));
 	}
 
 	public static float nanosToSeconds(long ticks) {
-		return ticks / (float) (1000 * 1000 * 1000);
+		return ticks / (float) (nanoToSeconds);
 	}
 
 	public static float nanosToSecondsInacurate(long ticks) {
-		return ((ticks >> 25) << 25) / (float) (1000 * 1000 * 1000);
+		return ((ticks >> 25) << 25) / (float) (nanoToSeconds);
 	}
 
 	public static Vector3f getCurrentForwardVector(Matrix4f matrix) {
@@ -645,7 +647,6 @@ public class FrameUtils {
 	}
 
 	public static void rotateThis(Vector2f vec, float angle) {
-
 		float sin = (float) Math.sin(angle);
 		float cos = (float) Math.cosFromSin(sin, angle);
 		float x = vec.x * cos - vec.y * sin;
@@ -653,13 +654,54 @@ public class FrameUtils {
 		vec.set(x, y);
 	}
 
-	public static Vector2f rotateNew(Vector2f vec, float angle) {
-
+	public static Vector2f rotateNew(Vector2f vector, float angle) {
 		float sin = (float) Math.sin(angle);
 		float cos = (float) Math.cosFromSin(sin, angle);
-		float x = vec.x * cos - vec.y * sin;
-		float y = vec.x * sin + vec.y * cos;
+		float x = vector.x * cos - vector.y * sin;
+		float y = vector.x * sin + vector.y * cos;
 		return new Vector2f(x, y);
+	}
+
+	private static float hueToRGB(float p, float q, float t) {
+
+		if (t < 1f / 6f)
+			return p + (q - p) * 6f * t;
+		if (t < 1f / 2f)
+			return q;
+		if (t < 2f / 3f)
+			return p + (q - p) * (2f / 3f - t) * 6;
+		return p;
+	}
+
+	/**
+	 * Converts a colour from HSL format to RGB format
+	 * @param h Hue
+	 * @param s Saturation 
+	 * @param l Lightness
+	 * @return RGB stored in Vector4f.xyz
+	 */
+	public static Vector4f hslToRgb(float h, float s, float l) {
+		float r, g, b;
+
+		if (s == 0) {
+			// achromatic
+			r = 1;
+			g = 1;
+			b = l;
+		} else {
+			float q = 0;
+			if (l < 0.5f) {
+				q = l * (1f + s);
+			} else {
+				q = l + s - l * s;
+			}
+			float p = 2f * l - q;
+			r = hueToRGB(p, q, h + 1f / 3f);
+			g = hueToRGB(p, q, h);
+			b = hueToRGB(p, q, h - 1f / 3f);
+		}
+
+		return new Vector4f(r, g, b, 1);
 	}
 
 	/**
@@ -692,7 +734,8 @@ public class FrameUtils {
 			}
 		}
 	}
-	public static void checkOpenGLError(){		
+	
+	public static void checkOpenGLError(){
 		int errorCode = glGetError();
 		while (errorCode != GL_NO_ERROR) {
 			switch (errorCode) {

@@ -5,7 +5,7 @@ import java.util.Map;
 import com.meeple.citybuild.client.render.WorldRenderer.MeshExt;
 import com.meeple.citybuild.server.LevelData.Chunk.Tile;
 import com.meeple.citybuild.server.WorldGenerator.Tiles;
-import com.meeple.shared.CollectionSuppliers;
+import com.meeple.shared.utils.CollectionSuppliers;
 
 public class TileMeshCache {
 	class TileMesh {

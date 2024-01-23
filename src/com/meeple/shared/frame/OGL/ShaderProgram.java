@@ -19,7 +19,7 @@ import org.lwjgl.opengl.GL42;
 import org.lwjgl.opengl.GL43;
 import org.lwjgl.opengl.GL46;
 
-import com.meeple.shared.CollectionSuppliers;
+import com.meeple.shared.utils.CollectionSuppliers;
 
 public class ShaderProgram {
 

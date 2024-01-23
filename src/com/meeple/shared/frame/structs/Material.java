@@ -1,4 +1,4 @@
-package com.meeple.citybuild.client.render.structs;
+package com.meeple.shared.frame.structs;
 
 import org.joml.Vector3f;
 import org.joml.Vector4f;

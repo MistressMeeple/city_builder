@@ -2,7 +2,7 @@ package com.meeple.citybuild.client.render;
 
 import org.joml.Vector2f;
 
-import com.meeple.shared.frame.FrameUtils;
+import com.meeple.shared.utils.FrameUtils;
 
 public class RendererBase {
 	/*

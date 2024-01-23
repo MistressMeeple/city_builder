@@ -20,7 +20,6 @@ import org.lwjgl.nuklear.Nuklear;
 import org.lwjgl.opengl.GL46;
 import org.lwjgl.system.MemoryStack;
 
-import com.meeple.citybuild.RayHelper;
 import com.meeple.citybuild.client.render.Screen;
 import com.meeple.citybuild.client.render.WorldRenderer;
 import com.meeple.citybuild.client.render.WorldRenderer.MeshExt;
@@ -30,9 +29,9 @@ import com.meeple.citybuild.server.WorldGenerator;
 import com.meeple.citybuild.server.WorldGenerator.TileTypes;
 import com.meeple.citybuild.server.WorldGenerator.Tiles;
 import com.meeple.shared.Delta;
+import com.meeple.shared.RayHelper;
 import com.meeple.shared.frame.CursorHelper;
 import com.meeple.shared.frame.CursorHelper.SpaceState;
-import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem;
@@ -47,6 +46,7 @@ import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 import com.meeple.shared.frame.window.hints.HasID;
 import com.meeple.shared.frame.wrapper.Wrapper;
 import com.meeple.shared.frame.wrapper.WrapperImpl;
+import com.meeple.shared.utils.FrameUtils;
 
 public class GameUI extends Screen {
 	private static final Logger logger = Logger.getLogger(GameUI.class);

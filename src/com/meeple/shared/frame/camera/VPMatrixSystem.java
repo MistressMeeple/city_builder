@@ -7,7 +7,6 @@ import org.joml.Vector3f;
 import org.lwjgl.opengl.GL46;
 import org.lwjgl.system.MemoryStack;
 
-import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.OGL.IShaderUniformUploadSystem;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
@@ -16,6 +15,7 @@ import com.meeple.shared.frame.component.Bounds2DComponent;
 import com.meeple.shared.frame.window.Window;
 import com.meeple.shared.frame.wrapper.Wrapper;
 import com.meeple.shared.frame.wrapper.WrapperImpl;
+import com.meeple.shared.utils.FrameUtils;
 
 public class VPMatrixSystem implements IShaderUniformUploadSystem<VPMatrix, Integer[]> {
 	public static class VPMatrix {

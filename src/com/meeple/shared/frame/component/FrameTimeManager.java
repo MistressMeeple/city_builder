@@ -2,6 +2,7 @@ package com.meeple.shared.frame.component;
 
 import com.meeple.shared.frame.wrapper.Wrapper;
 import com.meeple.shared.frame.wrapper.WrapperImpl;
+import com.meeple.shared.utils.FrameUtils;
 
 /**
  * This class holds the desired frame time in nano-seconds (optionally calculated from desired framerate). 
@@ -13,8 +14,6 @@ import com.meeple.shared.frame.wrapper.WrapperImpl;
  */
 public class FrameTimeManager implements Runnable {
 
-	private static final long nanoToMilli = 1000 * 1000;
-	private static final long milliToSeconds = 1000 * nanoToMilli;
 
 	/**
 	 * If {@link #desiredFrameTime} is not set, then this will set the desired FPS 
@@ -42,8 +41,8 @@ public class FrameTimeManager implements Runnable {
 
 		long diff = diff();
 		if (diff > 0) {
-			int ns = (int) (diff % nanoToMilli);
-			long ms = diff / nanoToMilli;
+			int ns = (int) (diff % FrameUtils.nanoToMilli);
+			long ms = diff / FrameUtils.nanoToMilli;
 			try {
 				Thread.sleep(ms, ns);
 			} catch (InterruptedException err) {
@@ -61,7 +60,7 @@ public class FrameTimeManager implements Runnable {
 		newTime = System.nanoTime();
 		frameTime = newTime - time;
 		if (desiredFrameTime == null) {
-			desiredFrameTime = milliToSeconds / desiredFrameRate;
+			desiredFrameTime = FrameUtils.nanoToSeconds / desiredFrameRate;
 		}
 		diff = desiredFrameTime - frameTime;
 		return diff;

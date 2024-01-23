@@ -18,11 +18,11 @@ import org.joml.Vector3f;
 
 import com.meeple.citybuild.server.LevelData.Chunk;
 import com.meeple.citybuild.server.LevelData.Chunk.Tile;
-import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.Delta;
-import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.wrapper.Wrapper;
 import com.meeple.shared.frame.wrapper.WrapperImpl;
+import com.meeple.shared.utils.CollectionSuppliers;
+import com.meeple.shared.utils.FrameUtils;
 
 public abstract class GameManager {
 	private static Logger logger = Logger.getLogger(GameManager.class);

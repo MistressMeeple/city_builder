@@ -14,11 +14,11 @@ import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 
-import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.GLFWManager;
 import com.meeple.shared.frame.component.FrameTimeManager;
 import com.meeple.shared.frame.thread.ThreadCloseManager;
 import com.meeple.shared.frame.thread.ThreadManager;
+import com.meeple.shared.utils.FrameUtils;
 
 /**
  * <B>**IMPORTANT** You need to create a {@link GLFWManager} before this class can be used</B><br>

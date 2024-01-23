@@ -27,12 +27,12 @@ import org.lwjgl.assimp.Assimp;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.MeshAttributeGenerator;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ShaderProgramDefinition_3D_lit_mat;
-import com.meeple.citybuild.client.render.structs.Material;
 import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferDataManagementType;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferObject;
 import com.meeple.shared.frame.nuklear.IOUtil;
+import com.meeple.shared.frame.structs.Material;
 
 public class ModelLoader {
 

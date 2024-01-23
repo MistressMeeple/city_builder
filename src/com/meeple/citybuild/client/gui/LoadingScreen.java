@@ -4,8 +4,8 @@ import org.joml.Math;
 
 import com.meeple.citybuild.client.render.Screen;
 import com.meeple.shared.Delta;
-import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
+import com.meeple.shared.utils.FrameUtils;
 
 public class LoadingScreen extends Screen {
 

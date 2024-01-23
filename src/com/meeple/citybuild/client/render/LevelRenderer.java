@@ -13,7 +13,6 @@ import org.joml.Vector4f;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL46;
 
-import com.meeple.citybuild.RayHelper;
 import com.meeple.citybuild.client.CityBuilderMain;
 import com.meeple.citybuild.client.render.WorldRenderer.MeshExt;
 import com.meeple.citybuild.server.Entity;
@@ -22,11 +21,10 @@ import com.meeple.citybuild.server.LevelData.Chunk;
 import com.meeple.citybuild.server.LevelData.Chunk.Tile;
 import com.meeple.citybuild.server.WorldGenerator.TileTypes;
 import com.meeple.citybuild.server.WorldGenerator.Tiles;
-import com.meeple.shared.CollectionSuppliers;
+import com.meeple.shared.RayHelper;
 import com.meeple.shared.Tickable;
 import com.meeple.shared.frame.CursorHelper;
 import com.meeple.shared.frame.CursorHelper.SpaceState;
-import com.meeple.shared.frame.FrameUtils;
 import com.meeple.shared.frame.OGL.KeyInputSystem;
 import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
@@ -42,6 +40,8 @@ import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpri
 import com.meeple.shared.frame.nuklear.NkContextSingleton;
 import com.meeple.shared.frame.wrapper.Wrapper;
 import com.meeple.shared.frame.wrapper.WrapperImpl;
+import com.meeple.shared.utils.CollectionSuppliers;
+import com.meeple.shared.utils.FrameUtils;
 
 public class LevelRenderer {
 	public static Logger logger = Logger.getLogger(LevelRenderer.class);

@@ -10,8 +10,8 @@ import org.joml.Vector2i;
 
 import com.meeple.citybuild.server.Buildings.BuildingInstance;
 import com.meeple.citybuild.server.WorldGenerator.Tiles;
-import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.frame.component.FrameTimeManager;
+import com.meeple.shared.utils.CollectionSuppliers;
 
 public class LevelData implements Serializable {
 

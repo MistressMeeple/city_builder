@@ -17,12 +17,13 @@ import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.Callback;
 import org.lwjgl.system.MemoryStack;
 
-import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.Delta;
 import com.meeple.shared.frame.component.FrameTimeManager;
 import com.meeple.shared.frame.window.Window;
 import com.meeple.shared.frame.wrapper.Wrapper;
 import com.meeple.shared.frame.wrapper.WrapperImpl;
+import com.meeple.shared.utils.CollectionSuppliers;
+import com.meeple.shared.utils.FrameUtils;
 
 public class GLFWThread extends Thread {
 

@@ -6,8 +6,8 @@ import java.util.Set;
 import org.joml.Vector2i;
 
 import com.meeple.citybuild.server.LevelData.Chunk;
-import com.meeple.shared.CollectionSuppliers;
-import com.meeple.shared.frame.FrameUtils;
+import com.meeple.shared.utils.CollectionSuppliers;
+import com.meeple.shared.utils.FrameUtils;
 
 public class WorldGenerator {
 

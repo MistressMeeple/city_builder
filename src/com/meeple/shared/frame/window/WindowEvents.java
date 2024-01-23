@@ -3,8 +3,8 @@ package com.meeple.shared.frame.window;
 import java.util.List;
 import java.util.Set;
 
-import com.meeple.shared.CollectionSuppliers;
 import com.meeple.shared.Tickable;
+import com.meeple.shared.utils.CollectionSuppliers;
 
 public class WindowEvents {
 

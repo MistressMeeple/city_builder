@@ -11,7 +11,7 @@ import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL46;
 import org.lwjgl.opengl.GLCapabilities;
 
-import com.meeple.shared.CollectionSuppliers.SetSupplier;
+import com.meeple.shared.utils.CollectionSuppliers.SetSupplier;
 
 public class GLContext implements AutoCloseable {
 	public GLCapabilities capabilities;

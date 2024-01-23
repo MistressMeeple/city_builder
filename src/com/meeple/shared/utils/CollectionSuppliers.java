@@ -1,4 +1,4 @@
-package com.meeple.shared;
+package com.meeple.shared.utils;
 
 import java.util.ArrayList;
 import java.util.Collections;

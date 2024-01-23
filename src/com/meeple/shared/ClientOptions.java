@@ -3,6 +3,7 @@ package com.meeple.shared;
 import java.util.Map;
 
 import com.meeple.shared.ClientOptionSystem.Delimeter;
+import com.meeple.shared.utils.CollectionSuppliers;
 
 public class ClientOptions {
 
