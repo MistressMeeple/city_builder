@@ -1,17 +1,11 @@
 package com.meeple;
 
-import static org.lwjgl.assimp.Assimp.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.opengl.GL30.*;
-import static org.lwjgl.opengl.GL31.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
-import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.Map;
@@ -27,13 +21,6 @@ import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.BufferUtils;
-import org.lwjgl.PointerBuffer;
-import org.lwjgl.assimp.AIFace;
-import org.lwjgl.assimp.AIMesh;
-import org.lwjgl.assimp.AIPropertyStore;
-import org.lwjgl.assimp.AIScene;
-import org.lwjgl.assimp.AIVector3D;
-import org.lwjgl.assimp.Assimp;
 import org.lwjgl.glfw.GLFWFramebufferSizeCallback;
 import org.lwjgl.glfw.GLFWKeyCallback;
 import org.lwjgl.glfw.GLFWScrollCallback;
@@ -45,22 +32,17 @@ import org.lwjgl.system.Callback;
 import org.lwjgl.system.MemoryStack;
 
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions;
-import com.meeple.citybuild.client.render.ShaderProgramDefinitions.LitShaderProgramDefinition;
-import com.meeple.citybuild.client.render.ShaderProgramDefinitions.MeshAttributeGenerator;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ShaderProgramDefinition_3D_lit_mat;
-import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ShaderProgramDefinition_3D_lit_mat.Mesh;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ViewMatrices;
 import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferDataManagementType;
-import com.meeple.shared.frame.OGL.ShaderProgram.BufferObject;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgram.RenderableVAO;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2.ShaderClosable;
-import com.meeple.shared.frame.nuklear.IOUtil;
 import com.meeple.shared.frame.structs.Light;
 import com.meeple.shared.frame.structs.Material;
 import com.meeple.shared.frame.wrapper.Wrapper;
@@ -143,13 +125,6 @@ public class ModelImportDemo {
 					mi.mesh = new WeakReference<>(dmesh);
 					mi.meshDataIndex = index++;
 					FrameUtils.addToSetMap(instances, primaryModel, mi, new CollectionSuppliers.SetSupplier<>());
-				}
-				if(false){
-					MeshInstance mi2 = new MeshInstance();
-					mi2.mesh = new WeakReference<>(dmesh);
-					mi2.meshDataIndex = index++;
-					FrameUtils.addToSetMap(instances, primaryLightModel, mi2,
-							new CollectionSuppliers.SetSupplier<>());
 				}
 				i++;
 			}

@@ -6,7 +6,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL31.*;
-import static com.meeple.shared.frame.OGL.ShaderProgram.*;
 
 import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL46;

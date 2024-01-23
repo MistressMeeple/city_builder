@@ -3,7 +3,6 @@ package com.meeple.shared;
 import static org.lwjgl.assimp.Assimp.*;
 
 import java.io.IOException;
-import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.HashMap;
@@ -11,10 +10,8 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.log4j.Logger;
-import org.joml.Vector3f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
-import org.lwjgl.assimp.AIColor3D;
 import org.lwjgl.assimp.AIColor4D;
 import org.lwjgl.assimp.AIFace;
 import org.lwjgl.assimp.AIMaterial;
@@ -96,6 +93,10 @@ public class ModelLoader {
             aiMesh.clear();
             aiMesh.free();
         }
+        //TODO import materials
+        if(scene.mNumMaterials() == -2){
+            setupMaterial(null);
+        }
         aiReleaseImport(scene);
         return meshes;
     }
@@ -175,7 +176,8 @@ public class ModelLoader {
         return mesh;
     }
 
-    private void setupMaterial(AIMaterial aim){
+    //TODO actually setup material
+    private static void setupMaterial(AIMaterial aim){
         Material material = new Material();
         AIColor4D colour = AIColor4D.malloc();
         aiGetMaterialColor(aim, "", 0, 0, colour);
