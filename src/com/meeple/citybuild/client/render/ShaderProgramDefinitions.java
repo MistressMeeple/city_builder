@@ -87,15 +87,6 @@ public class ShaderProgramDefinitions {
         return ambientBrightnessBuffer;
     }
 
-    public static void bindUBONameToIndex(String name, int binding, ShaderProgram... programs) {
-        for (ShaderProgram program : programs) {
-            glUseProgram(program.programID);
-            int actualIndex = GL46.glGetUniformBlockIndex(program.programID, name);
-            // binds the binding index to the interface block (by index)
-            glUniformBlockBinding(program.programID, actualIndex, binding);
-        }
-    }
-
     public static ShaderProgramCollection collection = new ShaderProgramCollection();
 
     public static class ShaderProgramCollection {
@@ -135,22 +126,22 @@ public class ShaderProgramDefinitions {
 
         private void setupMatrixUBO(GLContext glc, ShaderProgram... programs) {
             this.matrixBuffer = ShaderProgramDefinitions.genMatrixBuffer(glc);
-            ShaderProgramDefinitions.bindUBONameToIndex("Matrices", matrixBindingpoint, programs);
+            glc.bindUBONameToIndex("Matrices", matrixBindingpoint, programs);
         }
 
         private void setupLightUBO(GLContext glc, ShaderProgram... programs) {
             this.lightBuffer = ShaderProgramDefinitions.genLightBuffer(glc);
-            ShaderProgramDefinitions.bindUBONameToIndex("LightBlock", lightBufferBindingPoint, programs);
+            glc.bindUBONameToIndex("LightBlock", lightBufferBindingPoint, programs);
         }
 
         private void setupMaterialUBO(GLContext glc, ShaderProgram... programs) {
             this.materialBuffer = ShaderProgramDefinitions.genMaterialBuffer(glc);
-            ShaderProgramDefinitions.bindUBONameToIndex("MaterialBlock", materialBufferBindingPoint, programs);
+            glc.bindUBONameToIndex("MaterialBlock", materialBufferBindingPoint, programs);
         }
 
         private void setupAmbientBrightnessUBO(GLContext glc, ShaderProgram... programs) {
             this.ambientBrightnessBuffer = genAmbientBrightnessBuffer(glc);
-            ShaderProgramDefinitions.bindUBONameToIndex("ambientBrightness", ambientBrightnessBindingPoint, programs);
+            glc.bindUBONameToIndex("ambientBrightness", ambientBrightnessBindingPoint, programs);
         }
 
         /**
