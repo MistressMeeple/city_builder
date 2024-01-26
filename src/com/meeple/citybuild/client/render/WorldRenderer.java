@@ -1,6 +1,7 @@
 package com.meeple.citybuild.client.render;
 
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
+import com.meeple.shared.frame.OGL.ShaderProgram.BufferDataManagementType;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferType;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferUsage;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDataType;
@@ -97,38 +98,34 @@ public class WorldRenderer extends RendererBase {
 		}
 	*/
 	public static void setupDiscardMesh(MeshExt meshExt, int vertices) {
-
+		meshExt.positionAttrib = ShaderProgramDefinitions.MeshAttributeGenerator.generateVertexAttribute();
 		meshExt.positionAttrib.name = "position";
-		meshExt.positionAttrib.bufferType = BufferType.ArrayBuffer;
-		meshExt.positionAttrib.dataType = GLDataType.Float;
-		meshExt.positionAttrib.bufferUsage = BufferUsage.StreamDraw;
+		//meshExt.positionAttrib.bufferType = BufferType.ArrayBuffer;
+		//meshExt.positionAttrib.dataType = GLDataType.Float;
+		//meshExt.positionAttrib.bufferUsage = BufferUsage.StreamDraw;
 		meshExt.positionAttrib.dataSize = 2;
-		meshExt.positionAttrib.normalised = false;
+		//meshExt.positionAttrib.normalised = false;
 		meshExt.mesh.VBOs.add(meshExt.positionAttrib);
 
-		meshExt.colourAttrib.name = "colour";
-		meshExt.colourAttrib.bufferType = BufferType.ArrayBuffer;
-		meshExt.colourAttrib.dataType = GLDataType.Float;
-		meshExt.colourAttrib.bufferUsage = BufferUsage.StreamDraw;
-		meshExt.colourAttrib.dataSize = 4;
-		meshExt.colourAttrib.normalised = false;
+		meshExt.colourAttrib = ShaderProgramDefinitions.MeshAttributeGenerator.generateColourAttribute(1);
+		meshExt.colourAttrib.bufferResourceType = BufferDataManagementType.List;
 		meshExt.colourAttrib.instanced = true;
-		meshExt.colourAttrib.instanceStride = 1;
 		meshExt.mesh.VBOs.add(meshExt.colourAttrib);
 
-		meshExt.zIndexAttrib.name = "zIndex";
-		meshExt.zIndexAttrib.bufferType = BufferType.ArrayBuffer;
-		meshExt.zIndexAttrib.dataType = GLDataType.Float;
-		meshExt.zIndexAttrib.bufferUsage = BufferUsage.StreamDraw;
-		meshExt.zIndexAttrib.dataSize = 1;
-		meshExt.zIndexAttrib.normalised = false;
-		meshExt.zIndexAttrib.instanced = true;
-		meshExt.zIndexAttrib.instanceStride = 1;
+		
+		meshExt.zIndexAttrib = ShaderProgramDefinitions.MeshAttributeGenerator.generateZIndexAttribute(1);
+		meshExt.zIndexAttrib.bufferResourceType = BufferDataManagementType.List;
 		meshExt.mesh.VBOs.add(meshExt.zIndexAttrib);
+
+		
+		meshExt.offsetAttrib = ShaderProgramDefinitions.MeshAttributeGenerator.generateMeshTransformAttribute(1);
+		meshExt.offsetAttrib.name = "offset";
+		meshExt.offsetAttrib.bufferResourceType = BufferDataManagementType.List;
+		meshExt.mesh.VBOs.add(meshExt.offsetAttrib);
 
 		meshExt.mesh.vertexCount = vertices;
 		meshExt.mesh.modelRenderType = GLDrawMode.TriangleFan;
-		meshExt.mesh.singleFrameDiscard = true;
+		//meshExt.mesh.singleFrameDiscard = true;
 	}
 
 	/**

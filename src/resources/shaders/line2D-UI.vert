@@ -9,7 +9,7 @@ layout(location = 2) in lowp vec4 colour;
 //---------mesh rotation
 layout(location = 3) in lowp float zIndex;
 //---------mesh offset
-layout(location = 4) in highp vec2 offset;
+layout(location = 4) in highp mat4 offset;
 
 out lowp vec4 passColour;
 
@@ -20,7 +20,7 @@ void main(void){
 
     //mat2 rot =  mat2(cos(rotation),- sin(rotation), sin(rotation), cos(rotation));
 	
-	vec4 worldPos = vec4(position + offset, zIndex, 1);
+	vec4 worldPos = offset * vec4(position, zIndex, 1);
 	vec4 pos =   projectionMatrix * worldPos;
 	gl_Position =  pos;
 	passColour = colour;

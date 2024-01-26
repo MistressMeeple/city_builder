@@ -57,6 +57,8 @@ public class GLContext implements AutoCloseable {
 	 */
 	public void bindUBONameToIndex(String name, int bindingPoint, ShaderProgram... programs) {
 		for (ShaderProgram program : programs) {
+			if(program.programID == 0)
+				break;
 			int actualIndex = GL46.glGetUniformBlockIndex(program.programID, name);
 			//binds the binding index to the interface block (by index)
 			glUniformBlockBinding(program.programID, actualIndex, bindingPoint);

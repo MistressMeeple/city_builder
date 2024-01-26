@@ -25,12 +25,14 @@ import com.meeple.shared.RayHelper;
 import com.meeple.shared.Tickable;
 import com.meeple.shared.frame.CursorHelper;
 import com.meeple.shared.frame.CursorHelper.SpaceState;
+import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.OGL.KeyInputSystem;
 import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem;
+import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
 import com.meeple.shared.frame.OGL.UniformManager;
 import com.meeple.shared.frame.camera.VPMatrixSystem;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem;
@@ -244,16 +246,15 @@ public class LevelRenderer {
 		}
 	}
 
-	public Tickable renderGame(CityBuilderMain cityBuilder, VPMatrix vpMatrix, Entity cameraAnchorEntity, ProjectionMatrix ortho, RayHelper rh, KeyInputSystem keyInput, NkContextSingleton nkContext) {
+	public Tickable renderGame(CityBuilderMain cityBuilder, GLContext glContext, VPMatrix vpMatrix, Entity cameraAnchorEntity, ProjectionMatrix ortho, RayHelper rh, KeyInputSystem keyInput, NkContextSingleton nkContext) {
 
 		//		ShaderProgram mainProgram = new ShaderProgram();
 		ShaderProgram program = new ShaderProgram();
-		ShaderProgram uiProgram = new ShaderProgram();
+		ShaderProgram uiProgram = ShaderProgramDefinitions.collection.UI;
 
 		VPMatrixSystem vpSystem = new VPMatrixSystem();
 
 		Wrapper<UniformManager<String[], Integer[]>.Uniform<VPMatrix>> puW = new WrapperImpl<>();
-		Wrapper<UniformManager<String, Integer>.Uniform<ProjectionMatrix>> uipuW = new WrapperImpl<>();
 
 		vpMatrix.proj.getWrapped().window = cityBuilder.window;
 		vpMatrix.proj.getWrapped().FOV = 90;
@@ -274,7 +275,15 @@ public class LevelRenderer {
 		cityBuilder.window.events.postCreation.add(() -> {
 
 			puW.setWrapped(setupWorldProgram(program, vpSystem, vpMatrix));
-			uipuW.setWrapped(setupUIProgram(uiProgram, vpSystem.projSystem, ortho));
+			ShaderProgramSystem2.create(glContext, ShaderProgramDefinitions.collection.UI);
+			vpSystem.projSystem.update(ortho);
+			
+			ShaderProgramDefinitions.collection.setupUIProjectionMatrixUBO(glContext, ShaderProgramDefinitions.collection.UI);
+			ShaderProgramDefinitions.collection.updateUIProjectionMatrix(ortho.cache);
+			
+			cityBuilder.gameUI.setupCompas(uiProgram);
+			cityBuilder.gameUI.setupCompasLine(uiProgram);
+			
 
 			/*mpuW.setWrapped(levelRenderer.setupMainProgram(mainProgram, vpSystem, vpMatrix));
 			ShaderProgramSystem.loadVAO(mainProgram, cube);*/
@@ -317,7 +326,7 @@ public class LevelRenderer {
 			}
 
 			ShaderProgramSystem.render(program);
-			ShaderProgramSystem.render(uiProgram);
+			ShaderProgramSystem2.tryRender(uiProgram);
 			//this is the cube test rendering program
 			//						ShaderProgramSystem.render(mainProgram);
 			return false;
@@ -340,23 +349,6 @@ public class LevelRenderer {
 		return u;
 	}
 
-	public static UniformManager<String, Integer>.Uniform<ProjectionMatrix> setupUIProgram(ShaderProgram program, ProjectionMatrixSystem pSystem, ProjectionMatrix pMatrix) {
-
-		UniformManager<String, Integer>.Uniform<ProjectionMatrix> u = ShaderProgramSystem.singleUpload.register("projectionMatrix", pSystem);
-		ShaderProgramSystem.addUniform(program, ShaderProgramSystem.singleUpload, u);
-		ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.singleUpload, u, pMatrix);
-
-		program.shaderSources.put(GLShaderType.VertexShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/line2D-UI.vert")));
-		program.shaderSources.put(GLShaderType.FragmentShader, ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
-
-		try {
-			ShaderProgramSystem.create(program);
-		} catch (Exception err) {
-			err.printStackTrace();
-		}
-		return u;
-
-	}
 
 	public static UniformManager<String[], Integer[]>.Uniform<VPMatrix> setupMainProgram(ShaderProgram program, VPMatrixSystem VPMatrixSystem, VPMatrix vpMatrix) {
 		UniformManager<String[], Integer[]>.Uniform<VPMatrix> u = ShaderProgramSystem.multiUpload.register(new String[] { "vpMatrix", "projectionMatrix", "viewMatrix" }, VPMatrixSystem);
