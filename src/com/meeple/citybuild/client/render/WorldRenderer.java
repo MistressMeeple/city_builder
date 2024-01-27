@@ -8,7 +8,7 @@ import com.meeple.shared.frame.OGL.ShaderProgram.GLDataType;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgram.RenderableVAO;
 
-public class WorldRenderer extends RendererBase {
+public class WorldRenderer {
 
 	public static class MeshExt {
 		public Attribute positionAttrib = new Attribute();
@@ -97,36 +97,6 @@ public class WorldRenderer extends RendererBase {
 			}
 		}
 	*/
-	public static void setupDiscardMesh(MeshExt meshExt, int vertices) {
-		meshExt.positionAttrib = ShaderProgramDefinitions.MeshAttributeGenerator.generateVertexAttribute();
-		meshExt.positionAttrib.name = "position";
-		//meshExt.positionAttrib.bufferType = BufferType.ArrayBuffer;
-		//meshExt.positionAttrib.dataType = GLDataType.Float;
-		//meshExt.positionAttrib.bufferUsage = BufferUsage.StreamDraw;
-		meshExt.positionAttrib.dataSize = 2;
-		//meshExt.positionAttrib.normalised = false;
-		meshExt.mesh.VBOs.add(meshExt.positionAttrib);
-
-		meshExt.colourAttrib = ShaderProgramDefinitions.MeshAttributeGenerator.generateColourAttribute(1);
-		meshExt.colourAttrib.bufferResourceType = BufferDataManagementType.List;
-		meshExt.colourAttrib.instanced = true;
-		meshExt.mesh.VBOs.add(meshExt.colourAttrib);
-
-		
-		meshExt.zIndexAttrib = ShaderProgramDefinitions.MeshAttributeGenerator.generateZIndexAttribute(1);
-		meshExt.zIndexAttrib.bufferResourceType = BufferDataManagementType.List;
-		meshExt.mesh.VBOs.add(meshExt.zIndexAttrib);
-
-		
-		meshExt.offsetAttrib = ShaderProgramDefinitions.MeshAttributeGenerator.generateMeshTransformAttribute(1);
-		meshExt.offsetAttrib.name = "offset";
-		meshExt.offsetAttrib.bufferResourceType = BufferDataManagementType.List;
-		meshExt.mesh.VBOs.add(meshExt.offsetAttrib);
-
-		meshExt.mesh.vertexCount = vertices;
-		meshExt.mesh.modelRenderType = GLDrawMode.TriangleFan;
-		//meshExt.mesh.singleFrameDiscard = true;
-	}
 
 	/**
 	 * @deprecated This is not the proper way to create temporary meshes

@@ -277,7 +277,7 @@ public class LevelRenderer {
 			puW.setWrapped(setupWorldProgram(program, vpSystem, vpMatrix));
 			ShaderProgramSystem2.create(glContext, ShaderProgramDefinitions.collection.UI);
 			vpSystem.projSystem.update(ortho);
-			
+
 			ShaderProgramDefinitions.collection.setupUIProjectionMatrixUBO(glContext, ShaderProgramDefinitions.collection.UI);
 			ShaderProgramDefinitions.collection.updateUIProjectionMatrix(ortho.cache);
 			
@@ -292,7 +292,7 @@ public class LevelRenderer {
 
 		vpSystem.preMult(vpMatrix);
 
-		cityBuilder.gameUI.init(cityBuilder.window, vpMatrix, ortho, rh);
+		cityBuilder.gameUI.init(cityBuilder.window, ortho);
 		return (time) -> {
 			vpSystem.preMult(vpMatrix);
 			ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.multiUpload, puW.getWrapped(), vpMatrix);
@@ -317,7 +317,7 @@ public class LevelRenderer {
 				//TODO level clear colour
 				cityBuilder.window.clearColour.set(0f, 0f, 0f, 0f);
 				preRender(cityBuilder.level, vpMatrix, program);
-				cityBuilder.gameUI.preRenderMouseUI(cityBuilder.window, ortho, uiProgram);
+				cityBuilder.gameUI.preRenderMouseUI(cityBuilder.window, ortho, uiProgram, rh);
 
 				//				MeshExt mesh = new MeshExt();
 				//				bakeChunk(level.chunks.get(new Vector2i()), mesh);

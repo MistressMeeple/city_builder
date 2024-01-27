@@ -1,13 +1,24 @@
 package com.meeple.citybuild.client.gui;
 
-import static org.lwjgl.nuklear.Nuklear.*;
-import static org.lwjgl.system.MemoryStack.*;
+import static org.lwjgl.nuklear.Nuklear.NK_WINDOW_BORDER;
+import static org.lwjgl.nuklear.Nuklear.NK_WINDOW_NO_SCROLLBAR;
+import static org.lwjgl.nuklear.Nuklear.NK_WINDOW_TITLE;
+import static org.lwjgl.nuklear.Nuklear.nk_begin;
+import static org.lwjgl.nuklear.Nuklear.nk_button_text;
+import static org.lwjgl.nuklear.Nuklear.nk_end;
+import static org.lwjgl.nuklear.Nuklear.nk_group_begin;
+import static org.lwjgl.nuklear.Nuklear.nk_group_end;
+import static org.lwjgl.nuklear.Nuklear.nk_layout_row_dynamic;
+import static org.lwjgl.nuklear.Nuklear.nk_layout_space_begin;
+import static org.lwjgl.nuklear.Nuklear.nk_layout_space_end;
+import static org.lwjgl.nuklear.Nuklear.nk_layout_space_push;
+import static org.lwjgl.nuklear.Nuklear.nk_rect;
+import static org.lwjgl.system.MemoryStack.stackPush;
 
 import java.util.Iterator;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
-import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
@@ -23,8 +34,8 @@ import org.lwjgl.opengl.GL46;
 import org.lwjgl.system.MemoryStack;
 
 import com.meeple.citybuild.client.render.Screen;
-import com.meeple.citybuild.client.render.WorldRenderer;
-import com.meeple.citybuild.client.render.WorldRenderer.MeshExt;
+import com.meeple.citybuild.client.render.ShaderProgramDefinitions;
+import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ShaderProgramDefinition_UI;
 import com.meeple.citybuild.server.Entity;
 import com.meeple.citybuild.server.LevelData.Chunk.Tile;
 import com.meeple.citybuild.server.WorldGenerator;
@@ -38,7 +49,6 @@ import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
-import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraMode;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpringArm;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.ViewMatrix;
@@ -96,46 +106,48 @@ public class GameUI extends Screen {
 
 	// TODO move to game-options
 	// ---------------------settings -------------------------
-	static boolean invertMouse = true;
-	static boolean invertZoom = false;
-	static float zoomMult = 2f;
+	private static boolean invertMouse = true;
+	private static boolean invertZoom = false;
+	private static float zoomMult = 2f;
 	// aka deadzone
-	static final float panRadi = 0.5f;
-	static Vector4f compasColour = new Vector4f();
-	static Vector4f compasLineColour = new Vector4f();
+	private static final float panRadi = 0.5f;
+	private static Vector4f compasColour = new Vector4f(1, 0, 1, 1);
+	private static Vector4f compasLineColour = new Vector4f(1, 1, 0, 1);
 
-	static float menuCancelSeconds = 1f;
-	static long menuDelayNanos = FrameUtils.secondsToNanos(menuCancelSeconds);
-	static final float menuRadi = 0.5f;
+	private static float menuCancelSeconds = 1f;
+	private static long menuDelayNanos = FrameUtils.secondsToNanos(menuCancelSeconds);
+	private static final float menuRadi = 0.5f;
 	/*
 	 * //---------------------do not change-------------------------
 	 * Wrapper<Vector2f> mouseRClick = new WrapperImpl<>();
 	 * Wrapper<Vector2f> mouseMClick = new WrapperImpl<>();
 	 * Wrapper<Vector2f> mouseLastPos = new WrapperImpl<>();
 	 */
-	ClientWindow window;
-	VPMatrix vpMatrix;
+	private ClientWindow window;
 
-	ProjectionMatrix orthoProjection;
+	private ProjectionMatrix orthoProjection;
 
-	Vector2f panningButtonPos = null;
-	Vector2f rotatingButtonPos = null;
+	private Vector2f panningButtonPos = null;
+	private Vector2f rotatingButtonPos = null;
 	// Vector2f menuButtonPos = null;
 
-	Vector2f movement = new Vector2f();
+	private Vector2f movement = new Vector2f();
 
-	Wrapper<Float> scale = new WrapperImpl<>();
-	Wrapper<Float> pitch = new WrapperImpl<>();
-	Wrapper<Float> yaw = new WrapperImpl<>();
+	private Wrapper<Float> scale = new WrapperImpl<>();
+	private Wrapper<Float> pitch = new WrapperImpl<>();
+	private Wrapper<Float> yaw = new WrapperImpl<>();
 
 	public CompasState panningState = CompasState.None;
 	public CompasState rotatingState = CompasState.None;
+
+	private ShaderProgramDefinition_UI.Mesh compasMesh;
+	private ShaderProgramDefinition_UI.Mesh compasLineMesh;
 
 	/**
 	 * the mouse left click ray. updated per frame if the left click has been
 	 * pressed
 	 */
-	RayHelper rayHelper;
+
 	TileTypes currentSubMenu = null;
 	Tiles currentAction = null;
 	/**
@@ -243,14 +255,50 @@ public class GameUI extends Screen {
 		}
 	}
 
-	public void init(ClientWindow window, VPMatrix vpMatrix, ProjectionMatrix orthoProj, RayHelper rayHelper) {
+	public void init(ClientWindow window, ProjectionMatrix orthoProj) {
 		this.window = window;
-		this.vpMatrix = vpMatrix;
+
 		this.orthoProjection = orthoProj;
-		this.rayHelper = rayHelper;
 		window.callbacks.scrollCallbackSet.add(scrollCallback);
 		window.callbacks.mouseButtonCallbackSet.add(mouseButtonCallback);
 		window.callbacks.cursorPosCallbackSet.add(cursorposCallback);
+
+	}
+
+	public void setupCompas(ShaderProgram program) {
+		compasMesh = ShaderProgramDefinitions.collection.UI.createMesh(1);
+
+		Vector2f[] points = FrameUtils.generateCircle(new Vector2f(0, 0), 1f, 32);
+
+		for (Vector2f circv : points) {
+			FrameUtils.appendToList(compasMesh.vertexAttribute.data, circv);
+		}
+		compasMesh.modelRenderType = GLDrawMode.LineLoop;
+
+		FrameUtils.appendToList(compasMesh.colourAttribute.data, compasColour);
+		compasMesh.name = "compas";
+		compasMesh.zIndexAttribute.data.add(-1f);
+
+		FrameUtils.appendToList(compasMesh.meshTransformAttribute.data, new Matrix4f());
+		compasMesh.visible = false;
+		compasMesh.vertexCount = points.length;
+		ShaderProgramSystem.loadVAO(program, compasMesh);
+	}
+
+	public void setupCompasLine(ShaderProgram program) {
+			compasLineMesh = ShaderProgramDefinitions.collection.UI.createMesh(1);
+			compasLineMesh.vertexAttribute.data.add(0);
+			compasLineMesh.vertexAttribute.data.add(0);
+			compasLineMesh.vertexAttribute.data.add(0);
+			compasLineMesh.vertexAttribute.data.add(1);
+			compasLineMesh.modelRenderType = GLDrawMode.Line;
+			FrameUtils.appendToList(compasLineMesh.colourAttribute.data,compasLineColour);
+			FrameUtils.appendToList(compasLineMesh.meshTransformAttribute.data, new Matrix4f().identity());
+			compasLineMesh.name = "compasLine";
+			compasLineMesh.zIndexAttribute.data.add(-1f);
+			compasLineMesh.vertexCount = 2;
+			compasLineMesh.visible = false;
+			ShaderProgramSystem.loadVAO(program, compasLineMesh);
 
 	}
 
@@ -441,59 +489,22 @@ public class GameUI extends Screen {
 
 	}
 
-	MeshExt mcompas = new MeshExt();
-	MeshExt m = new MeshExt();
-
-	public void setupCompas(ShaderProgram program) {
-		Vector2f[] points = WorldRenderer.generateCircle(new Vector2f(0, 0), 1f, WorldRenderer.circleSegments * 2);
-		WorldRenderer.setupDiscardMesh(mcompas, points.length);
-		for (Vector2f circv : points) {
-			mcompas.positionAttrib.data.add(circv.x);
-			mcompas.positionAttrib.data.add(circv.y);
-		}
-		mcompas.mesh.modelRenderType = GLDrawMode.LineLoop;
-		FrameUtils.appendToList(mcompas.colourAttrib.data, new Vector4f(1, 0, 1, 1));
-		mcompas.mesh.name = "compas";
-		mcompas.zIndexAttrib.data.add(-1f);
-		FrameUtils.appendToList(mcompas.offsetAttrib.data, new Matrix4f());
-		mcompas.mesh.visible = false;
-		ShaderProgramSystem.loadVAO(program, mcompas.mesh);
-	}
-
-	public void setupCompasLine(ShaderProgram program) {
-		WorldRenderer.setupDiscardMesh(m, 2);
-
-		m.positionAttrib.data.add(0);
-		m.positionAttrib.data.add(0);
-		m.positionAttrib.data.add(0);
-		m.positionAttrib.data.add(1);
-		m.mesh.modelRenderType = GLDrawMode.Line;
-		FrameUtils.appendToList(m.colourAttrib.data, new Vector4f(1, 1, 0, 1));
-		FrameUtils.appendToList(m.offsetAttrib.data, new Matrix4f());
-		m.mesh.name = "compasLine";
-		m.zIndexAttrib.data.add(-1f);
-		m.mesh.visible = false;
-		ShaderProgramSystem.loadVAO(program, m.mesh);
-	}
-
 	private void updateCompas() {
 
 		if (panningButtonPos == null) {
-			mcompas.mesh.visible = false;
-			m.mesh.visible = false;
+			compasLineMesh.visible = false;
+			compasMesh.visible = false;
 		}
 
 		if (panningButtonPos != null) {
 			Vector2f mouseClickedPos = new Vector2f(panningButtonPos);
-
-			mcompas.mesh.visible = true;
-
 			Matrix4f matrix = new Matrix4f().translate(mouseClickedPos.x, mouseClickedPos.y, 0).scale(panRadi);
 			float[] matrixData = matrix.get(new float[16]);
 			for (int i = 0; i < 16; i++) {
-				mcompas.offsetAttrib.data.set(i, matrixData[i]);
+				compasMesh.meshTransformAttribute.data.set(i, matrixData[i]);
 			}
-			mcompas.offsetAttrib.update.set(true);
+			compasMesh.meshTransformAttribute.update.set(true);
+			compasMesh.visible = true;
 
 		}
 
@@ -502,21 +513,22 @@ public class GameUI extends Screen {
 	private void updateCompasLine() {
 
 		if (panningButtonPos == null) {
-			m.mesh.visible = false;
+			// compasLineMesh.visible = false; // TODO uuh wtf this causes nuklear crash??
 		}
 
 		if (panningButtonPos != null) {
-			
 
-			Vector4f windowRay = CursorHelper.getMouse(SpaceState.Eye_Space, window, this.orthoProjection, null);			
-			Vector2f mouseDir = new Vector2f((float) (panningButtonPos.x - windowRay.x), (float) (panningButtonPos.y - windowRay.y));
+			Vector4f windowRay = CursorHelper.getMouse(SpaceState.Eye_Space, window, this.orthoProjection, null);
+			Vector2f mouseDir = new Vector2f((float) (panningButtonPos.x - windowRay.x),
+					(float) (panningButtonPos.y - windowRay.y));
 
 			float len = mouseDir.length();
 			if (len < panRadi) {
 				len = 0;
 			} else {
 				float angle = new Vector2f(0, 1).angle(new Vector2f(-mouseDir.x, -mouseDir.y));
-				m.mesh.visible = true;
+				//mCompasLine.mesh.visible = true;
+				compasLineMesh.visible= true;
 
 				Matrix4f matrix = new Matrix4f()
 						.translate(panningButtonPos.x, panningButtonPos.y, 0)
@@ -525,15 +537,17 @@ public class GameUI extends Screen {
 						.scale(len - panRadi);
 				float[] matrixData = matrix.get(new float[16]);
 				for (int i = 0; i < 16; i++) {
-					m.offsetAttrib.data.set(i, matrixData[i]);
+				
+					compasLineMesh.meshTransformAttribute.data.set(i, matrixData[i]);
 				}
-				m.offsetAttrib.update.set(true);
+				compasLineMesh.meshTransformAttribute.update.set(true);
 			}
 
 		}
 	}
 
-	public void preRenderMouseUI(ClientWindow window, ProjectionMatrix proj, ShaderProgram program) {
+	public void preRenderMouseUI(ClientWindow window, ProjectionMatrix proj, ShaderProgram program,
+			RayHelper rayHelper) {
 
 		GL46.glEnable(GL46.GL_DEPTH_TEST);
 
