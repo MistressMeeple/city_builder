@@ -121,7 +121,6 @@ public class ShaderProgramSystem2 {
 				logger.trace("program log: \r\n" + log);
 			}
 
-			bindUniformLocations(program.programID, program.uniformSystems);
 		} catch (Exception e) {
 			failure = true;
 			err = e;
@@ -142,7 +141,7 @@ public class ShaderProgramSystem2 {
 
 			GL46.glDeleteProgram(program.programID);
 			glc.deleteProgram(program.programID);
-			throw new AssertionError(log, err);
+			throw new AssertionError(err.getMessage(), err);
 		}
 	}
 
@@ -238,25 +237,6 @@ public class ShaderProgramSystem2 {
 	}
 
 	/**
-	 * Sets the correct index for all uniforms provided. <br>
-	 * Internally uses {@link GL46#glGetUniformLocation(int, CharSequence)} to set Integer of entry using the entry key as the name. 
-	 * @param programID
-	 * @param uniformSystems
-	 */
-	private static void bindUniformLocations(int programID, Map<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>> uniformSystems) {
-
-		synchronized (uniformSystems) {
-			Iterator<Entry<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>>> i = uniformSystems.entrySet().iterator();
-			while (i.hasNext()) {
-				Entry<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>> entry = i.next();
-				UniformManager<?, ?> system = entry.getKey();
-				Map<UniformManager<?, ?>.Uniform<?>, List<?>> uniforms = entry.getValue();
-				system.bindUniformLocations(programID, uniforms.keySet());
-			}
-		}
-	}
-
-	/**
 	 * Loads a string that represents a shader from the file system. <br>
 	 * calls {@link FileLoader#loadFile(String)} to get the file resource stream then convers the file into a string by reading line by line
 	 * @param name file name to load in either the packaged jar file or external file
@@ -345,7 +325,7 @@ public class ShaderProgramSystem2 {
 			case List:
 
 				int arraySize = vbo.data.size();
-
+				//TODO make threadsafe
 				//TODO check actual buffer size vs expected
 				//		logger.trace("todo: check acutal size vs expected size");
 				switch (vbo.dataType) {

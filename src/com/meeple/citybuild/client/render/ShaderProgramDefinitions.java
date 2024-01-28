@@ -61,7 +61,7 @@ public class ShaderProgramDefinitions {
      * not linked to anything but must be unique
      */
     private static final int matrixBindingpoint = 2, lightBufferBindingPoint = 3, materialBufferBindingPoint = 4,
-            ambientBrightnessBindingPoint = 5;
+            ambientBrightnessBindingPoint = 5, UIProjectionMatrixBindingPoint = 6;
 
     private static int genMatrixBuffer(GLContext glc) {
         int matrixBuffer = glc.genUBO(matrixBindingpoint,
@@ -86,6 +86,10 @@ public class ShaderProgramDefinitions {
                 ShaderProgram.GLDataType.Float.getBytes());
         return ambientBrightnessBuffer;
     }
+    private static int genUIProjectionMatrixBuffer(GLContext glc){
+        int projectionMatrixBuffer = glc.genUBO(UIProjectionMatrixBindingPoint, ShaderProgram.GLDataType.Float.getBytes() * 16);
+        return projectionMatrixBuffer;
+    }
 
     public static ShaderProgramCollection collection = new ShaderProgramCollection();
 
@@ -96,11 +100,13 @@ public class ShaderProgramDefinitions {
         public ShaderProgramDefinition_3D_lit_flat _3D_lit_flat = new ShaderProgramDefinition_3D_lit_flat();
         public ShaderProgramDefinition_3D_lit_mat _3D_lit_mat = new ShaderProgramDefinition_3D_lit_mat();
         public ShaderProgramDefinition_3D_unlit_flat _3D_unlit_flat = new ShaderProgramDefinition_3D_unlit_flat();
+        public ShaderProgramDefinition_UI UI = new ShaderProgramDefinition_UI();
 
         private int matrixBuffer;
         private int lightBuffer;
         private int materialBuffer;
         private int ambientBrightnessBuffer;
+        private int UIProjectionMatrixBuffer;
 
         public void create(GLContext glc) throws AssertionError {
             ShaderProgramSystem2.create(glc, _3D_lit_flat);
@@ -111,17 +117,22 @@ public class ShaderProgramDefinitions {
 
         }
 
-        private void setupUBOs(GLContext glc) {
+        public void setupUBOs(GLContext glc) {
             /* All programs using the Matrix/Matrices UBO */
             ShaderProgram[] all_programs = { _3D_lit_flat, _3D_lit_mat, _3D_unlit_flat };
             ShaderProgram[] material_programs = { _3D_lit_mat };
             ShaderProgram[] lit_programs = { _3D_lit_flat, _3D_lit_mat };
+
             setupMatrixUBO(glc, all_programs);
             setupLightUBO(glc, lit_programs);
             setupAmbientBrightnessUBO(glc, lit_programs);
             setupMaterialUBO(glc, material_programs);
-
+            
             writeFixMatrix(fixMatrix);
+
+            ShaderProgram[] ui_programs = {UI};
+            setupUIProjectionMatrixUBO(glc, ui_programs);
+
         }
 
         private void setupMatrixUBO(GLContext glc, ShaderProgram... programs) {
@@ -142,6 +153,11 @@ public class ShaderProgramDefinitions {
         private void setupAmbientBrightnessUBO(GLContext glc, ShaderProgram... programs) {
             this.ambientBrightnessBuffer = genAmbientBrightnessBuffer(glc);
             glc.bindUBONameToIndex("ambientBrightness", ambientBrightnessBindingPoint, programs);
+        }
+
+        public void setupUIProjectionMatrixUBO(GLContext glc, ShaderProgram... programs) {
+            this.UIProjectionMatrixBuffer = genUIProjectionMatrixBuffer(glc);
+            glc.bindUBONameToIndex("MatrixBlock", UIProjectionMatrixBindingPoint, programs);
         }
 
         /**
@@ -187,6 +203,11 @@ public class ShaderProgramDefinitions {
             glBufferData(GL46.GL_UNIFORM_BUFFER, new float[] { value }, GL46.GL_DYNAMIC_DRAW);
         }
 
+        public void updateUIProjectionMatrix(Matrix4f UIProjectionMatrix){
+            glBindBuffer(GL46.GL_UNIFORM_BUFFER, UIProjectionMatrixBuffer);
+            glBufferData(GL46.GL_UNIFORM_BUFFER, UIProjectionMatrix.get(new float[16]),GL46.GL_DYNAMIC_DRAW);
+        }
+
         protected void writeFixMatrix(Matrix4f fix) {
             // no need to be in a program bidning, since this is shared between multiple
             // programs
@@ -223,132 +244,26 @@ public class ShaderProgramDefinitions {
             boolean projectionUpdate = matrices.projectionMatrixUpdate.compareAndSet(true, false);
             boolean viewUpdate = matrices.viewMatrixUpdate.compareAndSet(true, false);
 
-            if (fixUpdate){
+            if (fixUpdate) {
                 glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 0, matrices.fixMatrix.get(store));
             }
-            if (projectionUpdate){
+            if (projectionUpdate) {
                 glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 1, matrices.projectionMatrix.get(store));
             }
 
-            if (viewUpdate){
+            if (viewUpdate) {
                 glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 2, matrices.viewMatrix.get(store));
             }
 
             if (viewUpdate || projectionUpdate)
                 matrices.projectionMatrix.mul(matrices.viewMatrix, matrices.viewProjectionMatrix);
-                glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 3, matrices.viewProjectionMatrix.get(store));
+            glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 3, matrices.viewProjectionMatrix.get(store));
 
             if (viewUpdate || projectionUpdate || fixUpdate)
                 matrices.viewProjectionMatrix.mul(matrices.fixMatrix, matrices.viewProjectionFixMatrix);
-                glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 4, matrices.viewProjectionFixMatrix.get(store));
+            glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 4, matrices.viewProjectionFixMatrix.get(store));
 
             glBindBuffer(GL46.GL_UNIFORM_BUFFER, 0);
-        }
-
-    }
-
-    public static final String vertex_AttributeName = "vertex",
-            colour_AttributeName = "colour",
-            normal_AttributeName = "normal",
-            meshTransform_AttributeName = "modelMatrix",
-            normalMatrix_AttributeName = "normalMatrix",
-            materialIndex_AttributeName = "materialIndex";
-
-    public static class MeshAttributeGenerator {
-        public static Attribute generateVertexAttribute() {
-            Attribute vertexAttribute = new Attribute();
-            vertexAttribute.name = vertex_AttributeName;
-            vertexAttribute.bufferType = BufferType.ArrayBuffer;
-            vertexAttribute.dataType = GLDataType.Float;
-            vertexAttribute.bufferUsage = BufferUsage.StaticDraw;
-            vertexAttribute.dataSize = 3;
-            vertexAttribute.normalised = false;
-            return vertexAttribute;
-        }
-
-        public static Attribute generateColourAttribute(long maxInstances) {
-            Attribute colourAttribute = new Attribute();
-            colourAttribute.name = colour_AttributeName;
-            colourAttribute.bufferType = BufferType.ArrayBuffer;
-            colourAttribute.dataType = GLDataType.Float;
-            colourAttribute.bufferUsage = BufferUsage.StaticDraw;
-            colourAttribute.dataSize = 4;
-            colourAttribute.normalised = false;
-            colourAttribute.instanced = false;
-            colourAttribute.instanceStride = 1;
-            colourAttribute.bufferResourceType = BufferDataManagementType.Empty;
-            colourAttribute.bufferLen = maxInstances;
-            return colourAttribute;
-        }
-
-        public static Attribute generateNormalAttribute() {
-            Attribute normalAttribute = new Attribute();
-            normalAttribute.name = normal_AttributeName;
-            normalAttribute.bufferType = BufferType.ArrayBuffer;
-            normalAttribute.dataType = GLDataType.Float;
-            normalAttribute.bufferUsage = BufferUsage.StaticDraw;
-            normalAttribute.dataSize = 3;
-            normalAttribute.normalised = false;
-            normalAttribute.instanced = false;
-
-            return normalAttribute;
-        }
-
-        public static BufferObject generateElementAttribute() {
-            BufferObject elementAttribute = new BufferObject();
-            elementAttribute.bufferType = BufferType.ElementArrayBuffer;
-            elementAttribute.dataType = GLDataType.UnsignedInt;
-            elementAttribute.bufferUsage = BufferUsage.StaticDraw;
-
-            // mesh.VBOs.add(mesh.elementAttribute);
-            // mesh.index = new
-            // WeakReference<ShaderProgram.BufferObject>(mesh.elementAttribute);
-            return elementAttribute;
-        }
-
-        public static Attribute generateMeshTransformAttribute(long maxInstances) {
-            Attribute meshTransformAttribute = new Attribute();
-            meshTransformAttribute.name = meshTransform_AttributeName;
-            meshTransformAttribute.bufferType = BufferType.ArrayBuffer;
-            meshTransformAttribute.dataType = GLDataType.Float;
-            meshTransformAttribute.bufferUsage = BufferUsage.DynamicDraw;
-            meshTransformAttribute.dataSize = 16;
-            meshTransformAttribute.normalised = false;
-            meshTransformAttribute.instanced = true;
-            meshTransformAttribute.instanceStride = 1;
-            meshTransformAttribute.bufferResourceType = BufferDataManagementType.Empty;
-            meshTransformAttribute.bufferLen = maxInstances;
-            return meshTransformAttribute;
-        }
-
-        public static Attribute generateMeshNormalMatrixAttribute(long maxInstances) {
-            Attribute meshNormalMatrixAttribute = new Attribute();
-            meshNormalMatrixAttribute.name = normalMatrix_AttributeName;
-            meshNormalMatrixAttribute.bufferType = BufferType.ArrayBuffer;
-            meshNormalMatrixAttribute.dataType = GLDataType.Float;
-            meshNormalMatrixAttribute.bufferUsage = BufferUsage.DynamicDraw;
-            meshNormalMatrixAttribute.dataSize = 16;
-            meshNormalMatrixAttribute.normalised = false;
-            meshNormalMatrixAttribute.instanced = true;
-            meshNormalMatrixAttribute.instanceStride = 1;
-            meshNormalMatrixAttribute.bufferResourceType = BufferDataManagementType.Empty;
-            meshNormalMatrixAttribute.bufferLen = maxInstances;
-            return meshNormalMatrixAttribute;
-        }
-
-        public static Attribute generateMaterialIndexAttribute(long maxInstances) {
-            Attribute materialIndexAttribute = new Attribute();
-            materialIndexAttribute.name = materialIndex_AttributeName;
-            materialIndexAttribute.bufferType = BufferType.ArrayBuffer;
-            materialIndexAttribute.dataType = GLDataType.Float;
-            materialIndexAttribute.bufferUsage = BufferUsage.DynamicDraw;
-            materialIndexAttribute.dataSize = 1;
-            materialIndexAttribute.normalised = false;
-            materialIndexAttribute.instanced = true;
-            materialIndexAttribute.instanceStride = 1;
-            materialIndexAttribute.bufferResourceType = BufferDataManagementType.Empty;
-            materialIndexAttribute.bufferLen = maxInstances;
-            return materialIndexAttribute;
         }
 
     }
@@ -367,26 +282,87 @@ public class ShaderProgramDefinitions {
 
         public E createMesh(long maxInstances) {
             E mesh = newMesh();
-            if(mesh.vertexAttribute == null){
+            if (mesh.vertexAttribute == null) {
                 mesh.vertexAttribute = MeshAttributeGenerator.generateVertexAttribute();
                 mesh.VBOs.add(mesh.vertexAttribute);
             }
-            
+
             if (mesh.meshTransformAttribute == null) {
                 mesh.meshTransformAttribute = MeshAttributeGenerator.generateMeshTransformAttribute(maxInstances);
                 mesh.VBOs.add(mesh.meshTransformAttribute);
                 mesh.instanceAttributes.put(meshTransform_AttributeName,
                         new WeakReference<ShaderProgram.Attribute>(mesh.meshTransformAttribute));
             }
+
+            return mesh;
+
+        }
+    }
+    
+
+    public static class ShaderProgramDefinition_UI extends BaseShaderProgram<ShaderProgramDefinition_UI.Mesh> {
+
+        public class Mesh extends BaseShaderProgram<Mesh>.Mesh {
+            public Attribute colourAttribute;
+            public Attribute zIndexAttribute;
+
+            protected Mesh() {
+
+            }
+        }
+
+        protected ShaderProgramDefinition_UI() {
+            String vertSource = ShaderProgramSystem2.loadShaderSourceFromFile(("resources/shaders/2D_UI.vert"));
+            String fragSource = ShaderProgramSystem2.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag"));
+
+            shaderSources.put(GLShaderType.VertexShader, vertSource);
+            shaderSources.put(GLShaderType.FragmentShader, fragSource);
+        }
+
+        protected Mesh newMesh() {
+            return new Mesh();
+        }
+
+        public Mesh createMesh(long maxInstances) {
+            Mesh mesh = (Mesh) super.createMesh(maxInstances);
+            mesh.vertexAttribute.dataSize = 2;
+            mesh.meshTransformAttribute.name = "meshTransform";
+            mesh.meshTransformAttribute.bufferResourceType = BufferDataManagementType.List;
+
+            if (mesh.colourAttribute == null) {
+                mesh.colourAttribute = MeshAttributeGenerator.generateColourAttribute(maxInstances);
+                mesh.colourAttribute.bufferResourceType = BufferDataManagementType.List;
+                mesh.colourAttribute.instanced = true;
+                mesh.VBOs.add(mesh.colourAttribute);
+                mesh.instanceAttributes.put(colour_AttributeName, new WeakReference<ShaderProgram.Attribute>(mesh.colourAttribute));
+            }
+            if(mesh.zIndexAttribute == null){
+                mesh.zIndexAttribute = MeshAttributeGenerator.generateZIndexAttribute(maxInstances);
+                mesh.zIndexAttribute.bufferResourceType = BufferDataManagementType.List;
+                mesh.VBOs.add(mesh.zIndexAttribute);
+                mesh.instanceAttributes.put(zIndex_AttributeName, new WeakReference<ShaderProgram.Attribute>(mesh.zIndexAttribute));
+            }
+            mesh.modelRenderType = GLDrawMode.TriangleFan;
+
             return mesh;
 
         }
     }
 
-    public static class ShaderProgramDefinition_3D_unlit_flat
-            extends BaseShaderProgram<ShaderProgramDefinition_3D_unlit_flat.Mesh> {
+    protected abstract static class _3DShaderProgram<E extends _3DShaderProgram<E>.Mesh> extends BaseShaderProgram<E> {
 
-        public class Mesh extends BaseShaderProgram<Mesh>.Mesh {
+        public class Mesh extends BaseShaderProgram<E>.Mesh {
+
+            protected Mesh() {
+            }
+        }
+
+    }
+
+    public static class ShaderProgramDefinition_3D_unlit_flat
+            extends _3DShaderProgram<ShaderProgramDefinition_3D_unlit_flat.Mesh> {
+
+        public class Mesh extends _3DShaderProgram<Mesh>.Mesh {
             public Attribute colourAttribute;
 
             protected Mesh() {
@@ -410,7 +386,7 @@ public class ShaderProgramDefinitions {
 
         public Mesh createMesh(long maxInstances) {
             Mesh mesh = (Mesh) super.createMesh(maxInstances);
-            if(mesh.colourAttribute == null){
+            if (mesh.colourAttribute == null) {
                 mesh.colourAttribute = MeshAttributeGenerator.generateColourAttribute(maxInstances);
                 mesh.VBOs.add(mesh.colourAttribute);
                 mesh.instanceAttributes.put(colour_AttributeName,
@@ -424,9 +400,9 @@ public class ShaderProgramDefinitions {
     }
 
     public static abstract class LitShaderProgramDefinition<E extends LitShaderProgramDefinition<E>.Mesh>
-            extends BaseShaderProgram<E> {
+            extends _3DShaderProgram<E> {
 
-        public class Mesh extends BaseShaderProgram<E>.Mesh {
+        public class Mesh extends _3DShaderProgram<E>.Mesh {
             public Attribute normalAttribute;
             public BufferObject elementAttribute;
             public Attribute meshNormalMatrixAttribute;
@@ -546,6 +522,131 @@ public class ShaderProgramDefinitions {
         protected Mesh newMesh() {
             return new Mesh();
         }
+    }
+    
+
+    public static final String vertex_AttributeName = "vertex",
+            zIndex_AttributeName = "zIndex",
+            colour_AttributeName = "colour",
+            normal_AttributeName = "normal",
+            meshTransform_AttributeName = "modelMatrix",
+            normalMatrix_AttributeName = "normalMatrix",
+            materialIndex_AttributeName = "materialIndex";
+
+    public static class MeshAttributeGenerator {
+        
+        public static Attribute generateVertexAttribute() {
+            Attribute vertexAttribute = new Attribute();
+            vertexAttribute.name = vertex_AttributeName;
+            vertexAttribute.bufferType = BufferType.ArrayBuffer;
+            vertexAttribute.dataType = GLDataType.Float;
+            vertexAttribute.bufferUsage = BufferUsage.StaticDraw;
+            vertexAttribute.dataSize = 3;
+            vertexAttribute.normalised = false;
+            return vertexAttribute;
+        }
+
+        public static Attribute generateZIndexAttribute(long maxInstances) {
+            Attribute zIndexAttribute = new Attribute();
+            zIndexAttribute.name = zIndex_AttributeName;
+            zIndexAttribute.bufferType = BufferType.ArrayBuffer;
+            zIndexAttribute.dataType = GLDataType.Float;
+            zIndexAttribute.bufferUsage = BufferUsage.DynamicDraw;
+            zIndexAttribute.dataSize = 1;
+            zIndexAttribute.normalised = false;
+            zIndexAttribute.instanced = true;
+            zIndexAttribute.instanceStride = 1;
+            zIndexAttribute.bufferResourceType = BufferDataManagementType.Empty;
+            zIndexAttribute.bufferLen = maxInstances;
+            return zIndexAttribute;
+        }
+
+        public static Attribute generateColourAttribute(long maxInstances) {
+            Attribute colourAttribute = new Attribute();
+            colourAttribute.name = colour_AttributeName;
+            colourAttribute.bufferType = BufferType.ArrayBuffer;
+            colourAttribute.dataType = GLDataType.Float;
+            colourAttribute.bufferUsage = BufferUsage.StaticDraw;
+            colourAttribute.dataSize = 4;
+            colourAttribute.normalised = false;
+            colourAttribute.instanced = false;
+            colourAttribute.instanceStride = 1;
+            colourAttribute.bufferResourceType = BufferDataManagementType.Empty;
+            colourAttribute.bufferLen = maxInstances;
+            return colourAttribute;
+        }
+
+        public static Attribute generateNormalAttribute() {
+            Attribute normalAttribute = new Attribute();
+            normalAttribute.name = normal_AttributeName;
+            normalAttribute.bufferType = BufferType.ArrayBuffer;
+            normalAttribute.dataType = GLDataType.Float;
+            normalAttribute.bufferUsage = BufferUsage.StaticDraw;
+            normalAttribute.dataSize = 3;
+            normalAttribute.normalised = false;
+            normalAttribute.instanced = false;
+
+            return normalAttribute;
+        }
+
+        public static BufferObject generateElementAttribute() {
+            BufferObject elementAttribute = new BufferObject();
+            elementAttribute.bufferType = BufferType.ElementArrayBuffer;
+            elementAttribute.dataType = GLDataType.UnsignedInt;
+            elementAttribute.bufferUsage = BufferUsage.StaticDraw;
+
+            // mesh.VBOs.add(mesh.elementAttribute);
+            // mesh.index = new
+            // WeakReference<ShaderProgram.BufferObject>(mesh.elementAttribute);
+            return elementAttribute;
+        }
+
+        public static Attribute generateMeshTransformAttribute(long maxInstances) {
+            Attribute meshTransformAttribute = new Attribute();
+            meshTransformAttribute.name = meshTransform_AttributeName;
+            meshTransformAttribute.bufferType = BufferType.ArrayBuffer;
+            meshTransformAttribute.dataType = GLDataType.Float;
+            meshTransformAttribute.bufferUsage = BufferUsage.DynamicDraw;
+            meshTransformAttribute.dataSize = 16;
+            meshTransformAttribute.normalised = false;
+            meshTransformAttribute.instanced = true;
+            meshTransformAttribute.instanceStride = 1;
+            meshTransformAttribute.bufferResourceType = BufferDataManagementType.Empty;
+            meshTransformAttribute.bufferLen = maxInstances;
+            return meshTransformAttribute;
+        }
+
+        public static Attribute generateMeshNormalMatrixAttribute(long maxInstances) {
+            Attribute meshNormalMatrixAttribute = new Attribute();
+            meshNormalMatrixAttribute.name = normalMatrix_AttributeName;
+            meshNormalMatrixAttribute.bufferType = BufferType.ArrayBuffer;
+            meshNormalMatrixAttribute.dataType = GLDataType.Float;
+            meshNormalMatrixAttribute.bufferUsage = BufferUsage.DynamicDraw;
+            meshNormalMatrixAttribute.dataSize = 16;
+            meshNormalMatrixAttribute.normalised = false;
+            meshNormalMatrixAttribute.instanced = true;
+            meshNormalMatrixAttribute.instanceStride = 1;
+            meshNormalMatrixAttribute.bufferResourceType = BufferDataManagementType.Empty;
+            meshNormalMatrixAttribute.bufferLen = maxInstances;
+            return meshNormalMatrixAttribute;
+        }
+
+        public static Attribute generateMaterialIndexAttribute(long maxInstances) {
+            Attribute materialIndexAttribute = new Attribute();
+            materialIndexAttribute.name = materialIndex_AttributeName;
+            materialIndexAttribute.bufferType = BufferType.ArrayBuffer;
+            materialIndexAttribute.dataType = GLDataType.Float;
+            materialIndexAttribute.bufferUsage = BufferUsage.DynamicDraw;
+            materialIndexAttribute.dataSize = 1;
+            materialIndexAttribute.normalised = false;
+            materialIndexAttribute.instanced = true;
+            materialIndexAttribute.instanceStride = 1;
+            materialIndexAttribute.bufferResourceType = BufferDataManagementType.Empty;
+            materialIndexAttribute.bufferLen = maxInstances;
+            return materialIndexAttribute;
+        }
+        
+
     }
 
 }

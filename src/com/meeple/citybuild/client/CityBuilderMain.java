@@ -16,6 +16,7 @@ import org.apache.log4j.PatternLayout;
 import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWKeyCallbackI;
+import org.lwjgl.opengl.GLCapabilities;
 
 import com.meeple.citybuild.client.gui.GameUI;
 import com.meeple.citybuild.client.gui.LoadingScreen;
@@ -31,6 +32,7 @@ import com.meeple.shared.Delta;
 import com.meeple.shared.RayHelper;
 import com.meeple.shared.Tickable;
 import com.meeple.shared.frame.GLFWManager;
+import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.OGL.KeyInputSystem;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
@@ -133,11 +135,11 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 			}
 		});
 		AtomicInteger clientQuitCounter = new AtomicInteger();
-		try (GLFWManager glManager = new GLFWManager(); WindowManager windowManager = new WindowManager()) {
+		try (GLFWManager glManager = new GLFWManager(); GLContext glContext = new GLContext(); WindowManager windowManager = new WindowManager()) {
 			RayHelper rh = new RayHelper();
 
 			LevelRenderer levelRenderer = new LevelRenderer();
-			Tickable t = levelRenderer.renderGame(this, vpMatrix, cameraAnchorEntity, ortho, rh, keyInput, window.nkContext);
+			Tickable t = levelRenderer.renderGame(this, glContext, vpMatrix, cameraAnchorEntity, ortho, rh, keyInput, window.nkContext);
 
 			//			FrameUtils.addToSetMap(stateRendering, WindowState.Game, t, syncSetSupplier);
 

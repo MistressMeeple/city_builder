@@ -142,8 +142,8 @@ public class VPMatrixSystem implements IShaderUniformUploadSystem<VPMatrix, Inte
 
 		}
 
-		@Override
-		public void uploadToShader(ProjectionMatrix upload, Integer uniformID, MemoryStack stack) {
+		public void update(ProjectionMatrix upload){
+			
 			Matrix4f matrix = new Matrix4f();
 			Bounds2DComponent bounds = upload.window.getBounds2DComponent();
 			float aspectRatio = (float) bounds.width / (float) bounds.height;
@@ -160,8 +160,13 @@ public class VPMatrixSystem implements IShaderUniformUploadSystem<VPMatrix, Inte
 						upload.nearPlane,
 						upload.farPlane);
 			}
-			GL46.glUniformMatrix4fv(uniformID, false, IShaderUniformUploadSystem.generateMatrix4fBuffer(stack, matrix));
 			upload.cache.set(matrix);
+		}
+
+		@Override
+		public void uploadToShader(ProjectionMatrix upload, Integer uniformID, MemoryStack stack) {
+			update(upload);
+			GL46.glUniformMatrix4fv(uniformID, false, IShaderUniformUploadSystem.generateMatrix4fBuffer(stack, upload.cache));
 		}
 
 	}

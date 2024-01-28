@@ -38,6 +38,10 @@ import org.lwjgl.system.MemoryUtil;
 
 import com.meeple.shared.Delta;
 import com.meeple.shared.Tickable;
+import com.meeple.shared.frame.OGL.ShaderProgram;
+import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
+import com.meeple.shared.frame.OGL.ShaderProgram.BufferDataManagementType;
+import com.meeple.shared.frame.OGL.ShaderProgram.BufferObject;
 
 public class FrameUtils {
 
@@ -761,6 +765,58 @@ public class FrameUtils {
 
 			errorCode = glGetError();
 		}
+	}
+	
+
+	public static Vector2f[] generateCircle(Vector2f argCenter, float argRadius, int segments) {
+		Vector2f[] points = new Vector2f[segments];
+
+		float inc = TWOPI / segments;
+
+		for (int i = 0; i < segments; i++) {
+			points[i] = new Vector2f();
+			points[i].x = (float) (argCenter.x + Math.cos(i * inc) * argRadius);
+			points[i].y = (float) (argCenter.y + Math.sin(i * inc) * argRadius);
+		}
+		return points;
+	}
+	
+
+	public static boolean compareVAOs(ShaderProgram.RenderableVAO a, ShaderProgram.RenderableVAO b) {
+		boolean match = a.modelRenderType == b.modelRenderType && a.renderCount == b.renderCount
+				&& a.vertexCount == b.vertexCount && a.visible == b.visible;
+		if (a.index != null && a.index.get() != null && b.index != null && b.index.get() != null) {
+			match &= compareVBO(a.index.get(), b.index.get());
+		}
+		return match;
+	}
+
+	public static boolean compareVBO(BufferObject a, BufferObject b) {
+		boolean matchBuffer = ((a.bufferResourceType == b.bufferResourceType
+				&& a.bufferResourceType == BufferDataManagementType.Address && a.bufferAddress == b.bufferAddress) ||
+				(a.bufferResourceType == b.bufferResourceType && a.bufferResourceType == BufferDataManagementType.Buffer
+						&& a.buffer == b.buffer)
+				||
+				(a.bufferResourceType == b.bufferResourceType && a.bufferResourceType == BufferDataManagementType.Empty
+						&& a.bufferLen == b.bufferLen)
+				||
+				(a.bufferResourceType == b.bufferResourceType && a.bufferResourceType == BufferDataManagementType.List
+						&& a.data.containsAll(b.data)))
+				&& a.dataSize == b.dataSize && a.dataType == b.dataType;
+
+		boolean matchAttribute = true;
+
+		if (a instanceof Attribute && b instanceof Attribute) {
+			Attribute a1 = (Attribute) a;
+			Attribute b1 = (Attribute) b;
+			matchAttribute = a1.enabled == b1.enabled &&
+					a1.instanced == b1.instanced &&
+					a1.normalised == b1.normalised &&
+					a1.instanceStride == b1.instanceStride &&
+					a1.name == b1.name;
+		}
+		return matchBuffer && matchAttribute;
+
 	}
 
 }

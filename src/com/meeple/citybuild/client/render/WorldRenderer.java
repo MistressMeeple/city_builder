@@ -1,13 +1,14 @@
 package com.meeple.citybuild.client.render;
 
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
+import com.meeple.shared.frame.OGL.ShaderProgram.BufferDataManagementType;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferType;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferUsage;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDataType;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgram.RenderableVAO;
 
-public class WorldRenderer extends RendererBase {
+public class WorldRenderer {
 
 	public static class MeshExt {
 		public Attribute positionAttrib = new Attribute();
@@ -96,40 +97,6 @@ public class WorldRenderer extends RendererBase {
 			}
 		}
 	*/
-	public static void setupDiscardMesh(MeshExt meshExt, int vertices) {
-
-		meshExt.positionAttrib.name = "position";
-		meshExt.positionAttrib.bufferType = BufferType.ArrayBuffer;
-		meshExt.positionAttrib.dataType = GLDataType.Float;
-		meshExt.positionAttrib.bufferUsage = BufferUsage.StreamDraw;
-		meshExt.positionAttrib.dataSize = 2;
-		meshExt.positionAttrib.normalised = false;
-		meshExt.mesh.VBOs.add(meshExt.positionAttrib);
-
-		meshExt.colourAttrib.name = "colour";
-		meshExt.colourAttrib.bufferType = BufferType.ArrayBuffer;
-		meshExt.colourAttrib.dataType = GLDataType.Float;
-		meshExt.colourAttrib.bufferUsage = BufferUsage.StreamDraw;
-		meshExt.colourAttrib.dataSize = 4;
-		meshExt.colourAttrib.normalised = false;
-		meshExt.colourAttrib.instanced = true;
-		meshExt.colourAttrib.instanceStride = 1;
-		meshExt.mesh.VBOs.add(meshExt.colourAttrib);
-
-		meshExt.zIndexAttrib.name = "zIndex";
-		meshExt.zIndexAttrib.bufferType = BufferType.ArrayBuffer;
-		meshExt.zIndexAttrib.dataType = GLDataType.Float;
-		meshExt.zIndexAttrib.bufferUsage = BufferUsage.StreamDraw;
-		meshExt.zIndexAttrib.dataSize = 1;
-		meshExt.zIndexAttrib.normalised = false;
-		meshExt.zIndexAttrib.instanced = true;
-		meshExt.zIndexAttrib.instanceStride = 1;
-		meshExt.mesh.VBOs.add(meshExt.zIndexAttrib);
-
-		meshExt.mesh.vertexCount = vertices;
-		meshExt.mesh.modelRenderType = GLDrawMode.TriangleFan;
-		meshExt.mesh.singleFrameDiscard = true;
-	}
 
 	/**
 	 * @deprecated This is not the proper way to create temporary meshes

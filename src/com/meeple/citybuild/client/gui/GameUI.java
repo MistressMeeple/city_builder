@@ -1,12 +1,25 @@
 package com.meeple.citybuild.client.gui;
 
-import static org.lwjgl.nuklear.Nuklear.*;
-import static org.lwjgl.system.MemoryStack.*;
+import static org.lwjgl.nuklear.Nuklear.NK_WINDOW_BORDER;
+import static org.lwjgl.nuklear.Nuklear.NK_WINDOW_NO_SCROLLBAR;
+import static org.lwjgl.nuklear.Nuklear.NK_WINDOW_TITLE;
+import static org.lwjgl.nuklear.Nuklear.nk_begin;
+import static org.lwjgl.nuklear.Nuklear.nk_button_text;
+import static org.lwjgl.nuklear.Nuklear.nk_end;
+import static org.lwjgl.nuklear.Nuklear.nk_group_begin;
+import static org.lwjgl.nuklear.Nuklear.nk_group_end;
+import static org.lwjgl.nuklear.Nuklear.nk_layout_row_dynamic;
+import static org.lwjgl.nuklear.Nuklear.nk_layout_space_begin;
+import static org.lwjgl.nuklear.Nuklear.nk_layout_space_end;
+import static org.lwjgl.nuklear.Nuklear.nk_layout_space_push;
+import static org.lwjgl.nuklear.Nuklear.nk_rect;
+import static org.lwjgl.system.MemoryStack.stackPush;
 
 import java.util.Iterator;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
+import org.joml.Matrix4f;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
@@ -21,8 +34,8 @@ import org.lwjgl.opengl.GL46;
 import org.lwjgl.system.MemoryStack;
 
 import com.meeple.citybuild.client.render.Screen;
-import com.meeple.citybuild.client.render.WorldRenderer;
-import com.meeple.citybuild.client.render.WorldRenderer.MeshExt;
+import com.meeple.citybuild.client.render.ShaderProgramDefinitions;
+import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ShaderProgramDefinition_UI;
 import com.meeple.citybuild.server.Entity;
 import com.meeple.citybuild.server.LevelData.Chunk.Tile;
 import com.meeple.citybuild.server.WorldGenerator;
@@ -36,7 +49,6 @@ import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
-import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraMode;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpringArm;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.ViewMatrix;
@@ -52,7 +64,9 @@ public class GameUI extends Screen {
 	private static final Logger logger = Logger.getLogger(GameUI.class);
 
 	static enum MouseButton implements HasID<Integer> {
-		LClick(GLFW.GLFW_MOUSE_BUTTON_LEFT), RClick(GLFW.GLFW_MOUSE_BUTTON_RIGHT), MClick(GLFW.GLFW_MOUSE_BUTTON_MIDDLE);
+		LClick(GLFW.GLFW_MOUSE_BUTTON_LEFT), RClick(GLFW.GLFW_MOUSE_BUTTON_RIGHT),
+		MClick(GLFW.GLFW_MOUSE_BUTTON_MIDDLE);
+
 		int id;
 
 		private MouseButton(int id) {
@@ -68,15 +82,18 @@ public class GameUI extends Screen {
 
 	static enum PanningType {
 		/**
-		 * Sim-city style. the difference between the press and current location. constant 
+		 * Sim-city style. the difference between the press and current location.
+		 * constant
 		 */
 		Difference,
 		/**
-		 * hold and drag. not constant. mouse "locks" to world position and movement of mouse moves the world
+		 * hold and drag. not constant. mouse "locks" to world position and movement of
+		 * mouse moves the world
 		 */
 		Drag,
 		/**
-		 * This is the easiest way to control with controller. same as difference but from the middle of the screen
+		 * This is the easiest way to control with controller. same as difference but
+		 * from the middle of the screen
 		 */
 		FromCenter
 	}
@@ -87,45 +104,51 @@ public class GameUI extends Screen {
 		Active
 	}
 
-	//TODO move to game-options
-	//---------------------settings -------------------------
-	static boolean invertMouse = true;
-	static boolean invertZoom = false;
-	static float zoomMult = 2f;
-	//aka deadzone
-	static final float panRadi = 0.5f;
-	static Vector4f compasColour = new Vector4f();
-	static Vector4f compasLineColour = new Vector4f();
+	// TODO move to game-options
+	// ---------------------settings -------------------------
+	private static boolean invertMouse = true;
+	private static boolean invertZoom = false;
+	private static float zoomMult = 2f;
+	// aka deadzone
+	private static final float panRadi = 0.5f;
+	private static Vector4f compasColour = new Vector4f(1, 0, 1, 1);
+	private static Vector4f compasLineColour = new Vector4f(1, 1, 0, 1);
 
-	static float menuCancelSeconds = 1f;
-	static long menuDelayNanos = FrameUtils.secondsToNanos(menuCancelSeconds);
-	static final float menuRadi = 0.5f;
-	/*//---------------------do not change-------------------------
-	Wrapper<Vector2f> mouseRClick = new WrapperImpl<>();
-	Wrapper<Vector2f> mouseMClick = new WrapperImpl<>();
-	Wrapper<Vector2f> mouseLastPos = new WrapperImpl<>();*/
-	ClientWindow window;
-	VPMatrix vpMatrix;
+	private static float menuCancelSeconds = 1f;
+	private static long menuDelayNanos = FrameUtils.secondsToNanos(menuCancelSeconds);
+	private static final float menuRadi = 0.5f;
+	/*
+	 * //---------------------do not change-------------------------
+	 * Wrapper<Vector2f> mouseRClick = new WrapperImpl<>();
+	 * Wrapper<Vector2f> mouseMClick = new WrapperImpl<>();
+	 * Wrapper<Vector2f> mouseLastPos = new WrapperImpl<>();
+	 */
+	private long windowID;
+	private NkContext nkContext;
 
-	ProjectionMatrix orthoProjection;
+	private ProjectionMatrix orthoProjection;
 
-	Vector2f panningButtonPos = null;
-	Vector2f rotatingButtonPos = null;
-	//	Vector2f menuButtonPos = null;
+	private Vector2f panningButtonPos = null;
+	private Vector2f rotatingButtonPos = null;
+	// Vector2f menuButtonPos = null;
 
-	Vector2f movement = new Vector2f();
+	private Vector2f movement = new Vector2f();
 
-	Wrapper<Float> scale = new WrapperImpl<>();
-	Wrapper<Float> pitch = new WrapperImpl<>();
-	Wrapper<Float> yaw = new WrapperImpl<>();
+	private Wrapper<Float> scale = new WrapperImpl<>();
+	private Wrapper<Float> pitch = new WrapperImpl<>();
+	private Wrapper<Float> yaw = new WrapperImpl<>();
 
 	public CompasState panningState = CompasState.None;
 	public CompasState rotatingState = CompasState.None;
 
+	private ShaderProgramDefinition_UI.Mesh compasMesh;
+	private ShaderProgramDefinition_UI.Mesh compasLineMesh;
+
 	/**
-	 * the mouse left click ray. updated per frame  if the left click has been pressed
+	 * the mouse left click ray. updated per frame if the left click has been
+	 * pressed
 	 */
-	RayHelper rayHelper;
+
 	TileTypes currentSubMenu = null;
 	Tiles currentAction = null;
 	/**
@@ -153,24 +176,28 @@ public class GameUI extends Screen {
 
 		@Override
 		public void invoke(long windowID, int button, int action, int mods) {
-			/*only allows when no UI element is hovered*/
-			if (!Nuklear.nk_window_is_any_hovered(window.nkContext.context)) {
+			/* only allows when no UI element is hovered */
+			if (!Nuklear.nk_window_is_any_hovered(nkContext)) {
 				if (button == panningButton.getID()) {
 					if (action == GLFW.GLFW_PRESS) {
 						if (panningType == PanningType.Difference) {
-							Vector4f mouse = CursorHelper.getMouse(SpaceState.Eye_Space, window, orthoProjection, null);
+							Vector4f mouse = CursorHelper.getMouse(SpaceState.Eye_Space, windowID, orthoProjection.cache, null);
 							panningButtonPos = new Vector2f(mouse.x, mouse.y);
+							updateCompas();
 						} else if (panningType == PanningType.FromCenter) {
 							panningButtonPos = new Vector2f(0, 0);
+							updateCompas();
 						}
 					} else if (action == GLFW.GLFW_RELEASE) {
 						panningButtonPos = null;
+						updateCompas();
+						updateCompasLine();
 					}
 				}
 				if (button == rotateButton.getID()) {
 					if (action == GLFW.GLFW_PRESS) {
 						if (rotationType == PanningType.Difference) {
-							Vector4f mouse = CursorHelper.getMouse(SpaceState.Eye_Space, window, orthoProjection, null);
+							Vector4f mouse = CursorHelper.getMouse(SpaceState.Eye_Space, windowID, orthoProjection.cache, null);
 							rotatingButtonPos = new Vector2f(mouse.x, mouse.y);
 						} else if (rotationType == PanningType.FromCenter) {
 							rotatingButtonPos = new Vector2f(0, 0);
@@ -180,7 +207,7 @@ public class GameUI extends Screen {
 					}
 				}
 				if (button == menuButton.getID()) {
-					//begins tracking elsewhere
+					// begins tracking elsewhere
 					if (action == GLFW.GLFW_PRESS) {
 
 					} else if (action == GLFW.GLFW_RELEASE) {
@@ -204,8 +231,9 @@ public class GameUI extends Screen {
 
 		@Override
 		public void invoke(long window, double xpos, double ypos) {
+			updateCompasLine();
 			if (panningType == PanningType.Drag) {
-				//basically check if it is being held down
+				// basically check if it is being held down
 				if (panningButtonPos != null) {
 					movement.add((float) xpos, (float) ypos);
 				}
@@ -228,19 +256,57 @@ public class GameUI extends Screen {
 		}
 	}
 
-	public void init(ClientWindow window, VPMatrix vpMatrix, ProjectionMatrix orthoProj, RayHelper rayHelper) {
-		this.window = window;
-		this.vpMatrix = vpMatrix;
+	public void init(ClientWindow window, ProjectionMatrix orthoProj) {
+		this.windowID = window.getID();
+		this.nkContext = window.nkContext.context;
+
 		this.orthoProjection = orthoProj;
-		this.rayHelper = rayHelper;
 		window.callbacks.scrollCallbackSet.add(scrollCallback);
 		window.callbacks.mouseButtonCallbackSet.add(mouseButtonCallback);
 		window.callbacks.cursorPosCallbackSet.add(cursorposCallback);
+
+	}
+
+	public void setupCompas(ShaderProgram program) {
+		compasMesh = ShaderProgramDefinitions.collection.UI.createMesh(1);
+
+		Vector2f[] points = FrameUtils.generateCircle(new Vector2f(0, 0), 1f, 32);
+
+		for (Vector2f circv : points) {
+			FrameUtils.appendToList(compasMesh.vertexAttribute.data, circv);
+		}
+		compasMesh.modelRenderType = GLDrawMode.LineLoop;
+
+		FrameUtils.appendToList(compasMesh.colourAttribute.data, compasColour);
+		compasMesh.name = "compas";
+		compasMesh.zIndexAttribute.data.add(-1f);
+
+		FrameUtils.appendToList(compasMesh.meshTransformAttribute.data, new Matrix4f());
+		compasMesh.visible = false;
+		compasMesh.vertexCount = points.length;
+		ShaderProgramSystem.loadVAO(program, compasMesh);
+	}
+
+	public void setupCompasLine(ShaderProgram program) {
+			compasLineMesh = ShaderProgramDefinitions.collection.UI.createMesh(1);
+			compasLineMesh.vertexAttribute.data.add(0);
+			compasLineMesh.vertexAttribute.data.add(0);
+			compasLineMesh.vertexAttribute.data.add(0);
+			compasLineMesh.vertexAttribute.data.add(1);
+			compasLineMesh.modelRenderType = GLDrawMode.Line;
+			FrameUtils.appendToList(compasLineMesh.colourAttribute.data,compasLineColour);
+			FrameUtils.appendToList(compasLineMesh.meshTransformAttribute.data, new Matrix4f().identity());
+			compasLineMesh.name = "compasLine";
+			compasLineMesh.zIndexAttribute.data.add(-1f);
+			compasLineMesh.vertexCount = 2;
+			compasLineMesh.visible = false;
+			ShaderProgramSystem.loadVAO(program, compasLineMesh);
+
 	}
 
 	public void handlePitchingTick(ClientWindow window, ProjectionMatrix proj, CameraSpringArm arm) {
 
-		Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, window, proj, null);
+		Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, windowID, proj.cache, null);
 		Vector2f dir = new Vector2f(mousePos.x, mousePos.y);
 		{
 			long mTicks = window.mousePressTicks.getOrDefault(rotateButton.getID(), 0l);
@@ -254,7 +320,7 @@ public class GameUI extends Screen {
 						mouseDir.x = -mouseDir.x;
 						mouseDir.y = -mouseDir.y;
 					}
-					//find dead-zone
+					// find dead-zone
 					float len = mouseDir.length();
 					mouseDir.normalize();
 					if (mouseDir.isFinite()) {
@@ -269,7 +335,7 @@ public class GameUI extends Screen {
 
 		}
 
-		//TODO handle the keyboard press
+		// TODO handle the keyboard press
 		{
 			float angle = 0;
 			if (window.keyPressTicks.getOrDefault(GLFW.GLFW_KEY_E, 0l) > 0) {
@@ -280,12 +346,12 @@ public class GameUI extends Screen {
 			}
 			if (angle != 0) {
 				angle = angle * 2f;
-				//					arm.yaw += angle;
+				// arm.yaw += angle;
 				yaw.setWrapped(yaw.getWrappedOrDefault(0f) + angle);
 			}
 		}
 
-		//handles the smooth pitch
+		// handles the smooth pitch
 		{
 			Float s = pitch.getWrapped();
 			if (s != null) {
@@ -294,7 +360,7 @@ public class GameUI extends Screen {
 				process(pitch, s);
 			}
 		}
-		//handles the smooth yaw
+		// handles the smooth yaw
 
 		{
 			Float s = yaw.getWrapped();
@@ -315,7 +381,7 @@ public class GameUI extends Screen {
 
 	public void handleScrollingTick(CameraSpringArm arm) {
 
-		//handle smooth scale
+		// handle smooth scale
 
 		Float s = scale.getWrapped();
 		if (s != null) {
@@ -326,7 +392,7 @@ public class GameUI extends Screen {
 			} else {
 				arm.addDistance(-nd);
 			}
-			//roughly 10% less each tick
+			// roughly 10% less each tick
 			scale.setWrapped(s - (s * 0.15f));
 			if (Math.abs(scale.getWrapped()) < 1f) {
 				scale.setWrapped(0f);
@@ -335,9 +401,10 @@ public class GameUI extends Screen {
 		}
 	}
 
-	public void handlePanningTick(ClientWindow window, ProjectionMatrix orthoProjection, ViewMatrix view, Entity cameraAnchor) {
+	public void handlePanningTick(ClientWindow window, ProjectionMatrix orthoProjection, ViewMatrix view,
+			Entity cameraAnchor) {
 
-		Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, window, orthoProjection, null);
+		Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, windowID, orthoProjection.cache, null);
 		float rotZ = 0;
 		switch (view.cameraMode) {
 			case LookAt:
@@ -365,7 +432,7 @@ public class GameUI extends Screen {
 
 					FrameUtils.rotateThis(mouseDir, -(float) Math.toRadians(rotZ));
 
-					//find dead-zone
+					// find dead-zone
 					float len = mouseDir.length();
 					mouseDir.normalize();
 					if (len < panRadi) {
@@ -374,7 +441,7 @@ public class GameUI extends Screen {
 					} else if (mouseDir.isFinite()) {
 						mouseDir = mouseDir.mul((len) * 0.1f * 0.1f);
 						float scale = 1f;
-						//almost always
+						// almost always
 						if (view.cameraMode == CameraMode.LookAt) {
 							scale = view.springArm.getDistance();
 						} else {
@@ -411,7 +478,7 @@ public class GameUI extends Screen {
 				mdir = mdir.rotateZ(-(float) Math.toRadians(rotZ));
 
 				float scale = 1f;
-				//almost always
+				// almost always
 				if (view.cameraMode == CameraMode.LookAt) {
 					scale = view.springArm.getDistance();
 				} else {
@@ -424,88 +491,79 @@ public class GameUI extends Screen {
 
 	}
 
-	public void preRenderMouseUI(ClientWindow window, ProjectionMatrix proj, ShaderProgram program) {
+	private void updateCompas() {
+
+		if (panningButtonPos == null) {
+			compasLineMesh.visible = false;
+			compasMesh.visible = false;
+		}
+
+		if (panningButtonPos != null) {
+			Vector2f mouseClickedPos = new Vector2f(panningButtonPos);
+			Matrix4f matrix = new Matrix4f().translate(mouseClickedPos.x, mouseClickedPos.y, 0).scale(panRadi);
+			float[] matrixData = matrix.get(new float[16]);
+			for (int i = 0; i < 16; i++) {
+				compasMesh.meshTransformAttribute.data.set(i, matrixData[i]);
+			}
+			compasMesh.meshTransformAttribute.update.set(true);
+			compasMesh.visible = true;
+
+		}
+
+	}
+
+	private void updateCompasLine() {
+
+		if (panningButtonPos == null) {
+			// compasLineMesh.visible = false; // TODO uuh wtf this causes nuklear crash??
+		}
+
+		if (panningButtonPos != null) {
+
+			Vector4f windowRay = CursorHelper.getMouse(SpaceState.Eye_Space, windowID, this.orthoProjection.cache, null);
+			Vector2f mouseDir = new Vector2f((float) (panningButtonPos.x - windowRay.x),
+					(float) (panningButtonPos.y - windowRay.y));
+
+			float len = mouseDir.length();
+			if (len < panRadi) {
+				len = 0;
+			} else {
+				float angle = new Vector2f(0, 1).angle(new Vector2f(-mouseDir.x, -mouseDir.y));
+				//mCompasLine.mesh.visible = true;
+				compasLineMesh.visible= true;
+
+				Matrix4f matrix = new Matrix4f()
+						.translate(panningButtonPos.x, panningButtonPos.y, 0)
+						.rotate(angle, 0, 0, 1)
+						.translate(0, panRadi, 0)
+						.scale(len - panRadi);
+				float[] matrixData = matrix.get(new float[16]);
+				for (int i = 0; i < 16; i++) {
+				
+					compasLineMesh.meshTransformAttribute.data.set(i, matrixData[i]);
+				}
+				compasLineMesh.meshTransformAttribute.update.set(true);
+			}
+
+		}
+	}
+
+	public void preRenderMouseUI(ClientWindow window, ProjectionMatrix proj, ShaderProgram program,
+			RayHelper rayHelper) {
 
 		GL46.glEnable(GL46.GL_DEPTH_TEST);
 
 		if (true) {
 			if (currentAction != null) {
 				Tile t = rayHelper.getCurrentTile();
+				// TODO check if mouse over UI
 				if (t != null) {
 					t.type = currentAction;
 					rayHelper.getCurrentChunk().rebake.set(true);
 				}
 			}
 		}
-		if (true) {
 
-			if (panningButtonPos != null) {
-				Vector2f mouseClickedPos = new Vector2f(panningButtonPos);
-
-				//					RenderingMain.system.loadVAO(program, mesh.mesh);
-				//					mesh.mesh.visible = false;
-
-				{
-					MeshExt m = new MeshExt();
-
-					Vector2f mouseDir = new Vector2f();
-					if (true) {
-						Vector3f camPos = new Vector3f();//vpMatrix.view.getWrapped().getPosition(new Vector3f());
-
-						Vector4f v = CursorHelper.getMouse(SpaceState.Eye_Space, window, proj, null);
-						Vector2f dir = new Vector2f(v.x - camPos.x, v.y - camPos.y);
-						Vector2f pos = new Vector2f(mouseClickedPos);
-						if (pos != null) {
-							mouseDir.x = (float) (pos.x - dir.x);
-							mouseDir.y = (float) (pos.y - dir.y);
-						}
-
-						//find dead-zone and max length
-
-						float len = mouseDir.length();
-
-						mouseDir.normalize();
-						//								float len = mouseDir.normalize();
-						if (len < panRadi) {
-							len = 0;
-						} else {
-							{
-								MeshExt mcompas = new MeshExt();
-								Vector2f[] points = WorldRenderer.generateCircle(new Vector2f(mouseClickedPos.x, mouseClickedPos.y), panRadi, WorldRenderer.circleSegments * 2);
-								WorldRenderer.setupDiscardMesh(mcompas, points.length);
-								for (Vector2f circv : points) {
-									mcompas.positionAttrib.data.add(circv.x);
-									mcompas.positionAttrib.data.add(circv.y);
-								}
-								mcompas.mesh.modelRenderType = GLDrawMode.LineLoop;
-								FrameUtils.appendToList(mcompas.colourAttrib.data, new Vector4f(1, 0, 1, 1));
-								mcompas.mesh.name = "compas";
-								mcompas.zIndexAttrib.data.add(-1f);
-								ShaderProgramSystem.loadVAO(program, mcompas.mesh);
-							}
-							Vector2f line = new Vector2f(mouseDir.x, mouseDir.y);
-							Vector2f lineStart = line.mul(panRadi, new Vector2f());
-							line = line.mul(len);
-							mouseDir = mouseDir.mul((len));
-							WorldRenderer.setupDiscardMesh(m, 2);
-
-							m.positionAttrib.data.add(pos.x - lineStart.x);
-							m.positionAttrib.data.add(pos.y - lineStart.y);
-							m.positionAttrib.data.add(pos.x - line.x);
-							m.positionAttrib.data.add(pos.y - line.y);
-							m.mesh.modelRenderType = GLDrawMode.Line;
-							FrameUtils.appendToList(m.colourAttrib.data, new Vector4f(1, 1, 0, 1));
-							m.mesh.name = "compasLine";
-							m.zIndexAttrib.data.add(-1f);
-							ShaderProgramSystem.loadVAO(program, m.mesh);
-						}
-
-					}
-
-				}
-
-			}
-		}
 	}
 
 	int btnWidth = 100;
@@ -524,7 +582,8 @@ public class GameUI extends Screen {
 		try (MemoryStack stack = stackPush()) {
 			NkRect rect = NkRect.mallocStack(stack);
 
-			if (nk_begin(ctx, "MainBuildingMenu", nk_rect(x, y, width, height, rect), NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_TITLE)) {
+			if (nk_begin(ctx, "MainBuildingMenu", nk_rect(x, y, width, height, rect),
+					NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_TITLE)) {
 
 				nk_layout_row_dynamic(ctx, btnWidth + 25, 1);
 
@@ -532,7 +591,8 @@ public class GameUI extends Screen {
 					nk_layout_space_begin(ctx, Nuklear.NK_STATIC, btnHeight, WorldGenerator.TileTypes.values().length);
 					int i = 0;
 					for (TileTypes type : WorldGenerator.TileTypes.values()) {
-						nk_layout_space_push(ctx, nk_rect((btnWidth + btnSpacing) * i++, 0, btnWidth, btnHeight, NkRect.create()));
+						nk_layout_space_push(ctx,
+								nk_rect((btnWidth + btnSpacing) * i++, 0, btnWidth, btnHeight, NkRect.create()));
 						if (currentSubMenu != null && currentSubMenu == type) {
 							NuklearManager.styledButton(ctx, NuklearMenuSystem.getDisabled(ctx, stack), () -> {
 								if (nk_button_text(ctx, type.toString())) {
@@ -558,23 +618,27 @@ public class GameUI extends Screen {
 
 			if (currentSubMenu != null) {
 
-				if (nk_begin(ctx, "BuildingSubMenu", nk_rect(x, y - height, width, height, rect), NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_TITLE)) {
+				if (nk_begin(ctx, "BuildingSubMenu", nk_rect(x, y - height, width, height, rect),
+						NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_TITLE)) {
 
 					nk_layout_row_dynamic(ctx, btnWidth + 25, 1);
 
 					if (nk_group_begin(ctx, "", 0)) {
-						nk_layout_space_begin(ctx, Nuklear.NK_STATIC, btnHeight, WorldGenerator.TileTypes.values().length);
+						nk_layout_space_begin(ctx, Nuklear.NK_STATIC, btnHeight,
+								WorldGenerator.TileTypes.values().length);
 						int i = 0;
 						Set<Tiles> tileSet = WorldGenerator.typesByTypes.get(currentSubMenu);
 						if (tileSet != null) {
 							synchronized (tileSet) {
 								for (Iterator<Tiles> it = tileSet.iterator(); it.hasNext();) {
 									Tiles t = it.next();
-									nk_layout_space_push(ctx, nk_rect((btnWidth + btnSpacing) * i++, 0, btnWidth, btnHeight, NkRect.create()));
+									nk_layout_space_push(ctx, nk_rect((btnWidth + btnSpacing) * i++, 0, btnWidth,
+											btnHeight, NkRect.create()));
 									if (currentAction != null && currentAction == t) {
-										NuklearManager.styledButton(ctx, NuklearMenuSystem.getDisabled(ctx, stack), () -> {
-											nk_button_text(ctx, t.toString());
-										});
+										NuklearManager.styledButton(ctx, NuklearMenuSystem.getDisabled(ctx, stack),
+												() -> {
+													nk_button_text(ctx, t.toString());
+												});
 									} else {
 										if (nk_button_text(ctx, t.toString())) {
 											logger.trace(t.toString() + " has been clicked");
