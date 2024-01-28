@@ -123,7 +123,8 @@ public class GameUI extends Screen {
 	 * Wrapper<Vector2f> mouseMClick = new WrapperImpl<>();
 	 * Wrapper<Vector2f> mouseLastPos = new WrapperImpl<>();
 	 */
-	private ClientWindow window;
+	private long windowID;
+	private NkContext nkContext;
 
 	private ProjectionMatrix orthoProjection;
 
@@ -176,11 +177,11 @@ public class GameUI extends Screen {
 		@Override
 		public void invoke(long windowID, int button, int action, int mods) {
 			/* only allows when no UI element is hovered */
-			if (!Nuklear.nk_window_is_any_hovered(window.nkContext.context)) {
+			if (!Nuklear.nk_window_is_any_hovered(nkContext)) {
 				if (button == panningButton.getID()) {
 					if (action == GLFW.GLFW_PRESS) {
 						if (panningType == PanningType.Difference) {
-							Vector4f mouse = CursorHelper.getMouse(SpaceState.Eye_Space, window, orthoProjection, null);
+							Vector4f mouse = CursorHelper.getMouse(SpaceState.Eye_Space, windowID, orthoProjection.cache, null);
 							panningButtonPos = new Vector2f(mouse.x, mouse.y);
 							updateCompas();
 						} else if (panningType == PanningType.FromCenter) {
@@ -196,7 +197,7 @@ public class GameUI extends Screen {
 				if (button == rotateButton.getID()) {
 					if (action == GLFW.GLFW_PRESS) {
 						if (rotationType == PanningType.Difference) {
-							Vector4f mouse = CursorHelper.getMouse(SpaceState.Eye_Space, window, orthoProjection, null);
+							Vector4f mouse = CursorHelper.getMouse(SpaceState.Eye_Space, windowID, orthoProjection.cache, null);
 							rotatingButtonPos = new Vector2f(mouse.x, mouse.y);
 						} else if (rotationType == PanningType.FromCenter) {
 							rotatingButtonPos = new Vector2f(0, 0);
@@ -256,7 +257,8 @@ public class GameUI extends Screen {
 	}
 
 	public void init(ClientWindow window, ProjectionMatrix orthoProj) {
-		this.window = window;
+		this.windowID = window.getID();
+		this.nkContext = window.nkContext.context;
 
 		this.orthoProjection = orthoProj;
 		window.callbacks.scrollCallbackSet.add(scrollCallback);
@@ -304,7 +306,7 @@ public class GameUI extends Screen {
 
 	public void handlePitchingTick(ClientWindow window, ProjectionMatrix proj, CameraSpringArm arm) {
 
-		Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, window, proj, null);
+		Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, windowID, proj.cache, null);
 		Vector2f dir = new Vector2f(mousePos.x, mousePos.y);
 		{
 			long mTicks = window.mousePressTicks.getOrDefault(rotateButton.getID(), 0l);
@@ -402,7 +404,7 @@ public class GameUI extends Screen {
 	public void handlePanningTick(ClientWindow window, ProjectionMatrix orthoProjection, ViewMatrix view,
 			Entity cameraAnchor) {
 
-		Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, window, orthoProjection, null);
+		Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, windowID, orthoProjection.cache, null);
 		float rotZ = 0;
 		switch (view.cameraMode) {
 			case LookAt:
@@ -518,7 +520,7 @@ public class GameUI extends Screen {
 
 		if (panningButtonPos != null) {
 
-			Vector4f windowRay = CursorHelper.getMouse(SpaceState.Eye_Space, window, this.orthoProjection, null);
+			Vector4f windowRay = CursorHelper.getMouse(SpaceState.Eye_Space, windowID, this.orthoProjection.cache, null);
 			Vector2f mouseDir = new Vector2f((float) (panningButtonPos.x - windowRay.x),
 					(float) (panningButtonPos.y - windowRay.y));
 

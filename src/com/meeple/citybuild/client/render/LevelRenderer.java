@@ -281,6 +281,7 @@ public class LevelRenderer {
 			ShaderProgramDefinitions.collection.setupUIProjectionMatrixUBO(glContext, ShaderProgramDefinitions.collection.UI);
 			ShaderProgramDefinitions.collection.updateUIProjectionMatrix(ortho.cache);
 			
+		cityBuilder.gameUI.init(cityBuilder.window, ortho);
 			cityBuilder.gameUI.setupCompas(uiProgram);
 			cityBuilder.gameUI.setupCompasLine(uiProgram);
 			
@@ -292,7 +293,6 @@ public class LevelRenderer {
 
 		vpSystem.preMult(vpMatrix);
 
-		cityBuilder.gameUI.init(cityBuilder.window, ortho);
 		return (time) -> {
 			vpSystem.preMult(vpMatrix);
 			ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.multiUpload, puW.getWrapped(), vpMatrix);
@@ -309,7 +309,7 @@ public class LevelRenderer {
 				cityBuilder.gameUI.handleScrollingTick(arm);
 				long mouseLeftClick = cityBuilder.window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
 				if (mouseLeftClick > 0) {
-					Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, cityBuilder.window, vpMatrix.proj.getWrapped(), vpMatrix.view.getWrapped());
+					Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, cityBuilder.window.getID(), vpMatrix.proj.getWrapped().cache, vpMatrix.view.getWrapped().cache);
 					rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z), new Vector3f(vpMatrix.view.getWrapped().position), cityBuilder);
 
 				}
