@@ -1,6 +1,7 @@
 package com.meeple.shared.frame.wrapper;
 
 import java.io.Serializable;
+import java.util.function.Supplier;
 
 /**
  * Standard implimentation is {@link WrapperImpl}
@@ -8,7 +9,7 @@ import java.io.Serializable;
  *
  * @param <T>
  */
-public interface Wrapper<T> extends Serializable {
+public interface Wrapper<T> extends Serializable, Supplier<T> {
 
 	public T get();
 
