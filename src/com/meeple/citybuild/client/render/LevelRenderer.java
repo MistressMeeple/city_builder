@@ -18,7 +18,6 @@ import org.lwjgl.opengl.GL46;
 
 import com.meeple.citybuild.client.CityBuilderMain;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat;
-import com.meeple.citybuild.client.render.WorldRenderer.MeshExt;
 import com.meeple.citybuild.server.Entity;
 import com.meeple.citybuild.server.LevelData;
 import com.meeple.citybuild.server.LevelData.Chunk;
@@ -36,6 +35,7 @@ import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferDataManagementType;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
+import com.meeple.shared.frame.OGL.ShaderProgram.RenderableVAO;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
 import com.meeple.shared.frame.OGL.UniformManager;
@@ -44,8 +44,6 @@ import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.Proj
 import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpringArm;
 import com.meeple.shared.frame.nuklear.NkContextSingleton;
-import com.meeple.shared.frame.wrapper.Wrapper;
-import com.meeple.shared.frame.wrapper.WrapperImpl;
 import com.meeple.shared.utils.CollectionSuppliers;
 import com.meeple.shared.utils.FrameUtils;
 
@@ -67,14 +65,14 @@ public class LevelRenderer {
 				Vector2i loc = entry.getKey();
 				Chunk chunk = entry.getValue();
 				Vector3f chunkPos = new Vector3f(loc.x * LevelData.fullChunkSize, loc.y * LevelData.fullChunkSize, 0);
-				MeshExt m = baked.get(chunk);
+				RenderableVAO m = baked.get(chunk);
 				if (m == null || chunk.rebake.getAndSet(false)) {
 					if (m != null) {
-						m.mesh.singleFrameDiscard = true;
+						m.singleFrameDiscard = true;
 					}
 					m = bakeChunk(chunkPos, chunk);
-					ShaderProgramSystem.loadVAO(program, m.mesh);
-					m.mesh.visible = false;
+					ShaderProgramSystem.loadVAO(program, m);
+					m.visible = false;
 					baked.put(chunk, m);
 				}
 				switch (fi.intersectAab(chunkPos,
@@ -82,11 +80,11 @@ public class LevelRenderer {
 
 					case FrustumIntersection.INSIDE:
 					case FrustumIntersection.INTERSECT:
-						m.mesh.visible = true;
+						m.visible = true;
 						// render chunk
 						break;
 					case FrustumIntersection.OUTSIDE:
-						m.mesh.visible = false;
+						m.visible = false;
 						break;
 					default:
 						break;
@@ -96,8 +94,8 @@ public class LevelRenderer {
 		}
 	}
 
-	Map<Chunk, MeshExt> baked = new CollectionSuppliers.MapSupplier<Chunk, MeshExt>().get();
-	Map<TileTypes, Map<String, MeshExt>> tileMeshes = new CollectionSuppliers.MapSupplier<TileTypes, Map<String, MeshExt>>()
+	Map<Chunk, RenderableVAO> baked = new CollectionSuppliers.MapSupplier<Chunk, RenderableVAO>().get();
+	Map<TileTypes, Map<String, RenderableVAO>> tileMeshes = new CollectionSuppliers.MapSupplier<TileTypes, Map<String, RenderableVAO>>()
 			.get();
 
 	/*
@@ -108,34 +106,41 @@ public class LevelRenderer {
 	 * }
 	 */
 
-	private MeshExt bakeChunk(Vector3f chunkPos, Chunk chunk) {
-		MeshExt m = new MeshExt();
+	private RenderableVAO bakeChunk(Vector3f chunkPos, Chunk chunk) {
+		//MeshExt m = new MeshExt();
+		ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh m2 = ShaderProgramDefinitions.collection._3D_unlit_flat.createMesh(1);
+		m2.colourAttribute.instanced = true;
 
-		WorldRenderer.setupDiscardMesh3D(m, 4);
-		m.mesh.modelRenderType = GLDrawMode.TriangleFan;
-		m.mesh.name = "chunk_" + (int) chunkPos.x + "_" + (int) chunkPos.y;
-		m.mesh.renderCount = 0;
+		//WorldRenderer.setupDiscardMesh3D(m, 4);
+		m2.modelRenderType = GLDrawMode.TriangleFan;
+		m2.name = "chunk_" + (int) chunkPos.x + "_" + (int) chunkPos.y;
+		m2.vertexCount = 4;
+		m2.renderCount = 0;
+		m2.vertexAttribute.bufferResourceType = BufferDataManagementType.List;
+		m2.colourAttribute.bufferResourceType = BufferDataManagementType.List;
+		m2.meshTransformAttribute.bufferResourceType = BufferDataManagementType.List;
 
-		m.positionAttrib.data.add(0f);
-		m.positionAttrib.data.add(0f);
-		m.positionAttrib.data.add(0f);
+		m2.vertexAttribute.data.add(0f);
+		m2.vertexAttribute.data.add(0f);
+		m2.vertexAttribute.data.add(0f);
 
-		m.positionAttrib.data.add(LevelData.tileSize);
-		m.positionAttrib.data.add(0f);
-		m.positionAttrib.data.add(0f);
+		m2.vertexAttribute.data.add(LevelData.tileSize);
+		m2.vertexAttribute.data.add(0f);
+		m2.vertexAttribute.data.add(0f);
 
-		m.positionAttrib.data.add(LevelData.tileSize);
-		m.positionAttrib.data.add(LevelData.tileSize);
-		m.positionAttrib.data.add(0f);
+		m2.vertexAttribute.data.add(LevelData.tileSize);
+		m2.vertexAttribute.data.add(LevelData.tileSize);
+		m2.vertexAttribute.data.add(0f);
 
-		m.positionAttrib.data.add(0f);
-		m.positionAttrib.data.add(LevelData.tileSize);
-		m.positionAttrib.data.add(0f);
+		m2.vertexAttribute.data.add(0f);
+		m2.vertexAttribute.data.add(LevelData.tileSize);
+		m2.vertexAttribute.data.add(0f);
 
 		// TODO bake chunk instead
 		for (int x = 0; x < chunk.tiles.length; x++) {
 			for (int y = 0; y < chunk.tiles[x].length; y++) {
 				Vector3f tilePos = chunkPos.add(x * LevelData.tileSize, y * LevelData.tileSize, 0, new Vector3f());
+				Matrix4f tilePosition = new Matrix4f().translate(tilePos);
 				Vector4f colour = new Vector4f();
 				Tile tile = chunk.tiles[x][y];
 				if (tile == null) {
@@ -153,32 +158,33 @@ public class LevelRenderer {
 					case Ground:
 
 						colour = new Vector4f(0.1f, 1f, 0.1f, 1f);
-						FrameUtils.appendToList(m.offsetAttrib.data, tilePos);
-						m.colourAttrib.data.add(colour.x);
-						m.colourAttrib.data.add(colour.y);
-						m.colourAttrib.data.add(colour.z);
-						m.colourAttrib.data.add(colour.w);
-						m.mesh.renderCount += 1;
+						FrameUtils.appendToList(m2.meshTransformAttribute.data, tilePosition);
+						m2.colourAttribute.data.add(colour.x);
+						m2.colourAttribute.data.add(colour.y);
+						m2.colourAttribute.data.add(colour.z);
+						m2.colourAttribute.data.add(colour.w);
+						m2.renderCount += 1;
 						break;
 					case Water:
 						colour = new Vector4f(0.1f, 0f, 0.7f, 1f);
-						FrameUtils.appendToList(m.offsetAttrib.data, tilePos);
-						m.colourAttrib.data.add(colour.x);
-						m.colourAttrib.data.add(colour.y);
-						m.colourAttrib.data.add(colour.z);
-						m.colourAttrib.data.add(colour.w);
-						m.mesh.renderCount += 1;
+						FrameUtils.appendToList(m2.meshTransformAttribute.data, tilePosition);
+						m2.colourAttribute.data.add(colour.x);
+						m2.colourAttribute.data.add(colour.y);
+						m2.colourAttribute.data.add(colour.z);
+						m2.colourAttribute.data.add(colour.w);
+						m2.renderCount += 1;
 						break;
 
 				}
 
 			}
 		}
-		return m;
+		return m2;
 	}
 
 	private ShaderProgramDefinition_3D_unlit_flat.Mesh drawAxis(int size) {
-		ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh mesh = ShaderProgramDefinitions.collection._3D_unlit_flat.createMesh(1);
+		ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh mesh = ShaderProgramDefinitions.collection._3D_unlit_flat
+				.createMesh(1);
 
 		int count = 3;
 		FloatBuffer verts = BufferUtils.createFloatBuffer(2 * 3 * count);
@@ -221,12 +227,13 @@ public class LevelRenderer {
 			NkContextSingleton nkContext) {
 
 		// ShaderProgram mainProgram = new ShaderProgram();
-		ShaderProgram program = new ShaderProgram();
+		ShaderProgram program = ShaderProgramDefinitions.collection._3D_unlit_flat;
 		ShaderProgram uiProgram = ShaderProgramDefinitions.collection.UI;
 
 		VPMatrixSystem vpSystem = new VPMatrixSystem();
 
-		Wrapper<UniformManager<String[], Integer[]>.Uniform<VPMatrix>> puW = new WrapperImpl<>();
+		// Wrapper<UniformManager<String[], Integer[]>.Uniform<VPMatrix>> puW = new
+		// WrapperImpl<>();
 
 		vpMatrix.proj.getWrapped().window = cityBuilder.window;
 		vpMatrix.proj.getWrapped().FOV = 90;
@@ -245,8 +252,12 @@ public class LevelRenderer {
 		ortho.scale = 1f;
 		CameraSpringArm arm = vpMatrix.view.getWrapped().springArm;
 		cityBuilder.window.events.postCreation.add(() -> {
+			
 
-			puW.setWrapped(setupWorldProgram(program, vpSystem, vpMatrix));
+			//setupWorldProgram(program, vpSystem, vpMatrix);
+			ShaderProgramSystem2.create(glContext, ShaderProgramDefinitions.collection._3D_unlit_flat);
+			ShaderProgramDefinitions.collection.setupMatrixUBO(glContext, ShaderProgramDefinitions.collection._3D_unlit_flat);
+
 			ShaderProgramSystem2.create(glContext, ShaderProgramDefinitions.collection.UI);
 			vpSystem.projSystem.update(ortho);
 			ShaderProgramDefinitions.collection.setupUIProjectionMatrixUBO(glContext,
@@ -258,12 +269,11 @@ public class LevelRenderer {
 
 			ShaderProgram debugProgram = ShaderProgramDefinitions.collection._3D_unlit_flat;
 			ShaderProgramSystem2.create(glContext, debugProgram);
-			ShaderProgramDefinitions.collection.setupMatrixUBO(glContext, debugProgram);
-			ShaderProgramDefinitions.collection.writeFixMatrix(ShaderProgramDefinitions.fixMatrix);
+			ShaderProgramDefinitions.collection.setupMatrixUBO(glContext, debugProgram, program);
 			ShaderProgramDefinition_3D_unlit_flat.Mesh axis = drawAxis(100);
 			ShaderProgramSystem2.loadVAO(glContext, debugProgram, axis);
-			
 
+			ShaderProgramDefinitions.collection.writeFixMatrix(ShaderProgramDefinitions.fixMatrix);
 			/*
 			 * mpuW.setWrapped(levelRenderer.setupMainProgram(mainProgram, vpSystem,
 			 * vpMatrix));
@@ -275,9 +285,10 @@ public class LevelRenderer {
 		vpSystem.preMult(vpMatrix);
 
 		return (time) -> {
+			vpSystem.projSystem.update(vpMatrix.proj.getWrapped());
+			vpSystem.viewSystem.update(vpMatrix.view.getWrapped());
 			vpSystem.preMult(vpMatrix);
-			ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.multiUpload, puW.getWrapped(),
-					vpMatrix);
+			//ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.multiUpload, puW.getWrapped(), vpMatrix);
 			ShaderProgramDefinitions.collection.writeVPFMatrix(null, null, null, vpMatrix.cache);
 			// TODO change line thickness
 			GL46.glLineWidth(3f);
@@ -319,62 +330,5 @@ public class LevelRenderer {
 			// ShaderProgramSystem.render(mainProgram);
 			return false;
 		};
-	}
-
-	public static UniformManager<String[], Integer[]>.Uniform<VPMatrix> setupWorldProgram(ShaderProgram program,
-			VPMatrixSystem VPMatrixSystem, VPMatrix vpMatrix) {
-		UniformManager<String[], Integer[]>.Uniform<VPMatrix> u = ShaderProgramSystem.multiUpload
-				.register(new String[] { "vpMatrix", "projectionMatrix", "viewMatrix" }, VPMatrixSystem);
-
-		ShaderProgramSystem.addUniform(program, ShaderProgramSystem.multiUpload, u);
-		ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.multiUpload, u, vpMatrix);
-
-		program.shaderSources.put(GLShaderType.VertexShader,
-				ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/line3D.vert")));
-		program.shaderSources.put(GLShaderType.FragmentShader,
-				ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
-
-		try {
-			ShaderProgramSystem.create(program);
-		} catch (Exception err) {
-			err.printStackTrace();
-		}
-		return u;
-	}
-
-	public static UniformManager<String[], Integer[]>.Uniform<VPMatrix> setupMainProgram(ShaderProgram program,
-			VPMatrixSystem VPMatrixSystem, VPMatrix vpMatrix) {
-		UniformManager<String[], Integer[]>.Uniform<VPMatrix> u = ShaderProgramSystem.multiUpload
-				.register(new String[] { "vpMatrix", "projectionMatrix", "viewMatrix" }, VPMatrixSystem);
-
-		ShaderProgramSystem.addUniform(program, ShaderProgramSystem.multiUpload, u);
-		ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.multiUpload, u, vpMatrix);
-
-		program.shaderSources.put(GLShaderType.VertexShader,
-				ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/3D-unlit.vert")));
-		program.shaderSources.put(GLShaderType.FragmentShader,
-				ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag")));
-
-		try {
-			ShaderProgramSystem.create(program);
-		} catch (Exception err) {
-			err.printStackTrace();
-		}
-		return u;
-	}
-
-	public static void setupLitProgram(ShaderProgram program, int maxLights, int maxMaterials) {
-		String fragSource = ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/lighting.frag"));
-		fragSource = fragSource.replaceAll("\\{maxmats\\}", "" + maxMaterials);
-		fragSource = fragSource.replaceAll("\\{maxlights\\}", maxLights + "");
-		String vertSource = ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/lighting.vert"));
-		vertSource = vertSource.replaceAll("\\{maxlights\\}", maxLights + "");
-		program.shaderSources.put(GLShaderType.VertexShader, vertSource);
-		program.shaderSources.put(GLShaderType.FragmentShader, fragSource);
-		try {
-			ShaderProgramSystem.create(program);
-		} catch (Exception err) {
-			err.printStackTrace();
-		}
 	}
 }
