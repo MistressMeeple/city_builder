@@ -40,7 +40,7 @@ import com.meeple.shared.utils.CollectionSuppliers;
 
 public class ShaderProgramSystem2 {
 
-	private static Logger logger = Logger.getLogger(ShaderProgramSystem.class);
+	private static Logger logger = Logger.getLogger(ShaderProgramSystem2.class);
 
 
 	public static class SingleUniformSystem extends UniformManager<String, Integer> {
