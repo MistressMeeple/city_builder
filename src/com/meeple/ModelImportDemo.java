@@ -249,10 +249,10 @@ public class ModelImportDemo {
 		if (true) {
 
 			long curr = System.nanoTime();
-			long delta = curr - prev.getWrappedOrDefault(System.nanoTime());
+			long delta = curr - prev.getOrDefault(System.nanoTime());
 			float deltaSeconds = FrameUtils.nanosToSeconds(delta);
 			total += deltaSeconds;
-			prev.setWrapped(curr);
+			prev.set(curr);
 		}
 
 		// set camera rotation

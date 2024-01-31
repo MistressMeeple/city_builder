@@ -232,16 +232,14 @@ public class LevelRenderer {
 
 		VPMatrixSystem vpSystem = new VPMatrixSystem();
 
-		// Wrapper<UniformManager<String[], Integer[]>.Uniform<VPMatrix>> puW = new
-		// WrapperImpl<>();
-
-		vpMatrix.proj.getWrapped().window = cityBuilder.window;
-		vpMatrix.proj.getWrapped().FOV = 90;
-		vpMatrix.proj.getWrapped().nearPlane = 0.001f;
-		vpMatrix.proj.getWrapped().farPlane = 10000f;
-		vpMatrix.proj.getWrapped().orthoAspect = 10f;
-		vpMatrix.proj.getWrapped().perspectiveOrOrtho = true;
-		vpMatrix.proj.getWrapped().scale = 1f;
+		vpMatrix.proj.get().window = cityBuilder.window;
+		vpMatrix.proj.get().FOV = 90;
+		vpMatrix.proj.get().nearPlane = 0.001f;
+		vpMatrix.proj.get().farPlane = 10000f;
+		vpMatrix.proj.get().orthoAspect = 10f;
+		vpMatrix.proj.get().perspectiveOrOrtho = true;
+		vpMatrix.proj.get().scale = 1f;
+		vpSystem.projSystem.update(vpMatrix.proj.get());
 
 		ortho.window = cityBuilder.window;
 		ortho.FOV = 90;
@@ -250,7 +248,7 @@ public class LevelRenderer {
 		ortho.orthoAspect = 10f;
 		ortho.perspectiveOrOrtho = false;
 		ortho.scale = 1f;
-		CameraSpringArm arm = vpMatrix.view.getWrapped().springArm;
+		CameraSpringArm arm = vpMatrix.view.get().springArm;
 		cityBuilder.window.events.postCreation.add(() -> {
 			
 
@@ -274,21 +272,15 @@ public class LevelRenderer {
 			ShaderProgramSystem2.loadVAO(glContext, debugProgram, axis);
 
 			ShaderProgramDefinitions.collection.writeFixMatrix(ShaderProgramDefinitions.fixMatrix);
-			/*
-			 * mpuW.setWrapped(levelRenderer.setupMainProgram(mainProgram, vpSystem,
-			 * vpMatrix));
-			 * ShaderProgramSystem.loadVAO(mainProgram, cube);
-			 */
-
 		});
 
 		vpSystem.preMult(vpMatrix);
 
 		return (time) -> {
-			vpSystem.projSystem.update(vpMatrix.proj.getWrapped());
-			vpSystem.viewSystem.update(vpMatrix.view.getWrapped());
+			//vpSystem.projSystem.update(vpMatrix.proj.getWrapped());
+			vpSystem.viewSystem.update(vpMatrix.view.get());
 			vpSystem.preMult(vpMatrix);
-			//ShaderProgramSystem.queueUniformUpload(program, ShaderProgramSystem.multiUpload, puW.getWrapped(), vpMatrix);
+
 			ShaderProgramDefinitions.collection.writeVPFMatrix(null, null, null, vpMatrix.cache);
 			// TODO change line thickness
 			GL46.glLineWidth(3f);
@@ -299,16 +291,16 @@ public class LevelRenderer {
 				// TODO better testing for if mouse controls should be enabled. eg when over a
 				// gui
 
-				cityBuilder.gameUI.handlePanningTick(cityBuilder.window, ortho, vpMatrix.view.getWrapped(),
+				cityBuilder.gameUI.handlePanningTick(cityBuilder.window, ortho, vpMatrix.view.get(),
 						cameraAnchorEntity);
 				cityBuilder.gameUI.handlePitchingTick(cityBuilder.window, ortho, arm);
 				cityBuilder.gameUI.handleScrollingTick(arm);
 				long mouseLeftClick = cityBuilder.window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
 				if (mouseLeftClick > 0) {
 					Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, cityBuilder.window.getID(),
-							vpMatrix.proj.getWrapped().cache, vpMatrix.view.getWrapped().cache);
+							vpMatrix.proj.get().cache, vpMatrix.view.get().cache);
 					rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z),
-							new Vector3f(vpMatrix.view.getWrapped().position), cityBuilder);
+							new Vector3f(vpMatrix.view.get().position), cityBuilder);
 
 				}
 
@@ -323,7 +315,7 @@ public class LevelRenderer {
 
 			}
 
-			ShaderProgramSystem.render(program);
+			ShaderProgramSystem2.tryRender(program);
 			ShaderProgramSystem2.tryRender(ShaderProgramDefinitions.collection._3D_unlit_flat);
 			ShaderProgramSystem2.tryRender(uiProgram);
 			// this is the cube test rendering program

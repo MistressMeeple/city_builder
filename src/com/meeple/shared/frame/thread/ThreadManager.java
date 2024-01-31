@@ -116,10 +116,10 @@ public class ThreadManager {
 			while (quit.check() && !Thread.currentThread().isInterrupted()) {
 				///Time management
 				long curr = System.nanoTime();
-				long delta = curr - prev.getWrappedOrDefault(System.nanoTime());
+				long delta = curr - prev.getOrDefault(System.nanoTime());
 				float deltaSeconds = FrameUtils.nanosToSeconds(delta);
 
-				prev.setWrapped(curr);
+				prev.set(curr);
 
 				FrameUtils.iterateBiConsumer(timedConsumers, delta, deltaSeconds, false);
 				FrameUtils.iterateRunnable(runnables, false);

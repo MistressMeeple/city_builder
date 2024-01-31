@@ -29,13 +29,13 @@ public class VPMatrixSystem implements IShaderUniformUploadSystem<VPMatrix, Inte
 	public ViewMatrixSystem viewSystem = new ViewMatrixSystem();
 
 	public void preMult(VPMatrix vp) {
-		vp.proj.getWrapped().cache.mul(vp.view.getWrapped().cache, vp.cache);
+		vp.proj.get().cache.mul(vp.view.get().cache, vp.cache);
 	}
 
 	@Override
 	public void uploadToShader(VPMatrix upload, Integer[] uniforms, MemoryStack stack) {
-		projSystem.uploadToShader(upload.proj.getWrapped(), uniforms[1], stack);
-		viewSystem.uploadToShader(upload.view.getWrapped(), uniforms[2], stack);
+		projSystem.uploadToShader(upload.proj.get(), uniforms[1], stack);
+		viewSystem.uploadToShader(upload.view.get(), uniforms[2], stack);
 		GL46.glUniformMatrix4fv(uniforms[0], false, IShaderUniformUploadSystem.generateMatrix4fBuffer(stack, upload.cache));
 
 	}

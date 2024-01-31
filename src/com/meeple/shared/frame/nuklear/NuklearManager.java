@@ -763,7 +763,7 @@ public class NuklearManager {
 	public static void textAreaPre(ByteBuffer textBuffer, Wrapper<String> text, int max) {
 
 		textBuffer.clear();
-		byte[] arr = text.getWrapped().getBytes();
+		byte[] arr = text.get().getBytes();
 		if (arr.length > max) {
 			arr = Arrays.copyOfRange(arr, 0, max - 2);
 		}

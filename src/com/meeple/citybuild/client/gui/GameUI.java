@@ -245,7 +245,7 @@ public class GameUI extends Screen {
 	private GLFWScrollCallbackI scrollCallback = new GLFWScrollCallbackI() {
 		@Override
 		public void invoke(long windowID, double xoffset, double yoffset) {
-			scale.setWrapped((float) yoffset + scale.getWrappedOrDefault(0f));
+			scale.set((float) yoffset + scale.getOrDefault(0f));
 		}
 	};
 
@@ -326,8 +326,8 @@ public class GameUI extends Screen {
 					mouseDir.normalize();
 					if (mouseDir.isFinite()) {
 						mouseDir = mouseDir.mul((len) * 0.1f);
-						yaw.setWrapped(yaw.getWrappedOrDefault(0f) + mouseDir.x);
-						pitch.setWrapped(pitch.getWrappedOrDefault(0f) + mouseDir.y);
+						yaw.set(yaw.getOrDefault(0f) + mouseDir.x);
+						pitch.set(pitch.getOrDefault(0f) + mouseDir.y);
 						rotatingState = CompasState.Active;
 					}
 				}
@@ -348,13 +348,13 @@ public class GameUI extends Screen {
 			if (angle != 0) {
 				angle = angle * 2f;
 				// arm.yaw += angle;
-				yaw.setWrapped(yaw.getWrappedOrDefault(0f) + angle);
+				yaw.set(yaw.getOrDefault(0f) + angle);
 			}
 		}
 
 		// handles the smooth pitch
 		{
-			Float s = pitch.getWrapped();
+			Float s = pitch.get();
 			if (s != null) {
 
 				arm.addPitch(-s);
@@ -364,7 +364,7 @@ public class GameUI extends Screen {
 		// handles the smooth yaw
 
 		{
-			Float s = yaw.getWrapped();
+			Float s = yaw.get();
 			if (s != null) {
 				arm.yaw += s;
 				process(yaw, s);
@@ -374,9 +374,9 @@ public class GameUI extends Screen {
 
 	private void process(Wrapper<Float> wrapper, float decr) {
 
-		wrapper.setWrapped(wrapper.getWrapped() - decr);
-		if (Math.abs(wrapper.getWrapped()) < 1f) {
-			wrapper.setWrapped(0f);
+		wrapper.set(wrapper.get() - decr);
+		if (Math.abs(wrapper.get()) < 1f) {
+			wrapper.set(0f);
 		}
 	}
 
@@ -384,7 +384,7 @@ public class GameUI extends Screen {
 
 		// handle smooth scale
 
-		Float s = scale.getWrapped();
+		Float s = scale.get();
 		if (s != null) {
 
 			float nd = (float) (s * zoomMult);
@@ -394,9 +394,9 @@ public class GameUI extends Screen {
 				arm.addDistance(-nd);
 			}
 			// roughly 10% less each tick
-			scale.setWrapped(s - (s * 0.15f));
-			if (Math.abs(scale.getWrapped()) < 1f) {
-				scale.setWrapped(0f);
+			scale.set(s - (s * 0.15f));
+			if (Math.abs(scale.get()) < 1f) {
+				scale.set(0f);
 			}
 
 		}

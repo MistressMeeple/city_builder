@@ -27,7 +27,7 @@ public class FrameTimeManager implements Runnable {
 
 	public Wrapper<Double> getWrapper() {
 		Wrapper<Double> wrapper = new WrapperImpl<>();
-		wrapper.setWrapped(1d / desiredFrameRate);
+		wrapper.set(1d / desiredFrameRate);
 		return wrapper;
 	}
 

@@ -101,13 +101,13 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		ClientWindowSystem.setupWindow(window, keyInput, window.nkContext, optionsSystem);
 
 		VPMatrix vpMatrix = new VPMatrix();
-		CameraSpringArm arm = vpMatrix.view.getWrapped().springArm;
+		CameraSpringArm arm = vpMatrix.view.get().springArm;
 		ProjectionMatrix ortho = new ProjectionMatrix();
 		arm.addDistance(15f);
-		vpMatrix.view.getWrapped().springArm.addPitch(45);
+		vpMatrix.view.get().springArm.addPitch(45);
 
 		Entity cameraAnchorEntity = new Entity();
-		vpMatrix.view.getWrapped().springArm.lookAt = new Supplier<Vector3f>() {
+		vpMatrix.view.get().springArm.lookAt = new Supplier<Vector3f>() {
 
 			@Override
 			public Vector3f get() {

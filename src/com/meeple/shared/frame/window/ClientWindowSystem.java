@@ -144,7 +144,7 @@ public interface ClientWindowSystem {
 		private final Wrapper<GLFWCursorType> queueChangeCursorType = new WrapperImpl<>();
 
 		public void setCursorType(GLFWCursorType cursor) {
-			this.queueChangeCursorType.setWrapped(cursor);
+			this.queueChangeCursorType.set(cursor);
 		}
 
 		public Set<BiConsumer<WindowEvent, Object>> eventListeners = new CollectionSuppliers.SetSupplier<BiConsumer<WindowEvent, Object>>().get();
@@ -250,7 +250,7 @@ public interface ClientWindowSystem {
 			@Override
 			public void secondaryClick() {
 				menuSystem.setActiveNuklear(window.menuQueue, null, null);
-				levelSelect.getWrapped().accept(levelPreviewWrapper.getWrapped()[levelSelectIndex.getWrapped()]);
+				levelSelect.get().accept(levelPreviewWrapper.get()[levelSelectIndex.get()]);
 
 			}
 
@@ -267,7 +267,7 @@ public interface ClientWindowSystem {
 
 			@Override
 			public BtnState getSecondaryState() {
-				return levelSelectIndex.getWrappedOrDefault(-1) != -1 ? BtnState.Visible : BtnState.Disabled;
+				return levelSelectIndex.getOrDefault(-1) != -1 ? BtnState.Visible : BtnState.Disabled;
 			}
 
 			@Override
@@ -295,10 +295,10 @@ public interface ClientWindowSystem {
 				NkColor active = context.style().button().active().data().color();
 				nk_layout_row_dynamic(context, NuklearMenuSystem.buttonHeight - NuklearMenuSystem.sub, 1);
 
-				int sel = levelSelectIndex.getWrappedOrDefault(-1);
-				for (int i = 0; i < levelPreviewWrapper.getWrappedOrDefault(new LevelPreview[0]).length; i++) {
+				int sel = levelSelectIndex.getOrDefault(-1);
+				for (int i = 0; i < levelPreviewWrapper.getOrDefault(new LevelPreview[0]).length; i++) {
 
-					LevelPreview lp = levelPreviewWrapper.getWrapped()[i];
+					LevelPreview lp = levelPreviewWrapper.get()[i];
 					if (lp.playable) {
 						int id = i;
 						if (sel == i) {
@@ -307,7 +307,7 @@ public interface ClientWindowSystem {
 							});
 						} else {
 							if (nk_button_label(context, lp.name)) {
-								levelSelectIndex.setWrapped(id);
+								levelSelectIndex.set(id);
 							}
 						}
 					} else {
@@ -315,7 +315,7 @@ public interface ClientWindowSystem {
 
 						if (sel == i) {
 							//if disabled cannot be selected 
-							levelSelectIndex.setWrapped(-1);
+							levelSelectIndex.set(-1);
 						}
 					}
 				}
@@ -330,7 +330,7 @@ public interface ClientWindowSystem {
 
 			@Override
 			public void run() {
-				levelSelectIndex.setWrapped(-1);
+				levelSelectIndex.set(-1);
 			}
 		});
 		menuSystem.setupMenu(window, levelSelectMenu, levelDetails);
@@ -484,7 +484,7 @@ public interface ClientWindowSystem {
 		window.bounds.set(0, 0, 1280, 800);
 		window.hints.setVisible(false);
 
-		window.currentCursorType.setWrapped(GLFWCursorType.Normal);
+		window.currentCursorType.set(GLFWCursorType.Normal);
 
 		window.callbacks.frameBufferSizeCallbackSet.add(new GLFWFramebufferSizeCallbackI() {
 
@@ -497,19 +497,19 @@ public interface ClientWindowSystem {
 		});
 
 		window.events.frameStart.add(() -> {
-			if (window.queueChangeCursorType.getWrapped() != null) {
-				switch (window.queueChangeCursorType.getWrapped()) {
+			if (window.queueChangeCursorType.get() != null) {
+				switch (window.queueChangeCursorType.get()) {
 					case Disabled:
 						glfwSetInputMode(window.getID(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-						window.currentCursorType.setWrapped(GLFWCursorType.Disabled);
+						window.currentCursorType.set(GLFWCursorType.Disabled);
 						break;
 					case Hidden:
 						glfwSetInputMode(window.getID(), GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-						window.currentCursorType.setWrapped(GLFWCursorType.Hidden);
+						window.currentCursorType.set(GLFWCursorType.Hidden);
 						break;
 					case Normal:
 						glfwSetInputMode(window.getID(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-						window.currentCursorType.setWrapped(GLFWCursorType.Normal);
+						window.currentCursorType.set(GLFWCursorType.Normal);
 						break;
 					default:
 						break;

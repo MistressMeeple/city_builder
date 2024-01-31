@@ -16,16 +16,16 @@ public class WrapperImpl<T> implements Wrapper<T> {
 	private T wrapped;
 
 	@Override
-	public T getWrapped() {
+	public T get() {
 		return wrapped;
 	}
 
-	public void setWrapped(T wrapped) {
+	public void set(T wrapped) {
 		this.wrapped = wrapped;
 	}
 
 	@Override
-	public T getWrappedOrDefault(T defaultValue) {
+	public T getOrDefault(T defaultValue) {
 		if (wrapped == null) {
 			return defaultValue;
 		}

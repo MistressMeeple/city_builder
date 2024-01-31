@@ -113,10 +113,10 @@ public abstract class GameManager {
 
 					/// Time management
 					long curr = System.nanoTime();
-					delta.nanos = curr - prev.getWrappedOrDefault(curr);
+					delta.nanos = curr - prev.getOrDefault(curr);
 					delta.seconds = FrameUtils.nanosToSeconds(delta.nanos);
 					delta.totalNanos += delta.nanos;
-					prev.setWrapped(curr);
+					prev.set(curr);
 					// logger.trace("level tick");
 
 					if (level.frameTimeManager != null)
@@ -130,7 +130,7 @@ public abstract class GameManager {
 							while (level.pause.get()) {
 								level.gamePauseLock.wait(wait);
 							}
-							prev.setWrapped(null);
+							prev.set(null);
 						}
 
 					}

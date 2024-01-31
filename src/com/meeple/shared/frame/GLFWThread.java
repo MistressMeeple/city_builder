@@ -76,11 +76,11 @@ public class GLFWThread extends Thread {
 			///Time management
 			if (true) {
 				long curr = System.nanoTime();
-				delta.nanos = curr - prev.getWrappedOrDefault(curr);
+				delta.nanos = curr - prev.getOrDefault(curr);
 				delta.seconds = FrameUtils.nanosToSeconds(delta.nanos);
 				delta.totalNanos += delta.nanos;
 
-				prev.setWrapped(curr);
+				prev.set(curr);
 			}
 			FrameUtils.iterateRunnable(window.events.frameStart, false);
 			glClearColor(window.clearColour.x, window.clearColour.y, window.clearColour.z, window.clearColour.w);

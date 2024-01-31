@@ -10,9 +10,9 @@ import java.io.Serializable;
  */
 public interface Wrapper<T> extends Serializable {
 
-	public T getWrapped();
+	public T get();
 
-	public T getWrappedOrDefault(T defaultValue);
+	public T getOrDefault(T defaultValue);
 
-	public void setWrapped(T wrapped);
+	public void set(T wrapped);
 }
