@@ -157,7 +157,7 @@ public class LevelRenderer {
 						break;
 					case Ground:
 
-						colour = new Vector4f(0.1f, 1f, 0.1f, 1f);
+						colour = new Vector4f(0.1f, 0.7f, 0.1f, 1f);
 						FrameUtils.appendToList(m2.meshTransformAttribute.data, tilePosition);
 						m2.colourAttribute.data.add(colour.x);
 						m2.colourAttribute.data.add(colour.y);
@@ -241,6 +241,16 @@ public class LevelRenderer {
 		vpMatrix.proj.get().scale = 1f;
 		vpSystem.projSystem.update(vpMatrix.proj.get());
 
+
+		ShaderProgramDefinitions.ViewMatrices view = new ShaderProgramDefinitions.ViewMatrices();
+		view.projectionMatrix
+				.setPerspective(
+						(float) Math.toRadians(90),
+						(float) cityBuilder.window.bounds.width / cityBuilder.window.bounds.height,
+						0.001f,
+						10000.0f);
+
+
 		ortho.window = cityBuilder.window;
 		ortho.FOV = 90;
 		ortho.nearPlane = 0.001f;
@@ -248,18 +258,17 @@ public class LevelRenderer {
 		ortho.orthoAspect = 10f;
 		ortho.perspectiveOrOrtho = false;
 		ortho.scale = 1f;
-		CameraSpringArm arm = vpMatrix.view.get().springArm;
+
+
 		cityBuilder.window.events.postCreation.add(() -> {
 			
 
-			//setupWorldProgram(program, vpSystem, vpMatrix);
 			ShaderProgramSystem2.create(glContext, ShaderProgramDefinitions.collection._3D_unlit_flat);
 			ShaderProgramDefinitions.collection.setupMatrixUBO(glContext, ShaderProgramDefinitions.collection._3D_unlit_flat);
 
 			ShaderProgramSystem2.create(glContext, ShaderProgramDefinitions.collection.UI);
 			vpSystem.projSystem.update(ortho);
-			ShaderProgramDefinitions.collection.setupUIProjectionMatrixUBO(glContext,
-					ShaderProgramDefinitions.collection.UI);
+			ShaderProgramDefinitions.collection.setupUIProjectionMatrixUBO(glContext, ShaderProgramDefinitions.collection.UI);
 			ShaderProgramDefinitions.collection.updateUIProjectionMatrix(ortho.cache);
 			cityBuilder.gameUI.init(cityBuilder.window, ortho);
 			cityBuilder.gameUI.setupCompas(glContext, uiProgram);
@@ -288,11 +297,11 @@ public class LevelRenderer {
 			keyInput.tick(cityBuilder.window.mousePressTicks, cityBuilder.window.mousePressMap, time.nanos);
 			keyInput.tick(cityBuilder.window.keyPressTicks, cityBuilder.window.keyPressMap, time.nanos);
 			if (cityBuilder.level != null) {
-				// TODO better testing for if mouse controls should be enabled. eg when over a
-				// gui
+				// TODO better testing for if mouse controls should be enabled. eg when over a gui
 
 				cityBuilder.gameUI.handlePanningTick(cityBuilder.window, ortho, vpMatrix.view.get(),
 						cameraAnchorEntity);
+				CameraSpringArm arm = vpMatrix.view.get().springArm;
 				cityBuilder.gameUI.handlePitchingTick(cityBuilder.window, ortho, arm);
 				cityBuilder.gameUI.handleScrollingTick(arm);
 				long mouseLeftClick = cityBuilder.window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
