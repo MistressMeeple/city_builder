@@ -280,7 +280,7 @@ public class FrameUtils {
 					logger.info(String.format(fmt, "" + userParam, severityString, sourceString, typeString, error, messageString));
 					break;
 				case Notification:
-					logger.trace(String.format(fmt, "" + userParam, severityString, sourceString, typeString, error, messageString));
+					//logger.trace(String.format(fmt, "" + userParam, severityString, sourceString, typeString, error, messageString));
 					break;
 				case Other:
 					break;
