@@ -24,11 +24,7 @@ import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
 
 public class ShaderProgramDefinitions {
     public static class ViewMatrices {
-        public Matrix4f fixMatrix = new Matrix4f(
-                1, 0, 0, 0,
-                0, 0, 1, 0,
-                0, 1, 0, 0,
-                0, 0, 0, 1);
+        public Matrix4f fixMatrix = new Matrix4f(ShaderProgramDefinitions.fixMatrix);
         public Matrix4f projectionMatrix = new Matrix4f();
         public Matrix4f viewMatrix = new Matrix4f();
 
@@ -135,7 +131,7 @@ public class ShaderProgramDefinitions {
 
         }
 
-        private void setupMatrixUBO(GLContext glc, ShaderProgram... programs) {
+        public void setupMatrixUBO(GLContext glc, ShaderProgram... programs) {
             this.matrixBuffer = ShaderProgramDefinitions.genMatrixBuffer(glc);
             glc.bindUBONameToIndex("Matrices", matrixBindingpoint, programs);
         }

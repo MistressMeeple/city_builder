@@ -1,7 +1,6 @@
 package com.meeple.citybuild.client.render;
 
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
-import com.meeple.shared.frame.OGL.ShaderProgram.BufferDataManagementType;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferType;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferUsage;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDataType;

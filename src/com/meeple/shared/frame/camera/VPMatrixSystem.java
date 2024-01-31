@@ -86,8 +86,7 @@ public class VPMatrixSystem implements IShaderUniformUploadSystem<VPMatrix, Inte
 			public final CameraSpringArm springArm = new CameraSpringArm();
 		}
 
-		@Override
-		public void uploadToShader(ViewMatrix camera, Integer uniformID, MemoryStack stack) {
+		public void update(ViewMatrix camera){
 
 			Matrix4f viewMatrix = new Matrix4f();
 			if (camera.cameraMode == CameraMode.LookAt) {
@@ -121,8 +120,13 @@ public class VPMatrixSystem implements IShaderUniformUploadSystem<VPMatrix, Inte
 				viewMatrix.translate(negativeCameraPos);
 			}
 
-			GL46.glUniformMatrix4fv(uniformID, false, IShaderUniformUploadSystem.generateMatrix4fBuffer(stack, viewMatrix));
 			camera.cache.set(viewMatrix);
+		}
+
+		@Override
+		public void uploadToShader(ViewMatrix camera, Integer uniformID, MemoryStack stack) {
+			update(camera);
+			GL46.glUniformMatrix4fv(uniformID, false, IShaderUniformUploadSystem.generateMatrix4fBuffer(stack, camera.cache));
 
 		}
 
