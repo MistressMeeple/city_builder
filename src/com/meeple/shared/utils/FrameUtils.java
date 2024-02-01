@@ -819,4 +819,31 @@ public class FrameUtils {
 
 	}
 
+	public static Matrix4f calculateProjectionMatrixPerspective(long windowWidth, long windowHeight, float FOV,
+			float nearPlane,
+			float farPlane, Matrix4f projectionMatrix) {
+		float aspectRatio = calculateProjectionMatrixAspectRatio(windowWidth, windowHeight);
+		return projectionMatrix.perspective((float) Math.toRadians(FOV), aspectRatio, nearPlane, farPlane);
+	}
+
+	public static Matrix4f calculateProjectionMatrixOrtho(long windowWidth, long windowHeight, float scale,
+			float orthoAspect,
+			float nearPlane, float farPlane, Matrix4f projectionMatrix) {
+		float aspectRatio = calculateProjectionMatrixAspectRatio(windowWidth, windowHeight);
+		float _scale = (1f / scale);
+		return projectionMatrix
+				.ortho(
+						aspectRatio * -orthoAspect * _scale,
+						aspectRatio * orthoAspect * _scale,
+						-orthoAspect * _scale,
+						orthoAspect * _scale,
+						nearPlane,
+						farPlane);
+	}
+
+	public static float calculateProjectionMatrixAspectRatio(long windowWidth, long windowHeight) {
+		float aspectRatio = (float) windowWidth / (float) windowHeight;
+		return aspectRatio;
+	}
+
 }

@@ -17,6 +17,7 @@ import static org.lwjgl.system.MemoryStack.stackPush;
 
 import java.util.Iterator;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import org.apache.log4j.Logger;
 import org.joml.Matrix4f;
@@ -57,8 +58,6 @@ import com.meeple.shared.frame.nuklear.NuklearManager;
 import com.meeple.shared.frame.nuklear.NuklearMenuSystem;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 import com.meeple.shared.frame.window.hints.HasID;
-import com.meeple.shared.frame.wrapper.Wrapper;
-import com.meeple.shared.frame.wrapper.WrapperImpl;
 import com.meeple.shared.utils.FrameUtils;
 
 public class GameUI extends Screen {
@@ -127,7 +126,7 @@ public class GameUI extends Screen {
 	private long windowID;
 	private NkContext nkContext;
 
-	private ProjectionMatrix orthoProjection;
+	//private Matrix4f orthoProjection;
 
 	private Vector2f panningButtonPos = null;
 	private Vector2f rotatingButtonPos = null;
@@ -135,15 +134,16 @@ public class GameUI extends Screen {
 
 	private Vector2f movement = new Vector2f();
 
-	private Wrapper<Float> scale = new WrapperImpl<>();
-	private Wrapper<Float> pitch = new WrapperImpl<>();
-	private Wrapper<Float> yaw = new WrapperImpl<>();
+	private Float scale = 0f;
+	private Float pitch = 0f;
+	private Float yaw = 0f;
 
 	public CompasState panningState = CompasState.None;
 	public CompasState rotatingState = CompasState.None;
 
 	private ShaderProgramDefinition_UI.Mesh compasMesh;
 	private ShaderProgramDefinition_UI.Mesh compasLineMesh;
+	private Supplier<Matrix4f> orthoProjectionSupplier;
 
 	/**
 	 * the mouse left click ray. updated per frame if the left click has been
@@ -173,32 +173,34 @@ public class GameUI extends Screen {
 	 */
 	static final PanningType rotationType = PanningType.Difference;
 
-	private GLFWMouseButtonCallbackI mouseButtonCallback = new GLFWMouseButtonCallbackI() {
+
+	public final GLFWMouseButtonCallbackI mouseButtonCallback = new GLFWMouseButtonCallbackI() {
 
 		@Override
 		public void invoke(long windowID, int button, int action, int mods) {
+			Matrix4f orthoProjection = orthoProjectionSupplier.get();
 			/* only allows when no UI element is hovered */
 			if (!Nuklear.nk_window_is_any_hovered(nkContext)) {
 				if (button == panningButton.getID()) {
 					if (action == GLFW.GLFW_PRESS) {
 						if (panningType == PanningType.Difference) {
-							Vector4f mouse = CursorHelper.getMouse(SpaceState.Eye_Space, windowID, orthoProjection.cache, null);
+							Vector4f mouse = CursorHelper.getMouse(SpaceState.Eye_Space, windowID, orthoProjection, null);
 							panningButtonPos = new Vector2f(mouse.x, mouse.y);
-							updateCompas();
+							updateCompas(panningButtonPos, compasMesh, compasLineMesh);
 						} else if (panningType == PanningType.FromCenter) {
 							panningButtonPos = new Vector2f(0, 0);
-							updateCompas();
+							updateCompas(panningButtonPos, compasMesh, compasLineMesh);
 						}
 					} else if (action == GLFW.GLFW_RELEASE) {
 						panningButtonPos = null;
-						updateCompas();
-						updateCompasLine();
+						updateCompas(panningButtonPos, compasMesh, compasLineMesh);
+						updateCompasLine(panningButtonPos, compasLineMesh, windowID, orthoProjectionSupplier.get());
 					}
 				}
 				if (button == rotateButton.getID()) {
 					if (action == GLFW.GLFW_PRESS) {
 						if (rotationType == PanningType.Difference) {
-							Vector4f mouse = CursorHelper.getMouse(SpaceState.Eye_Space, windowID, orthoProjection.cache, null);
+							Vector4f mouse = CursorHelper.getMouse(SpaceState.Eye_Space, windowID, orthoProjection, null);
 							rotatingButtonPos = new Vector2f(mouse.x, mouse.y);
 						} else if (rotationType == PanningType.FromCenter) {
 							rotatingButtonPos = new Vector2f(0, 0);
@@ -210,12 +212,9 @@ public class GameUI extends Screen {
 				if (button == menuButton.getID()) {
 					// begins tracking elsewhere
 					if (action == GLFW.GLFW_PRESS) {
-
 					} else if (action == GLFW.GLFW_RELEASE) {
-
 						if (panningState != CompasState.Active) {
 							if (currentAction != null) {
-
 								currentAction = null;
 							} else if (currentSubMenu != null) {
 								currentSubMenu = null;
@@ -228,11 +227,11 @@ public class GameUI extends Screen {
 		}
 	};
 
-	private GLFWCursorPosCallback cursorposCallback = new GLFWCursorPosCallback() {
+	public final GLFWCursorPosCallback cursorposCallback = new GLFWCursorPosCallback() {
 
 		@Override
 		public void invoke(long window, double xpos, double ypos) {
-			updateCompasLine();
+			updateCompasLine(panningButtonPos, compasLineMesh, windowID, orthoProjectionSupplier.get());
 			if (panningType == PanningType.Drag) {
 				// basically check if it is being held down
 				if (panningButtonPos != null) {
@@ -242,12 +241,13 @@ public class GameUI extends Screen {
 
 		}
 	};
-	private GLFWScrollCallbackI scrollCallback = new GLFWScrollCallbackI() {
+	public final GLFWScrollCallbackI scrollCallback = new GLFWScrollCallbackI() {
 		@Override
 		public void invoke(long windowID, double xoffset, double yoffset) {
-			scale.set((float) yoffset + scale.getOrDefault(0f));
+			scale = ((float) yoffset + scale);
 		}
 	};
+
 
 	private Vector2f difference(Vector2f start, Vector2f current) {
 		try {
@@ -257,14 +257,11 @@ public class GameUI extends Screen {
 		}
 	}
 
-	public void init(ClientWindow window, ProjectionMatrix orthoProj) {
-		this.windowID = window.getID();
-		this.nkContext = window.nkContext.context;
+	public void init(long windowID, NkContext nkContext, Supplier<Matrix4f> orthoProj) {
+		this.windowID = windowID;
+		this.nkContext = nkContext;
 
-		this.orthoProjection = orthoProj;
-		window.callbacks.scrollCallbackSet.add(scrollCallback);
-		window.callbacks.mouseButtonCallbackSet.add(mouseButtonCallback);
-		window.callbacks.cursorPosCallbackSet.add(cursorposCallback);
+		this.orthoProjectionSupplier = orthoProj;
 
 	}
 
@@ -326,8 +323,8 @@ public class GameUI extends Screen {
 					mouseDir.normalize();
 					if (mouseDir.isFinite()) {
 						mouseDir = mouseDir.mul((len) * 0.1f);
-						yaw.set(yaw.getOrDefault(0f) + mouseDir.x);
-						pitch.set(pitch.getOrDefault(0f) + mouseDir.y);
+						yaw = yaw + mouseDir.x;
+						pitch = pitch + mouseDir.y;
 						rotatingState = CompasState.Active;
 					}
 				}
@@ -348,30 +345,32 @@ public class GameUI extends Screen {
 			if (angle != 0) {
 				angle = angle * 2f;
 				// arm.yaw += angle;
-				yaw.set(yaw.getOrDefault(0f) + angle);
+				yaw = yaw + angle;
 			}
 		}
 
 		// handles the smooth pitch
 		{
-			Float s = pitch.get();
-			if (s != null) {
+			//Float s = pitch.get();
+			//if (s != null) {
 
-				arm.addPitch(-s);
-				process(pitch, s);
-			}
+				arm.addPitch(-pitch);
+				//process(pitch, s);
+				pitch -= pitch;
+			//}
 		}
 		// handles the smooth yaw
 
 		{
-			Float s = yaw.get();
-			if (s != null) {
-				arm.yaw += s;
-				process(yaw, s);
-			}
+			//Float s = yaw.get();
+			//if (s != null) {
+				arm.yaw += yaw;
+				//process(yaw, s);
+				yaw -= yaw;
+			//}
 		}
 	}
-
+/*
 	private void process(Wrapper<Float> wrapper, float decr) {
 
 		wrapper.set(wrapper.get() - decr);
@@ -379,12 +378,13 @@ public class GameUI extends Screen {
 			wrapper.set(0f);
 		}
 	}
+	 */
 
 	public void handleScrollingTick(CameraSpringArm arm) {
 
 		// handle smooth scale
 
-		Float s = scale.get();
+		Float s = scale;
 		if (s != null) {
 
 			float nd = (float) (s * zoomMult);
@@ -394,9 +394,9 @@ public class GameUI extends Screen {
 				arm.addDistance(-nd);
 			}
 			// roughly 10% less each tick
-			scale.set(s - (s * 0.15f));
-			if (Math.abs(scale.get()) < 1f) {
-				scale.set(0f);
+			scale = s - (s * 0.15f);
+			if (Math.abs(scale) < 1f) {
+				scale = 0f;
 			}
 
 		}
@@ -492,7 +492,7 @@ public class GameUI extends Screen {
 
 	}
 
-	private void updateCompas() {
+	private static void updateCompas(Vector2f panningButtonPos, ShaderProgramDefinition_UI.Mesh compasMesh, ShaderProgramDefinition_UI.Mesh compasLineMesh) {
 
 		if (panningButtonPos == null) {
 			compasLineMesh.visible = false;
@@ -513,7 +513,7 @@ public class GameUI extends Screen {
 
 	}
 
-	private void updateCompasLine() {
+	private static void updateCompasLine(Vector2f panningButtonPos, ShaderProgramDefinition_UI.Mesh compasLineMesh, long windowID, Matrix4f orthoProjection) {
 
 		if (panningButtonPos == null) {
 			// compasLineMesh.visible = false; // TODO uuh wtf this causes nuklear crash??
@@ -521,7 +521,7 @@ public class GameUI extends Screen {
 
 		if (panningButtonPos != null) {
 
-			Vector4f windowRay = CursorHelper.getMouse(SpaceState.Eye_Space, windowID, this.orthoProjection.cache, null);
+			Vector4f windowRay = CursorHelper.getMouse(SpaceState.Eye_Space, windowID, orthoProjection, null);
 			Vector2f mouseDir = new Vector2f((float) (panningButtonPos.x - windowRay.x),
 					(float) (panningButtonPos.y - windowRay.y));
 

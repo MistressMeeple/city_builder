@@ -19,6 +19,17 @@ public class CursorHelper {
 	}
 
 	public static Vector4f getMouse(SpaceState result, long windowID, Matrix4f projectionMatrix, Matrix4f viewMatrix) {
+			//start at beginning
+			double[] xposArrD = new double[1], yposArrD = new double[1];
+			glfwGetCursorPos(windowID, xposArrD, yposArrD);
+
+			int[] windowFrameBufferSizeX = new int[1], windowFrameBufferSizeY = new int[1];
+			glfwGetFramebufferSize(windowID, windowFrameBufferSizeX, windowFrameBufferSizeY);
+
+			return getMouse(result, (float) xposArrD[0], (float) yposArrD[0], windowFrameBufferSizeX[0], windowFrameBufferSizeY[0], projectionMatrix, viewMatrix);
+
+	}
+	public static Vector4f getMouse(SpaceState result, float cursorPosX, float cursorPosY, int windowFrameBufferSizeX, int windowFrameBufferSizeY, Matrix4f projectionMatrix, Matrix4f viewMatrix) {
 		Vector4f ret = new Vector4f();
 		if (result == null) {
 			//early escape if no work is requested
@@ -26,10 +37,8 @@ public class CursorHelper {
 		}
 		if (true) {
 			//start at beginning
-			double[] xposArrD = new double[1], yposArrD = new double[1];
-			glfwGetCursorPos(windowID, xposArrD, yposArrD);
-			ret.x = (float) xposArrD[0];
-			ret.y = (float) yposArrD[0];
+			ret.x = cursorPosX;
+			ret.y = cursorPosY;
 		}
 		//return if this is requested result
 		if (result == SpaceState.Viewport_Space) {
@@ -37,10 +46,8 @@ public class CursorHelper {
 		}
 		//normalised device space
 		if (true) { 
-			int[] windowFrameBufferSizeX = new int[1], windowFrameBufferSizeY = new int[1];
-			glfwGetFramebufferSize(windowID, windowFrameBufferSizeX, windowFrameBufferSizeY);
-			ret.x = (2f * ret.x) / windowFrameBufferSizeX[0] - 1f;
-			ret.y = (2f * ret.y) / windowFrameBufferSizeY[0] - 1f;
+			ret.x = (2f * ret.x) / windowFrameBufferSizeX - 1f;
+			ret.y = (2f * ret.y) / windowFrameBufferSizeY - 1f;
 		}
 		if (result == SpaceState.Normalised_Device_Space) {
 			return ret;

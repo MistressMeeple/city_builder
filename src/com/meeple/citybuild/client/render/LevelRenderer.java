@@ -259,18 +259,23 @@ public class LevelRenderer {
 		ortho.perspectiveOrOrtho = false;
 		ortho.scale = 1f;
 
+		Matrix4f orthoMatrix = FrameUtils.calculateProjectionMatrixOrtho(cityBuilder.window.bounds.width, cityBuilder.window.bounds.height, 1, 10.0f, 0.0125f, 10000.0f, new Matrix4f());
 
 		cityBuilder.window.events.postCreation.add(() -> {
 			
-
 			ShaderProgramSystem2.create(glContext, ShaderProgramDefinitions.collection._3D_unlit_flat);
 			ShaderProgramDefinitions.collection.setupMatrixUBO(glContext, ShaderProgramDefinitions.collection._3D_unlit_flat);
 
 			ShaderProgramSystem2.create(glContext, ShaderProgramDefinitions.collection.UI);
 			vpSystem.projSystem.update(ortho);
 			ShaderProgramDefinitions.collection.setupUIProjectionMatrixUBO(glContext, ShaderProgramDefinitions.collection.UI);
-			ShaderProgramDefinitions.collection.updateUIProjectionMatrix(ortho.cache);
-			cityBuilder.gameUI.init(cityBuilder.window, ortho);
+			ShaderProgramDefinitions.collection.updateUIProjectionMatrix(orthoMatrix);
+			cityBuilder.gameUI.init(cityBuilder.window.getID(), cityBuilder.window.nkContext.context, ()->orthoMatrix);
+
+			cityBuilder.window.callbacks.scrollCallbackSet.add(cityBuilder.gameUI.scrollCallback);
+			cityBuilder.window.callbacks.mouseButtonCallbackSet.add(cityBuilder.gameUI.mouseButtonCallback);
+			cityBuilder.window.callbacks.cursorPosCallbackSet.add(cityBuilder.gameUI.cursorposCallback);
+
 			cityBuilder.gameUI.setupCompas(glContext, uiProgram);
 			cityBuilder.gameUI.setupCompasLine(glContext, uiProgram);
 
