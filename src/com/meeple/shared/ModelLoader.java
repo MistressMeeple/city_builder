@@ -65,7 +65,6 @@ public class ModelLoader {
                 | aiProcess_GenNormals | aiProcess_FixInfacingNormals | aiProcess_GenSmoothNormals
                 | aiProcess_RemoveRedundantMaterials
                 | aiProcess_OptimizeMeshes
-                | aiProcess_FixInfacingNormals
                 | aiProcess_FindDegenerates
 
                 // aiProcess_ImproveCacheLocality |
