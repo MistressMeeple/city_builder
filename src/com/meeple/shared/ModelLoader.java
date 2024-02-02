@@ -59,18 +59,20 @@ public class ModelLoader {
         AIScene scene = aiImportFileFromMemoryWithProperties(
                 fileContent,
                 0 |
-                // aiProcess_JoinIdenticalVertices |
-                        aiProcess_Triangulate
-                        // aiProcessPreset_TargetRealtime_MaxQuality |
-                        // | aiProcess_FindDegenerates
-                        | aiProcess_GenNormals | aiProcess_FixInfacingNormals | aiProcess_GenSmoothNormals 
-                        | aiProcess_RemoveRedundantMaterials
-                        // aiProcess_MakeLeftHanded |
-                        // aiProcess_ImproveCacheLocality |
-                        // | aiProcess_findi
-                        | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType,
+                aiProcess_Triangulate
+                // aiProcessPreset_TargetRealtime_MaxQuality |
+                // | aiProcess_FindDegenerates
+                | aiProcess_GenNormals | aiProcess_FixInfacingNormals | aiProcess_GenSmoothNormals
+                | aiProcess_RemoveRedundantMaterials
+                | aiProcess_OptimizeMeshes
+                | aiProcess_FixInfacingNormals
+                | aiProcess_FindDegenerates
+
+                // aiProcess_ImproveCacheLocality |
+                | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType,
                 (ByteBuffer) null,
                 store);
+
         if (scene == null) {
             throw new IllegalStateException(aiGetErrorString());
         }
