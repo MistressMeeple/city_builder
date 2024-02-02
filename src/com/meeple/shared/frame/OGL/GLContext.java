@@ -15,11 +15,11 @@ import com.meeple.shared.utils.CollectionSuppliers.SetSupplier;
 
 public class GLContext implements AutoCloseable {
 	public GLCapabilities capabilities;
-	public Set<Integer> vertexArrays = new SetSupplier<Integer>().get();
-	public Set<Integer> buffers = new SetSupplier<Integer>().get();
+	private Set<Integer> vertexArrays = new SetSupplier<Integer>().get();
+	private Set<Integer> buffers = new SetSupplier<Integer>().get();
 
-	public Set<Integer> programs = new SetSupplier<Integer>().get();
-	public Set<Integer> shaders = new SetSupplier<Integer>().get();
+	private Set<Integer> programs = new SetSupplier<Integer>().get();
+	private Set<Integer> shaders = new SetSupplier<Integer>().get();
 
 	public GLContext() {
 	}
@@ -95,7 +95,6 @@ public class GLContext implements AutoCloseable {
 	}
 
 	public int genVertexArray() {
-
 		int vertexArray = GL46.glGenVertexArrays();
 		vertexArrays.add(vertexArray);
 		return vertexArray;
@@ -116,10 +115,10 @@ public class GLContext implements AutoCloseable {
 		}
 	}
 
-	public int genShader(ShaderProgram.GLShaderType type, String source) {
-		int id = ShaderProgramSystem.compileShader(source, type.getGLID());
-		shaders.add(id);
-		return id;
+	public int createShader(int type){
+		int shaderID = GL46.glCreateShader(type);
+		shaders.add(shaderID);
+		return shaderID;
 	}
 
 	public void deleteShader(int id) {
@@ -137,7 +136,7 @@ public class GLContext implements AutoCloseable {
 		}
 	}
 
-	public int genProgram() {
+	public int createProgram() {
 		int id = GL46.glCreateProgram();
 		programs.add(id);
 		return id;
