@@ -251,7 +251,7 @@ public abstract class GameManager {
 		return result;
 	}
 
-	private static int chunk(float world) {
+	public static int chunk(float world) {
 		float calc = world / (LevelData.chunkSize * LevelData.tileSize);
 		if (calc < 0) {
 			calc -= 1f;
@@ -260,7 +260,7 @@ public abstract class GameManager {
 		return ret;
 	}
 
-	private static int tileIndex(float chunk) {
+	public static int tileIndex(float chunk) {
 		float calc = chunk % (LevelData.chunkSize * LevelData.tileSize);
 		float calc2 = calc / LevelData.tileSize;
 		int calc3 = (int) calc2;
