@@ -257,7 +257,7 @@ public class LevelRenderer {
 		Matrix4f orthoMatrix = FrameUtils.calculateProjectionMatrixOrtho(cityBuilder.window.bounds.width, cityBuilder.window.bounds.height, 1, 10.0f, 0.0125f, 10000.0f, new Matrix4f());
 
 		cityBuilder.window.events.postCreation.add(() -> {
-			
+
 
 			ShaderProgramSystem2.create(glContext, ShaderProgramDefinitions.collection._3D_unlit_flat);
 			ShaderProgramDefinitions.collection.setupMatrixUBO(glContext, ShaderProgramDefinitions.collection._3D_unlit_flat);
@@ -281,7 +281,6 @@ public class LevelRenderer {
 			ShaderProgramDefinition_3D_unlit_flat.Mesh axis = drawAxis(100);
 			ShaderProgramSystem2.loadVAO(glContext, debugProgram, axis);
 
-			ShaderProgramDefinitions.collection.writeFixMatrix(ShaderProgramDefinitions.zUpMatrix);
 		});
 
 		vpSystem.preMult(vpMatrix);
@@ -291,7 +290,10 @@ public class LevelRenderer {
 			vpSystem.viewSystem.update(vpMatrix.view.get());
 			vpSystem.preMult(vpMatrix);
 
-			ShaderProgramDefinitions.collection.writeVPFMatrix(null, null, null, vpMatrix.cache);
+			//ShaderProgramDefinitions.collection.writeVPFMatrix(null, null, null, vpMatrix.cache);
+			viewMatrices.viewMatrix.set(vpMatrix.view.get().cache);
+			viewMatrices.viewMatrixUpdate.set(true);
+			ShaderProgramDefinitions.collection.writeVPMatrix(viewMatrices);
 			// TODO change line thickness
 			GL46.glLineWidth(3f);
 			GL46.glPointSize(3f);
@@ -301,8 +303,8 @@ public class LevelRenderer {
 				// TODO better testing for if mouse controls should be enabled. eg when over a gui
 
 
-				Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, cityBuilder.window.getID(), orthoMatrix, null);
-				CursorHelper.getMouse(SpaceState.Eye_Space, cityBuilder.window.getID(), cityBuilder.window.bounds.width, cityBuilder.window.bounds.height, orthoMatrix, null);
+				Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, cityBuilder.window.getID(), cityBuilder.window.bounds.width, cityBuilder.window.bounds.height, orthoMatrix, null);
+
 
 				cityBuilder.gameUI.handlePanningTick(cityBuilder.window, mousePos, vpMatrix.view.get(), cameraAnchorEntity);
 				cityBuilder.gameUI.handlePitchingTick(cityBuilder.window, mousePos, arm);

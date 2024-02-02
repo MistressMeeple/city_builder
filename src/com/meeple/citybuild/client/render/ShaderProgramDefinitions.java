@@ -25,25 +25,17 @@ import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
 public class ShaderProgramDefinitions {
     public static class ViewMatrices {
         /* To convert between different coord systems, eg Y up or Z up */
-        public Matrix4f fixMatrix = new Matrix4f(ShaderProgramDefinitions.zUpMatrix);
         public Matrix4f projectionMatrix = new Matrix4f();
         public Matrix4f viewMatrix = new Matrix4f();
 
-        public AtomicBoolean zUpMatrixUpdate = new AtomicBoolean(true);
         public AtomicBoolean projectionMatrixUpdate = new AtomicBoolean(true);
         public AtomicBoolean viewMatrixUpdate = new AtomicBoolean(true);
-
-        protected Matrix4f viewProjectionMatrix = new Matrix4f();
-        protected Matrix4f viewProjectionFixMatrix = new Matrix4f();
-
+        /**
+         * This is automatically updated by ShaderProgramCollection.writeVPMatrix(ViewMatrix)
+         */
+        public Matrix4f viewProjectionMatrix = new Matrix4f();
     }
 
-    /* matrix to convert from z forward to z up */
-    public static final Matrix4f zUpMatrix = new Matrix4f(
-            1, 0, 0, 0,
-            0, 0, 1, 0,
-            0, 1, 0, 0,
-            0, 0, 0, 1);
 
     /**
      * Maximum lights to calculate in the shaders. more lights is more intensive GPU
@@ -204,60 +196,41 @@ public class ShaderProgramDefinitions {
             glBufferData(GL46.GL_UNIFORM_BUFFER, UIProjectionMatrix.get(new float[16]),GL46.GL_DYNAMIC_DRAW);
         }
 
-        protected void writeFixMatrix(Matrix4f fix) {
-            // no need to be in a program bidning, since this is shared between multiple
-            // programs
-            glBindBuffer(GL46.GL_UNIFORM_BUFFER, matrixBuffer);
-            float[] store = new float[16];
-            if (fix != null)
-                glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 0, fix.get(store));
-            glBindBuffer(GL46.GL_UNIFORM_BUFFER, 0);
-        }
-
-        public void writeVPFMatrix(Matrix4f projection, Matrix4f view, Matrix4f vp, Matrix4f vpf) {
+        public void writeVPMatrix(Matrix4f projection, Matrix4f view, Matrix4f vp) {
 
             // no need to be in a program bidning, since this is shared between multiple
             // programs
             glBindBuffer(GL46.GL_UNIFORM_BUFFER, matrixBuffer);
             float[] store = new float[16];
             if (projection != null)
-                glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 1, projection.get(store));
+                glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 0, projection.get(store));
             if (view != null)
-                glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 2, view.get(store));
+                glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 1, view.get(store));
             if (vp != null)
-                glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 3, vp.get(store));
-            if (vpf != null)
-                glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 4, vpf.get(store));
+                glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 2, vp.get(store));
 
             glBindBuffer(GL46.GL_UNIFORM_BUFFER, 0);
         }
 
-        public void writeVPFMatrix(ViewMatrices matrices) {
+        public void writeVPMatrix(ViewMatrices matrices) {
             glBindBuffer(GL46.GL_UNIFORM_BUFFER, matrixBuffer);
             float[] store = new float[16];
 
-            boolean fixUpdate = matrices.zUpMatrixUpdate.compareAndSet(true, false);
             boolean projectionUpdate = matrices.projectionMatrixUpdate.compareAndSet(true, false);
             boolean viewUpdate = matrices.viewMatrixUpdate.compareAndSet(true, false);
 
-            if (fixUpdate) {
-                glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 0, matrices.fixMatrix.get(store));
-            }
             if (projectionUpdate) {
-                glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 1, matrices.projectionMatrix.get(store));
+                glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 0, matrices.projectionMatrix.get(store));
             }
 
             if (viewUpdate) {
-                glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 2, matrices.viewMatrix.get(store));
+                glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 1, matrices.viewMatrix.get(store));
             }
 
-            if (viewUpdate || projectionUpdate)
+            if (viewUpdate || projectionUpdate){
                 matrices.projectionMatrix.mul(matrices.viewMatrix, matrices.viewProjectionMatrix);
-            glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 3, matrices.viewProjectionMatrix.get(store));
-
-            if (viewUpdate || projectionUpdate || fixUpdate)
-                matrices.viewProjectionMatrix.mul(matrices.fixMatrix, matrices.viewProjectionFixMatrix);
-            glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 4, matrices.viewProjectionFixMatrix.get(store));
+                glBufferSubData(GL46.GL_UNIFORM_BUFFER, 64 * 2, matrices.viewProjectionMatrix.get(store));
+            }
 
             glBindBuffer(GL46.GL_UNIFORM_BUFFER, 0);
         }

@@ -261,7 +261,7 @@ public class ModelImportDemo {
 		}
 		// projectionMatrix.rotate(axisAngle)
 		// setting the view position defined by the rotation previously set and a radius
-		viewPosition.set(15f * (float) Math.cos(rotation), 15f, 15f * (float) Math.sin(rotation));
+		viewPosition.set(15f * (float) Math.cos(rotation), 15f * (float) Math.sin(rotation), 15f);
 		// setting the view matrix to look at 000 from view position
 		viewMatrices.viewMatrix
 				.setLookAt(
@@ -272,12 +272,12 @@ public class ModelImportDemo {
 						0f,
 						0f,
 						0f,
-						1f,
-						0f);
+						0f,
+						1f);
 		viewMatrices.viewMatrixUpdate.set(true);
 		// handles the rotation of light source/model
 		if (true) {
-			float rotation2 = -total * 0.025f * (float) Math.PI;
+			float rotation2 = -total * 0.25f * (float) Math.PI;
 			lightPosition.set(10f * (float) Math.sin(rotation2), 10f * (float) Math.cos(rotation2), 5f);
 			// lightPosition.set(0, 5, 0);
 			// lightPosition.set(5, 0, 0);
@@ -298,7 +298,7 @@ public class ModelImportDemo {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glEnable(GL_DEPTH_TEST);
 
-		ShaderProgramDefinitions.collection.writeVPFMatrix(viewMatrices);
+		ShaderProgramDefinitions.collection.writeVPMatrix(viewMatrices);
 		try (ShaderClosable sc = ShaderProgramSystem2.useProgram(program)) {
 
 			for (MeshInstance meshInstance : instances.get(primaryModel)) {
