@@ -42,6 +42,7 @@ public class ShaderProgramSystem {
 
 	private static Logger logger = Logger.getLogger(ShaderProgramSystem.class);
 
+
 	public static class SingleUniformSystem extends UniformManager<String, Integer> {
 
 		@Override
@@ -92,19 +93,24 @@ public class ShaderProgramSystem {
 	 * @param program Shader program to create/setup
 	 * @throws Exception when the program fails error checks. if thrown auto closes and deletes resources
 	 */
-	public static void create(ShaderProgram program) {
-		program.programID = GL46.glCreateProgram();
-		logger.trace("Creating new Shader program with ID: " + program.programID);
-		Map<GLShaderType, Integer> shaderIDs = compileShaders(program.shaderSources);
-		program.shaderSources.clear();
-		merge(shaderIDs, program.shaderIDs);
-		program.shaderIDs.putAll(shaderIDs);
-		bindShaders(program.programID, program.shaderIDs.values());
-		//bindAttributeLocations(program.programID, program.attributes);
+	public static void create(GLContext glContext, ShaderProgram program) {
+		boolean failure = false;
 		String log = "";
+		Exception err = null;
 		try {
+			program.programID = glContext.createProgram();
+			logger.trace("Creating new Shader program with ID: " + program.programID);
+
+			Map<GLShaderType, Integer> shaderIDs = compileShaders(glContext, program.shaderSources);
+			program.shaderSources.clear();
+			merge(shaderIDs, program.shaderIDs);
+			program.shaderIDs.putAll(shaderIDs);
+			bindShaders(glContext, program.programID, program.shaderIDs.values());
+			//bindAttributeLocations(program.programID, program.attributes);
+
 			GL46.glLinkProgram(program.programID);
 			log = programStatusCheck(program.programID, GLStatus.LinkStatus);
+
 			if (log.length() > 0) {
 				logger.trace("program log: \r\n" + log);
 			}
@@ -113,27 +119,44 @@ public class ShaderProgramSystem {
 			if (log.length() > 0) {
 				logger.trace("program log: \r\n" + log);
 			}
-			bindUniformLocations(program.programID, program.uniformSystems);
+
 		} catch (Exception e) {
-			close(program);
-			throw new AssertionError();
+			failure = true;
+			err = e;
+		}
+		if (failure) {
+			GL46.glUseProgram(0);
+			Set<Entry<GLShaderType, Integer>> set = program.shaderIDs.entrySet();
+			synchronized (set) {
+				Iterator<Entry<GLShaderType, Integer>> i = set.iterator();
+				while (i.hasNext()) {
+					Entry<GLShaderType, Integer> entry = i.next();
+					int shaderID = entry.getValue();
+					GL46.glDetachShader(program.programID, shaderID);
+					glContext.deleteShader(shaderID);
+					i.remove();
+				}
+			}
+
+			glContext.deleteProgram(program.programID);
+			throw new AssertionError(err.getMessage(), err);
 		}
 	}
 
-	private static String programStatusCheck(int program, GLStatus status) {
+	private static String programStatusCheck(int program, GLStatus status) throws Exception {
 		int linkStatus = glGetProgrami(program, status.getGLID());
 		String programLog = glGetProgramInfoLog(program);
 		if (linkStatus == 0) {
-			throw new AssertionError("Program failed the status check: " + status.name() + "\r\n" + programLog);
+			throw new Exception("Program failed the status check: " + status.name() + "\r\n" + programLog);
 		}
 		return programLog;
 	}
 
-	private static String shaderCompileCheck(int shaderID) {
+	private static String shaderCompileCheck(int shaderID) throws Exception {
 		int linkStatus = glGetShaderi(shaderID, GLStatus.CompileStatus.getGLID());
 		String shaderLog = glGetShaderInfoLog(shaderID);
 		if (linkStatus == 0) {
-			throw new AssertionError("Shader failed to compile. \r\n" + shaderLog);
+			throw new Exception("Shader failed to compile." + "\r\n" + shaderLog);
 		}
 		return shaderLog;
 	}
@@ -143,26 +166,19 @@ public class ShaderProgramSystem {
 	 * @param source shader source to compile
 	 * @param type shader type of shader to compile
 	 * @return generated ID of shader
+	 * @throws Exception 
 	 */
-	public static int compileShader(String source, int type) {
-		int shaderID = GL46.glCreateShader(type);
+	public static int compileShader(GLContext glContext, String source, int type) throws Exception {
+		int shaderID = glContext.createShader(type);
 		GL46.glShaderSource(shaderID, source);
 		GL46.glCompileShader(shaderID);
-
 		String shaderLog = "";
-		try {
-			shaderCompileCheck(shaderID);
-
-			logger.trace("Shader with ID '" + shaderID + "' successfully compiled");
-			if (shaderLog.trim().length() > 0) {
-				logger.debug("Shader Log: \r\n" + shaderLog);
-			}
-			return shaderID;
-		} catch (Exception e) {
-			GL46.glDeleteShader(shaderID);
-			throw new AssertionError();
-
+		shaderCompileCheck(shaderID);
+		logger.trace("Shader with ID '" + shaderID + "' successfully compiled");
+		if (shaderLog.trim().length() > 0) {
+			logger.debug("Shader Log: \r\n" + shaderLog);
 		}
+		return shaderID;
 
 	}
 
@@ -183,8 +199,9 @@ public class ShaderProgramSystem {
 	 * Compiles all the shaders from their sources provided in the map values (keyed by shader type)
 	 * @param shaderMap map of shaders to compile
 	 * @return shader type - shader ID map
+	 * @throws Exception 
 	 */
-	public static Map<GLShaderType, Integer> compileShaders(Map<GLShaderType, String> shaderMap) {
+	public static Map<GLShaderType, Integer> compileShaders(GLContext glContext, Map<GLShaderType, String> shaderMap) throws Exception {
 		Set<Entry<GLShaderType, String>> sources = shaderMap.entrySet();
 		Map<GLShaderType, Integer> shaderIDs = new CollectionSuppliers.MapSupplier<GLShaderType, Integer>().get();
 		synchronized (shaderMap) {
@@ -192,7 +209,7 @@ public class ShaderProgramSystem {
 			while (i.hasNext()) {
 				Entry<GLShaderType, String> entry = i.next();
 				GLShaderType shaderType = entry.getKey();
-				shaderIDs.put(shaderType, compileShader(entry.getValue(), shaderType.getGLID()));
+				shaderIDs.put(shaderType, compileShader(glContext, entry.getValue(), shaderType.getGLID()));
 
 			}
 		}
@@ -204,32 +221,14 @@ public class ShaderProgramSystem {
 	 * @param makeQuadProgram ID to bind to 
 	 * @param shaderMap map of shader type-ID's to bind
 	 */
-	private static void bindShaders(int programID, Collection<Integer> shaderMapSet) {
+	private static void bindShaders(GLContext glContext, int programID, Collection<Integer> shaderMapSet) {
 
 		synchronized (shaderMapSet) {
 			Iterator<Integer> i = shaderMapSet.iterator();
 			while (i.hasNext()) {
 				Integer entry = i.next();
 				GL46.glAttachShader(programID, entry);
-			}
-		}
-	}
-
-	/**
-	 * Sets the correct index for all uniforms provided. <br>
-	 * Internally uses {@link GL46#glGetUniformLocation(int, CharSequence)} to set Integer of entry using the entry key as the name. 
-	 * @param programID
-	 * @param uniformSystems
-	 */
-	private static void bindUniformLocations(int programID, Map<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>> uniformSystems) {
-
-		synchronized (uniformSystems) {
-			Iterator<Entry<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>>> i = uniformSystems.entrySet().iterator();
-			while (i.hasNext()) {
-				Entry<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>> entry = i.next();
-				UniformManager<?, ?> system = entry.getKey();
-				Map<UniformManager<?, ?>.Uniform<?>, List<?>> uniforms = entry.getValue();
-				system.bindUniformLocations(programID, uniforms.keySet());
+				glContext.deleteShader(entry);
 			}
 		}
 	}
@@ -264,11 +263,11 @@ public class ShaderProgramSystem {
 	 * @param vao to setup
 	 * @see #bindBuffer(ShaderProgram, BufferObject)
 	 */
-	public static void loadVAO(ShaderProgram program, VAO vao) {
+	public static void loadVAO(GLContext glContext, ShaderProgram program, VAO vao) {
 		if (program.programID == 0) {
 			logger.warn("Shader program has not been initialized. Do that first before loading any VAOs");
 		}
-		int vaoID = GL46.glGenVertexArrays();
+		int vaoID = glContext.genVertexArray();
 		/*		Mesh mesh = null;
 				if (vao instanceof Mesh) {
 					mesh = (Mesh) vao;
@@ -280,7 +279,7 @@ public class ShaderProgramSystem {
 		Collection<BufferObject> vboSet = vao.VBOs;
 		for (Iterator<BufferObject> iterator = vboSet.iterator(); iterator.hasNext();) {
 			BufferObject vbo = iterator.next();
-			bindBuffer(program, vbo);
+			bindBuffer(glContext, program, vbo);
 		}
 		//unbind afterwards
 		GL46.glBindVertexArray(0);
@@ -295,8 +294,8 @@ public class ShaderProgramSystem {
 	 * @param vbo
 	 * @see #bindAttribute(int, Attribute)
 	 */
-	private static void bindBuffer(ShaderProgram program, BufferObject vbo) {
-		int vboID = GL46.glGenBuffers();
+	private static void bindBuffer(GLContext glContext, ShaderProgram program, BufferObject vbo) {
+		int vboID = glContext.genBuffer();
 		GL46.glBindBuffer(vbo.bufferType.getGLID(), vboID);
 		vbo.VBOID = vboID;
 		writeDataToBuffer(vbo);
@@ -321,7 +320,7 @@ public class ShaderProgramSystem {
 			case List:
 
 				int arraySize = vbo.data.size();
-
+				//TODO make threadsafe
 				//TODO check actual buffer size vs expected
 				//		logger.trace("todo: check acutal size vs expected size");
 				switch (vbo.dataType) {
@@ -688,11 +687,6 @@ public class ShaderProgramSystem {
 						}
 					}
 
-					//only discard if actually rendered
-					if (mesh.singleFrameDiscard) {
-						deleteMesh(mesh);
-						meshI.remove();
-					}
 				}
 
 			}
@@ -732,7 +726,6 @@ public class ShaderProgramSystem {
 									}
 								}
 								renderMesh(mesh);
-
 								for (Iterator<BufferObject> iterator = vboSet.iterator(); iterator.hasNext();) {
 									BufferObject vbo = (BufferObject) iterator.next();
 									if (vbo instanceof Attribute) {
@@ -743,11 +736,6 @@ public class ShaderProgramSystem {
 								}
 							}
 
-							//only discard if actually rendered
-							if (vao.singleFrameDiscard) {
-								deleteMesh(vao);
-								vaoI.remove();
-							}
 						}
 					}
 				}
@@ -846,11 +834,6 @@ public class ShaderProgramSystem {
 						//unbind vertex array
 						GL46.glBindVertexArray(0);
 					}
-					//only discard if actually rendered
-					if (vao.singleFrameDiscard) {
-						deleteMesh(vao);
-						vaoI.remove();
-					}
 				}
 			}
 
@@ -858,52 +841,6 @@ public class ShaderProgramSystem {
 		//unbind shader program
 		GL46.glUseProgram(0);
 
-	}
-
-	//----------------------------------------------- CLOSE METHODS -----------------------------------//TODO 
-
-	public static void deleteMesh(VAO model) {
-		if (model != null) {
-			GL46.glDeleteVertexArrays(model.VAOID);
-			Collection<BufferObject> vbos = model.VBOs;
-			for (Iterator<BufferObject> iterator2 = vbos.iterator(); iterator2.hasNext();) {
-				BufferObject vbo = (BufferObject) iterator2.next();
-				GL46.glDeleteBuffers(vbo.VBOID);
-				iterator2.remove();
-			}
-			model.VAOID = ShaderProgram.NULL;
-		} else {
-			logger.warn("Could not delete model, parameter was null", new NullPointerException());
-		}
-	}
-
-	/**
-	 * Detaches and deletes all shader's for this program, then deletes the program from memory 
-	 * @param program program to detach and delete
-	 */
-	public static void detatchAndDeleteShaders(ShaderProgram program) {
-
-		GL46.glUseProgram(0);
-		Set<Entry<GLShaderType, Integer>> set = program.shaderIDs.entrySet();
-		synchronized (set) {
-			Iterator<Entry<GLShaderType, Integer>> i = set.iterator();
-			while (i.hasNext()) {
-				Entry<GLShaderType, Integer> entry = i.next();
-				int shaderID = entry.getValue();
-				GL46.glDetachShader(program.programID, shaderID);
-				GL46.glDeleteShader(shaderID);
-				i.remove();
-			}
-		}
-
-		GL46.glDeleteProgram(program.programID);
-	}
-
-	public static void close(ShaderProgram program) {
-		detatchAndDeleteShaders(program);
-		for (VAO vao : program.VAOs) {
-			deleteMesh(vao);
-		}
 	}
 
 }

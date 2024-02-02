@@ -50,7 +50,7 @@ import com.meeple.shared.frame.CursorHelper.SpaceState;
 import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
-import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
+import com.meeple.shared.frame.OGL.ShaderProgramSystem;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraMode;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpringArm;
@@ -283,7 +283,7 @@ public class GameUI extends Screen {
 		FrameUtils.appendToList(compasMesh.meshTransformAttribute.data, new Matrix4f());
 		compasMesh.visible = false;
 		compasMesh.vertexCount = points.length;
-		ShaderProgramSystem2.loadVAO(glContext, program, compasMesh);
+		ShaderProgramSystem.loadVAO(glContext, program, compasMesh);
 	}
 
 	public void setupCompasLine(GLContext glContext, ShaderProgram program) {
@@ -299,7 +299,7 @@ public class GameUI extends Screen {
 		compasLineMesh.zIndexAttribute.data.add(-1f);
 		compasLineMesh.vertexCount = 2;
 		compasLineMesh.visible = false;
-		ShaderProgramSystem2.loadVAO(glContext, program, compasLineMesh);
+		ShaderProgramSystem.loadVAO(glContext, program, compasLineMesh);
 
 	}
 

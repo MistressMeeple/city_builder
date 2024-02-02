@@ -41,8 +41,8 @@ import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferDataManagementType;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgram.RenderableVAO;
-import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
-import com.meeple.shared.frame.OGL.ShaderProgramSystem2.ShaderClosable;
+import com.meeple.shared.frame.OGL.ShaderProgramSystem;
+import com.meeple.shared.frame.OGL.ShaderProgramSystem.ShaderClosable;
 import com.meeple.shared.frame.structs.Light;
 import com.meeple.shared.frame.structs.Material;
 import com.meeple.shared.frame.wrapper.Wrapper;
@@ -113,7 +113,7 @@ public class ModelImportDemo {
 			for (RenderableVAO a : meshes.values()) {
 				int mIndex = 0;
 				RenderableVAO dmesh = a;
-				ShaderProgramSystem2.loadVAO(glContext, ShaderProgramDefinitions.collection._3D_lit_mat, dmesh);
+				ShaderProgramSystem.loadVAO(glContext, ShaderProgramDefinitions.collection._3D_lit_mat, dmesh);
 
 				primaryModel.meshToMaterials.put(dmesh, mIndex + i);
 				primaryLightModel.meshToMaterials.put(dmesh, 0);
@@ -158,7 +158,7 @@ public class ModelImportDemo {
 			 */
 			ShaderProgram debugProgram = ShaderProgramDefinitions.collection._3D_unlit_flat;
 			ShaderProgramDefinition_3D_unlit_flat.Mesh axis = drawAxis(100);
-			ShaderProgramSystem2.loadVAO(glContext, debugProgram, axis);
+			ShaderProgramSystem.loadVAO(glContext, debugProgram, axis);
 
 			GL46.glLineWidth(3f);
 
@@ -180,7 +180,7 @@ public class ModelImportDemo {
 				glViewport(0, 0, fbWidth, fbHeight);
 				update();
 				render(program);
-				ShaderProgramSystem2.tryRender(debugProgram);
+				ShaderProgramSystem.tryRender(debugProgram);
 
 				glfwSwapBuffers(window);
 			}
@@ -299,7 +299,7 @@ public class ModelImportDemo {
 		glEnable(GL_DEPTH_TEST);
 
 		ShaderProgramDefinitions.collection.writeVPMatrix(viewMatrices);
-		try (ShaderClosable sc = ShaderProgramSystem2.useProgram(program)) {
+		try (ShaderClosable sc = ShaderProgramSystem.useProgram(program)) {
 
 			for (MeshInstance meshInstance : instances.get(primaryModel)) {
 				writeMeshTranslation(meshInstance, primaryModel.translation);
@@ -314,7 +314,7 @@ public class ModelImportDemo {
 			ShaderProgramDefinitions.collection.updateAmbientBrightness(1.5125f);
 		}
 
-		ShaderProgramSystem2.tryRender(program);
+		ShaderProgramSystem.tryRender(program);
 
 	}
 

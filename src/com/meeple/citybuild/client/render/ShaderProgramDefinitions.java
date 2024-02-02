@@ -20,7 +20,7 @@ import com.meeple.shared.frame.OGL.ShaderProgram.BufferUsage;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDataType;
 import com.meeple.shared.frame.structs.Light;
 import com.meeple.shared.frame.structs.Material;
-import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
+import com.meeple.shared.frame.OGL.ShaderProgramSystem;
 
 public class ShaderProgramDefinitions {
     public static class ViewMatrices {
@@ -98,9 +98,9 @@ public class ShaderProgramDefinitions {
         private int UIProjectionMatrixBuffer;
 
         public void create(GLContext glc) throws AssertionError {
-            ShaderProgramSystem2.create(glc, _3D_lit_flat);
-            ShaderProgramSystem2.create(glc, _3D_lit_mat);
-            ShaderProgramSystem2.create(glc, _3D_unlit_flat);
+            ShaderProgramSystem.create(glc, _3D_lit_flat);
+            ShaderProgramSystem.create(glc, _3D_lit_mat);
+            ShaderProgramSystem.create(glc, _3D_unlit_flat);
 
             setupUBOs(glc);
 
@@ -281,8 +281,8 @@ public class ShaderProgramDefinitions {
         }
 
         protected ShaderProgramDefinition_UI() {
-            String vertSource = ShaderProgramSystem2.loadShaderSourceFromFile(("resources/shaders/2D_UI.vert"));
-            String fragSource = ShaderProgramSystem2.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag"));
+            String vertSource = ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/2D_UI.vert"));
+            String fragSource = ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/basic-alpha-discard-colour.frag"));
 
             shaderSources.put(GLShaderType.VertexShader, vertSource);
             shaderSources.put(GLShaderType.FragmentShader, fragSource);
@@ -341,9 +341,9 @@ public class ShaderProgramDefinitions {
 
         protected ShaderProgramDefinition_3D_unlit_flat() {
 
-            String vertSource = ShaderProgramSystem2.loadShaderSourceFromFile(("resources/shaders/3D_nolit_flat.vert"));
+            String vertSource = ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/3D_nolit_flat.vert"));
 
-            String fragSource = ShaderProgramSystem2.loadShaderSourceFromFile(("resources/shaders/3D_nolit_flat.frag"));
+            String fragSource = ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/3D_nolit_flat.frag"));
 
             shaderSources.put(GLShaderType.VertexShader, vertSource);
             shaderSources.put(GLShaderType.FragmentShader, fragSource);
@@ -422,10 +422,10 @@ public class ShaderProgramDefinitions {
 
         protected ShaderProgramDefinition_3D_lit_flat() {
 
-            String vertSource = ShaderProgramSystem2.loadShaderSourceFromFile(("resources/shaders/3D_lit_flat.vert"));
+            String vertSource = ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/3D_lit_flat.vert"));
             vertSource = vertSource.replaceAll("\\{maxlights\\}", maxLights + "");
 
-            String fragSource = ShaderProgramSystem2.loadShaderSourceFromFile(("resources/shaders/3D_lit_flat.frag"));
+            String fragSource = ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/3D_lit_flat.frag"));
             fragSource = fragSource.replaceAll("\\{maxlights\\}", maxLights + "");
 
             shaderSources.put(GLShaderType.VertexShader, vertSource);
@@ -464,10 +464,10 @@ public class ShaderProgramDefinitions {
 
         protected ShaderProgramDefinition_3D_lit_mat() {
 
-            String vertSource = ShaderProgramSystem2.loadShaderSourceFromFile(("resources/shaders/3D_lit_mat.vert"));
+            String vertSource = ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/3D_lit_mat.vert"));
             vertSource = vertSource.replaceAll("\\{maxlights\\}", maxLights + "");
 
-            String fragSource = ShaderProgramSystem2.loadShaderSourceFromFile(("resources/shaders/3D_lit_mat.frag"));
+            String fragSource = ShaderProgramSystem.loadShaderSourceFromFile(("resources/shaders/3D_lit_mat.frag"));
             fragSource = fragSource.replaceAll("\\{maxmats\\}", "" + maxMaterials);
             fragSource = fragSource.replaceAll("\\{maxlights\\}", maxLights + "");
 

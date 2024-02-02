@@ -38,7 +38,7 @@ import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
 import com.meeple.shared.frame.OGL.ShaderProgram.RenderableVAO;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem;
-import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
+import com.meeple.shared.frame.OGL.ShaderProgramSystem;
 import com.meeple.shared.frame.OGL.UniformManager;
 import com.meeple.shared.frame.camera.VPMatrixSystem;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
@@ -74,7 +74,7 @@ public class LevelRenderer {
 						m.singleFrameDiscard = true;
 					}
 					m = bakeChunk(chunkPos, chunk);
-					ShaderProgramSystem.loadVAO(program, m);
+					ShaderProgramSystem.loadVAO(glContext, program, m);
 					m.visible = false;
 					baked.put(chunk, m);
 				}
@@ -259,10 +259,10 @@ public class LevelRenderer {
 		cityBuilder.window.events.postCreation.add(() -> {
 
 
-			ShaderProgramSystem2.create(glContext, ShaderProgramDefinitions.collection._3D_unlit_flat);
+			ShaderProgramSystem.create(glContext, ShaderProgramDefinitions.collection._3D_unlit_flat);
 			ShaderProgramDefinitions.collection.setupMatrixUBO(glContext, ShaderProgramDefinitions.collection._3D_unlit_flat);
 
-			ShaderProgramSystem2.create(glContext, ShaderProgramDefinitions.collection.UI);
+			ShaderProgramSystem.create(glContext, ShaderProgramDefinitions.collection.UI);
 			
 			ShaderProgramDefinitions.collection.setupUIProjectionMatrixUBO(glContext, ShaderProgramDefinitions.collection.UI);
 			ShaderProgramDefinitions.collection.updateUIProjectionMatrix(orthoMatrix);
@@ -276,10 +276,10 @@ public class LevelRenderer {
 			cityBuilder.gameUI.setupCompasLine(glContext, uiProgram);
 
 			ShaderProgram debugProgram = ShaderProgramDefinitions.collection._3D_unlit_flat;
-			ShaderProgramSystem2.create(glContext, debugProgram);
+			ShaderProgramSystem.create(glContext, debugProgram);
 			ShaderProgramDefinitions.collection.setupMatrixUBO(glContext, debugProgram, program);
 			ShaderProgramDefinition_3D_unlit_flat.Mesh axis = drawAxis(100);
-			ShaderProgramSystem2.loadVAO(glContext, debugProgram, axis);
+			ShaderProgramSystem.loadVAO(glContext, debugProgram, axis);
 
 		});
 
@@ -327,9 +327,9 @@ public class LevelRenderer {
 
 			}
 
-			ShaderProgramSystem2.tryRender(program);
-			ShaderProgramSystem2.tryRender(ShaderProgramDefinitions.collection._3D_unlit_flat);
-			ShaderProgramSystem2.tryRender(uiProgram);
+			ShaderProgramSystem.tryRender(program);
+			ShaderProgramSystem.tryRender(ShaderProgramDefinitions.collection._3D_unlit_flat);
+			ShaderProgramSystem.tryRender(uiProgram);
 			// this is the cube test rendering program
 			// ShaderProgramSystem.render(mainProgram);
 			return false;
