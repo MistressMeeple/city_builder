@@ -52,8 +52,7 @@ public class LevelRenderer {
 		Attribute translationAttrib = new Attribute();
 	}
 
-	public void preRender(LevelData level, VPMatrix vp, GLContext glContext, ShaderProgram program) {
-		FrustumIntersection fi = new FrustumIntersection(vp.cache);
+	public void preRender(LevelData level, GLContext glContext, ShaderProgram program) {
 
 		Set<Entry<Vector2i, Chunk>> set = level.chunks.entrySet();
 		synchronized (level.chunks) {
@@ -63,28 +62,14 @@ public class LevelRenderer {
 				Chunk chunk = entry.getValue();
 				Vector3f chunkPos = new Vector3f(loc.x * LevelData.fullChunkSize, loc.y * LevelData.fullChunkSize, 0);
 				RenderableVAO m = baked.get(chunk);
-				if (m == null){
+				if (m == null) {
 					m = bakeChunk(chunkPos, chunk);
 					ShaderProgramSystem.loadVAO(glContext, program, m);
-					m.visible = false;
+					//TODO until proper frustrum check implemented m.visible = false;
 					baked.put(chunk, m);
 				}
-				if(chunk.rebake.getAndSet(false)) {
+				if (chunk.rebake.getAndSet(false)) {
 					rebake(chunkPos, chunk, m);
-				}
-				switch (fi.intersectAab(chunkPos,
-						chunkPos.add(LevelData.fullChunkSize, LevelData.fullChunkSize, 0, new Vector3f()))) {
-
-					case FrustumIntersection.INSIDE:
-					case FrustumIntersection.INTERSECT:
-						m.visible = true;
-						// render chunk
-						break;
-					case FrustumIntersection.OUTSIDE:
-						m.visible = false;
-						break;
-					default:
-						break;
 				}
 
 			}
@@ -95,17 +80,18 @@ public class LevelRenderer {
 		int index = 0;
 		WeakReference<RenderableVAO> mesh;
 	}
-	
+
 	public Map<Chunk, RenderableVAO> baked = new CollectionSuppliers.MapSupplier<Chunk, RenderableVAO>().get();
 	public Set<Chunk> needsToBeBaked = new CollectionSuppliers.SetSupplier<Chunk>().get();
-	
-	private void rebake(Vector3f chunkPos, Chunk chunk, RenderableVAO chunkMesh){
+
+	private void rebake(Vector3f chunkPos, Chunk chunk, RenderableVAO chunkMesh) {
 		Attribute meshTransformAttribute, colourAttribute;
-		if(chunkMesh instanceof ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh) {
+		if (chunkMesh instanceof ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh) {
 			meshTransformAttribute = ((ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh) chunkMesh).meshTransformAttribute;
 			colourAttribute = ((ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh) chunkMesh).colourAttribute;
 		} else {
-			meshTransformAttribute = chunkMesh.instanceAttributes.get(ShaderProgramDefinitions.meshTransform_AttributeName).get();
+			meshTransformAttribute = chunkMesh.instanceAttributes
+					.get(ShaderProgramDefinitions.meshTransform_AttributeName).get();
 			colourAttribute = chunkMesh.instanceAttributes.get(ShaderProgramDefinitions.colour_AttributeName).get();
 		}
 		meshTransformAttribute.data.clear();
@@ -156,13 +142,14 @@ public class LevelRenderer {
 		meshTransformAttribute.update.set(true);
 		colourAttribute.update.set(true);
 	}
-	
+
 	private RenderableVAO bakeChunk(Vector3f chunkPos, Chunk chunk) {
-		//MeshExt m = new MeshExt();
-		ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh m2 = ShaderProgramDefinitions.collection._3D_unlit_flat.createMesh();
+		// MeshExt m = new MeshExt();
+		ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh m2 = ShaderProgramDefinitions.collection._3D_unlit_flat
+				.createMesh();
 		m2.colourAttribute.instanced = true;
 
-		//WorldRenderer.setupDiscardMesh3D(m, 4);
+		// WorldRenderer.setupDiscardMesh3D(m, 4);
 		m2.modelRenderType = GLDrawMode.TriangleFan;
 		m2.name = "chunk_" + (int) chunkPos.x + "_" + (int) chunkPos.y;
 		m2.vertexCount = 4;
@@ -187,9 +174,36 @@ public class LevelRenderer {
 		return m2;
 	}
 
+	private void onCameraChange(Matrix4f viewFrustrum, LevelData level) {
+
+		FrustumIntersection fi = new FrustumIntersection(viewFrustrum);
+
+		Set<Entry<Vector2i, Chunk>> set = level.chunks.entrySet();
+		synchronized (level.chunks) {
+			for (Iterator<Entry<Vector2i, Chunk>> i = set.iterator(); i.hasNext();) {
+				Entry<Vector2i, Chunk> entry = i.next();
+				Vector2i loc = entry.getKey();
+				Chunk chunk = entry.getValue();
+				Vector3f chunkPos = new Vector3f(loc.x * LevelData.fullChunkSize, loc.y * LevelData.fullChunkSize, 0);
+				switch (fi.intersectAab(chunkPos, chunkPos.add(LevelData.fullChunkSize, LevelData.fullChunkSize, 0, new Vector3f()))) {
+
+					case FrustumIntersection.INSIDE:
+					case FrustumIntersection.INTERSECT:
+						//m.visible = true;
+						// render chunk
+						break;
+					case FrustumIntersection.OUTSIDE:
+						//m.visible = false;
+						break;
+					default:
+						break;
+				}
+			}
+		}
+	}
+
 	private ShaderProgramDefinition_3D_unlit_flat.Mesh drawAxis(int size) {
-		ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh mesh = ShaderProgramDefinitions.collection._3D_unlit_flat
-				.createMesh();
+		ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh mesh = ShaderProgramDefinitions.collection._3D_unlit_flat.createMesh();
 
 		int count = 3;
 		FloatBuffer verts = BufferUtils.createFloatBuffer(2 * 3 * count);
@@ -225,7 +239,6 @@ public class LevelRenderer {
 
 		return mesh;
 	}
-	
 
 	public Tickable renderGame(CityBuilderMain cityBuilder, GLContext glContext, RayHelper rh, KeyInputSystem keyInput,
 			NkContextSingleton nkContext) {
@@ -244,30 +257,24 @@ public class LevelRenderer {
 		Entity cameraAnchorEntity = new Entity();
 		arm.lookAt = () -> cameraAnchorEntity.position;
 
-		vpMatrix.proj.get().window = cityBuilder.window;
-		vpMatrix.proj.get().FOV = 90;
-		vpMatrix.proj.get().nearPlane = 0.001f;
-		vpMatrix.proj.get().farPlane = 10000f;
-		vpMatrix.proj.get().orthoAspect = 10f;
-		vpMatrix.proj.get().perspectiveOrOrtho = true;
-		vpMatrix.proj.get().scale = 1f;
-		vpSystem.projSystem.update(vpMatrix.proj.get()); 
 
 		ViewMatrices viewMatrices = new ViewMatrices();
 		FrameUtils.calculateProjectionMatrixPerspective(cityBuilder.window.bounds.width, cityBuilder.window.bounds.height, 90, 0.001f, 1000f, viewMatrices.projectionMatrix);
+		
 		Matrix4f orthoMatrix = FrameUtils.calculateProjectionMatrixOrtho(cityBuilder.window.bounds.width, cityBuilder.window.bounds.height, 1, 10.0f, 0.0125f, 10000.0f, new Matrix4f());
 
 		cityBuilder.window.events.postCreation.add(() -> {
-
 
 			ShaderProgramSystem.create(glContext, ShaderProgramDefinitions.collection._3D_unlit_flat);
 			ShaderProgramDefinitions.collection.setupMatrixUBO(glContext, ShaderProgramDefinitions.collection._3D_unlit_flat);
 
 			ShaderProgramSystem.create(glContext, ShaderProgramDefinitions.collection.UI);
-			
-			ShaderProgramDefinitions.collection.setupUIProjectionMatrixUBO(glContext, ShaderProgramDefinitions.collection.UI);
+
+			ShaderProgramDefinitions.collection.setupUIProjectionMatrixUBO(glContext,
+					ShaderProgramDefinitions.collection.UI);
 			ShaderProgramDefinitions.collection.updateUIProjectionMatrix(orthoMatrix);
-			cityBuilder.gameUI.init(cityBuilder.window.getID(), cityBuilder.window.nkContext.context, ()->orthoMatrix);
+			cityBuilder.gameUI.init(cityBuilder.window.getID(), cityBuilder.window.nkContext.context,
+					() -> orthoMatrix);
 
 			cityBuilder.window.callbacks.scrollCallbackSet.add(cityBuilder.gameUI.scrollCallback);
 			cityBuilder.window.callbacks.mouseButtonCallbackSet.add(cityBuilder.gameUI.mouseButtonCallback);
@@ -284,14 +291,15 @@ public class LevelRenderer {
 
 		});
 
-		vpSystem.preMult(vpMatrix);
+		
 
 		return (time) -> {
-			//vpSystem.projSystem.update(vpMatrix.proj.getWrapped());
+			// vpSystem.projSystem.update(vpMatrix.proj.getWrapped());
 			vpSystem.viewSystem.update(vpMatrix.view.get());
-			vpSystem.preMult(vpMatrix);
+			
 
-			//ShaderProgramDefinitions.collection.writeVPFMatrix(null, null, null, vpMatrix.cache);
+			// ShaderProgramDefinitions.collection.writeVPFMatrix(null, null, null,
+			// vpMatrix.cache);
 			viewMatrices.viewMatrix.set(vpMatrix.view.get().cache);
 			viewMatrices.viewMatrixUpdate.set(true);
 			ShaderProgramDefinitions.collection.writeVPMatrix(viewMatrices);
@@ -301,23 +309,27 @@ public class LevelRenderer {
 			keyInput.tick(cityBuilder.window.mousePressTicks, cityBuilder.window.mousePressMap, time.nanos);
 			keyInput.tick(cityBuilder.window.keyPressTicks, cityBuilder.window.keyPressMap, time.nanos);
 			if (cityBuilder.level != null) {
-				// TODO better testing for if mouse controls should be enabled. eg when over a gui
+				// TODO better testing for if mouse controls should be enabled. eg when over a
+				// gui
 
-
-				Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, cityBuilder.window.getID(), cityBuilder.window.bounds.width, cityBuilder.window.bounds.height, orthoMatrix, null);
-				cityBuilder.gameUI.handlePanningTick(cityBuilder.window, mousePos, vpMatrix.view.get(), cameraAnchorEntity);
+				Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, cityBuilder.window.getID(),
+						cityBuilder.window.bounds.width, cityBuilder.window.bounds.height, orthoMatrix, null);
+				cityBuilder.gameUI.handlePanningTick(cityBuilder.window, mousePos, vpMatrix.view.get(),
+						cameraAnchorEntity);
 				cityBuilder.gameUI.handlePitchingTick(cityBuilder.window, mousePos, arm);
 				cityBuilder.gameUI.handleScrollingTick(arm);
 
 				long mouseLeftClick = cityBuilder.window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
 				if (mouseLeftClick > 0) {
-					Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, cityBuilder.window.getID(), viewMatrices.projectionMatrix, viewMatrices.viewMatrix);
-					rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z), new Vector3f(vpMatrix.view.get().position), cityBuilder);
+					Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, cityBuilder.window.getID(),
+							viewMatrices.projectionMatrix, viewMatrices.viewMatrix);
+					rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z),
+							new Vector3f(vpMatrix.view.get().position), cityBuilder);
 				}
 
 				// TODO level clear colour
 				cityBuilder.window.clearColour.set(0f, 0f, 0f, 0f);
-				preRender(cityBuilder.level, vpMatrix, glContext, program);
+				preRender(cityBuilder.level, glContext, program);
 				cityBuilder.gameUI.preRenderMouseUI(cityBuilder.window, uiProgram, rh);
 
 				// MeshExt mesh = new MeshExt();
