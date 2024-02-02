@@ -16,7 +16,6 @@ import static org.lwjgl.nuklear.Nuklear.nk_rect;
 import static org.lwjgl.system.MemoryStack.stackPush;
 
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -39,7 +38,6 @@ import com.meeple.citybuild.client.render.Screen;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ShaderProgramDefinition_UI;
 import com.meeple.citybuild.server.Entity;
-import com.meeple.citybuild.server.GameManager;
 import com.meeple.citybuild.server.LevelData.Chunk.Tile;
 import com.meeple.citybuild.server.WorldGenerator;
 import com.meeple.citybuild.server.WorldGenerator.TileTypes;
@@ -52,7 +50,6 @@ import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem;
-import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraMode;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpringArm;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.ViewMatrix;

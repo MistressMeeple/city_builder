@@ -6,17 +6,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import org.apache.log4j.Appender;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
-import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWKeyCallbackI;
-import org.lwjgl.opengl.GLCapabilities;
 
 import com.meeple.citybuild.client.gui.GameUI;
 import com.meeple.citybuild.client.gui.LoadingScreen;
@@ -25,7 +22,6 @@ import com.meeple.citybuild.client.gui.PauseScreen;
 import com.meeple.citybuild.client.render.LevelRenderer;
 import com.meeple.citybuild.client.render.Screen;
 import com.meeple.citybuild.server.Buildings;
-import com.meeple.citybuild.server.Entity;
 import com.meeple.citybuild.server.GameManager;
 import com.meeple.shared.ClientOptionSystem;
 import com.meeple.shared.Delta;
@@ -34,10 +30,8 @@ import com.meeple.shared.Tickable;
 import com.meeple.shared.frame.GLFWManager;
 import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.OGL.KeyInputSystem;
-import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
-import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
-import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpringArm;
 import com.meeple.shared.frame.nuklear.NuklearMenuSystem;
+import com.meeple.shared.frame.nuklear.NuklearUIComponent;
 import com.meeple.shared.frame.window.ClientWindowSystem;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 import com.meeple.shared.frame.window.ClientWindowSystem.WindowEvent;
@@ -121,6 +115,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		});
 		AtomicInteger clientQuitCounter = new AtomicInteger();
 		try (GLFWManager glManager = new GLFWManager(); GLContext glContext = new GLContext(); WindowManager windowManager = new WindowManager()) {
+
 			RayHelper rh = new RayHelper();
 
 			LevelRenderer levelRenderer = new LevelRenderer();
@@ -150,14 +145,13 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 			window.events.render.add(0, (delta) -> {
 
 				if (window.currentFocus != null) {
-					//						logger.trace(window.state.getWrapped() + " " + ((NuklearUIComponent) window.currentFocus).title);
+					logger.trace( " " + ((NuklearUIComponent) window.currentFocus).title);
 				}
-
 				window.render.renderTree(window, delta);
-
 				return false;
 
 			});
+			window.events.preCleanup.add(()->glContext.close());
 			ClientWindowSystem.start(windowManager, window, clientQuitCounter, executorService);
 
 		}

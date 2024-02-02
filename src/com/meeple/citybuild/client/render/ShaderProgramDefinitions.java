@@ -1,11 +1,11 @@
 package com.meeple.citybuild.client.render;
 
+import static org.lwjgl.opengl.GL15.glBindBuffer;
+import static org.lwjgl.opengl.GL15.glBufferData;
+import static org.lwjgl.opengl.GL15.glBufferSubData;
+
 import java.lang.ref.WeakReference;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.opengl.GL31.*;
 
 import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL46;
@@ -13,14 +13,13 @@ import org.lwjgl.opengl.GL46;
 import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
-import com.meeple.shared.frame.OGL.ShaderProgram.BufferDataManagementType;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferObject;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferType;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferUsage;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDataType;
+import com.meeple.shared.frame.OGL.ShaderProgramSystem;
 import com.meeple.shared.frame.structs.Light;
 import com.meeple.shared.frame.structs.Material;
-import com.meeple.shared.frame.OGL.ShaderProgramSystem;
 
 public class ShaderProgramDefinitions {
     public static class ViewMatrices {
