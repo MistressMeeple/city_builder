@@ -24,11 +24,12 @@ import com.meeple.shared.frame.OGL.ShaderProgramSystem2;
 
 public class ShaderProgramDefinitions {
     public static class ViewMatrices {
-        public Matrix4f fixMatrix = new Matrix4f(ShaderProgramDefinitions.fixMatrix);
+        /* To convert between different coord systems, eg Y up or Z up */
+        public Matrix4f fixMatrix = new Matrix4f(ShaderProgramDefinitions.zUpMatrix);
         public Matrix4f projectionMatrix = new Matrix4f();
         public Matrix4f viewMatrix = new Matrix4f();
 
-        public AtomicBoolean fixMatrixUpdate = new AtomicBoolean(true);
+        public AtomicBoolean zUpMatrixUpdate = new AtomicBoolean(true);
         public AtomicBoolean projectionMatrixUpdate = new AtomicBoolean(true);
         public AtomicBoolean viewMatrixUpdate = new AtomicBoolean(true);
 
@@ -37,8 +38,8 @@ public class ShaderProgramDefinitions {
 
     }
 
-    /* matrix to convert from z forward to z up, aka the fix matrix */
-    public static final Matrix4f fixMatrix = new Matrix4f(
+    /* matrix to convert from z forward to z up */
+    public static final Matrix4f zUpMatrix = new Matrix4f(
             1, 0, 0, 0,
             0, 0, 1, 0,
             0, 1, 0, 0,
@@ -124,7 +125,6 @@ public class ShaderProgramDefinitions {
             setupAmbientBrightnessUBO(glc, lit_programs);
             setupMaterialUBO(glc, material_programs);
             
-            writeFixMatrix(fixMatrix);
 
             ShaderProgram[] ui_programs = {UI};
             setupUIProjectionMatrixUBO(glc, ui_programs);
@@ -236,7 +236,7 @@ public class ShaderProgramDefinitions {
             glBindBuffer(GL46.GL_UNIFORM_BUFFER, matrixBuffer);
             float[] store = new float[16];
 
-            boolean fixUpdate = matrices.fixMatrixUpdate.compareAndSet(true, false);
+            boolean fixUpdate = matrices.zUpMatrixUpdate.compareAndSet(true, false);
             boolean projectionUpdate = matrices.projectionMatrixUpdate.compareAndSet(true, false);
             boolean viewUpdate = matrices.viewMatrixUpdate.compareAndSet(true, false);
 

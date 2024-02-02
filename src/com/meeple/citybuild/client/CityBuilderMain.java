@@ -100,21 +100,6 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 		ClientWindowSystem.setupWindow(window, keyInput, window.nkContext, optionsSystem);
 
-		VPMatrix vpMatrix = new VPMatrix();
-		CameraSpringArm arm = vpMatrix.view.get().springArm;
-		ProjectionMatrix ortho = new ProjectionMatrix();
-		arm.addDistance(15f);
-		arm.addPitch(45);
-
-		Entity cameraAnchorEntity = new Entity();
-		arm.lookAt = new Supplier<Vector3f>() {
-
-			@Override
-			public Vector3f get() {
-				return cameraAnchorEntity.position;
-			}
-		};
-
 		window.events.preCleanup.add(() -> {
 			FrameUtils.shutdownService(executorService, 1l, TimeUnit.SECONDS);
 		});
@@ -139,7 +124,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 			RayHelper rh = new RayHelper();
 
 			LevelRenderer levelRenderer = new LevelRenderer();
-			Tickable t = levelRenderer.renderGame(this, glContext, vpMatrix, cameraAnchorEntity, ortho, rh, keyInput, window.nkContext);
+			Tickable gameRendering = levelRenderer.renderGame(this, glContext, rh, keyInput, window.nkContext);
 
 			//			FrameUtils.addToSetMap(stateRendering, WindowState.Game, t, syncSetSupplier);
 
@@ -147,7 +132,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 				@Override
 				public void render(ClientWindow window, Delta delta) {
-					t.apply(delta);
+					gameRendering.apply(delta);
 				}
 			};
 			gameUI.colour.w = 0f;

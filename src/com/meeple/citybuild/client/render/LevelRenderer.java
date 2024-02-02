@@ -18,6 +18,7 @@ import org.lwjgl.opengl.GL46;
 
 import com.meeple.citybuild.client.CityBuilderMain;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat;
+import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ViewMatrices;
 import com.meeple.citybuild.server.Entity;
 import com.meeple.citybuild.server.LevelData;
 import com.meeple.citybuild.server.LevelData.Chunk;
@@ -46,6 +47,8 @@ import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpri
 import com.meeple.shared.frame.nuklear.NkContextSingleton;
 import com.meeple.shared.utils.CollectionSuppliers;
 import com.meeple.shared.utils.FrameUtils;
+
+import javafx.scene.Cursor;
 
 public class LevelRenderer {
 	public static Logger logger = Logger.getLogger(LevelRenderer.class);
@@ -221,9 +224,9 @@ public class LevelRenderer {
 
 		return mesh;
 	}
+	
 
-	public Tickable renderGame(CityBuilderMain cityBuilder, GLContext glContext, VPMatrix vpMatrix,
-			Entity cameraAnchorEntity, ProjectionMatrix ortho, RayHelper rh, KeyInputSystem keyInput,
+	public Tickable renderGame(CityBuilderMain cityBuilder, GLContext glContext, RayHelper rh, KeyInputSystem keyInput,
 			NkContextSingleton nkContext) {
 
 		// ShaderProgram mainProgram = new ShaderProgram();
@@ -231,6 +234,14 @@ public class LevelRenderer {
 		ShaderProgram uiProgram = ShaderProgramDefinitions.collection.UI;
 
 		VPMatrixSystem vpSystem = new VPMatrixSystem();
+		VPMatrix vpMatrix = new VPMatrix();
+
+		CameraSpringArm arm = vpMatrix.view.get().springArm;
+		arm.addDistance(15f);
+		arm.addPitch(45);
+
+		Entity cameraAnchorEntity = new Entity();
+		arm.lookAt = () -> cameraAnchorEntity.position;
 
 		vpMatrix.proj.get().window = cityBuilder.window;
 		vpMatrix.proj.get().FOV = 90;
@@ -239,35 +250,20 @@ public class LevelRenderer {
 		vpMatrix.proj.get().orthoAspect = 10f;
 		vpMatrix.proj.get().perspectiveOrOrtho = true;
 		vpMatrix.proj.get().scale = 1f;
-		vpSystem.projSystem.update(vpMatrix.proj.get());
+		vpSystem.projSystem.update(vpMatrix.proj.get()); 
 
-
-		ShaderProgramDefinitions.ViewMatrices view = new ShaderProgramDefinitions.ViewMatrices();
-		view.projectionMatrix
-				.setPerspective(
-						(float) Math.toRadians(90),
-						(float) cityBuilder.window.bounds.width / cityBuilder.window.bounds.height,
-						0.001f,
-						10000.0f);
-
-
-		ortho.window = cityBuilder.window;
-		ortho.FOV = 90;
-		ortho.nearPlane = 0.001f;
-		ortho.farPlane = 10000f;
-		ortho.orthoAspect = 10f;
-		ortho.perspectiveOrOrtho = false;
-		ortho.scale = 1f;
-
+		ViewMatrices viewMatrices = new ViewMatrices();
+		FrameUtils.calculateProjectionMatrixPerspective(cityBuilder.window.bounds.width, cityBuilder.window.bounds.height, 90, 0.001f, 1000f, viewMatrices.projectionMatrix);
 		Matrix4f orthoMatrix = FrameUtils.calculateProjectionMatrixOrtho(cityBuilder.window.bounds.width, cityBuilder.window.bounds.height, 1, 10.0f, 0.0125f, 10000.0f, new Matrix4f());
 
 		cityBuilder.window.events.postCreation.add(() -> {
 			
+
 			ShaderProgramSystem2.create(glContext, ShaderProgramDefinitions.collection._3D_unlit_flat);
 			ShaderProgramDefinitions.collection.setupMatrixUBO(glContext, ShaderProgramDefinitions.collection._3D_unlit_flat);
 
 			ShaderProgramSystem2.create(glContext, ShaderProgramDefinitions.collection.UI);
-			vpSystem.projSystem.update(ortho);
+			
 			ShaderProgramDefinitions.collection.setupUIProjectionMatrixUBO(glContext, ShaderProgramDefinitions.collection.UI);
 			ShaderProgramDefinitions.collection.updateUIProjectionMatrix(orthoMatrix);
 			cityBuilder.gameUI.init(cityBuilder.window.getID(), cityBuilder.window.nkContext.context, ()->orthoMatrix);
@@ -285,7 +281,7 @@ public class LevelRenderer {
 			ShaderProgramDefinition_3D_unlit_flat.Mesh axis = drawAxis(100);
 			ShaderProgramSystem2.loadVAO(glContext, debugProgram, axis);
 
-			ShaderProgramDefinitions.collection.writeFixMatrix(ShaderProgramDefinitions.fixMatrix);
+			ShaderProgramDefinitions.collection.writeFixMatrix(ShaderProgramDefinitions.zUpMatrix);
 		});
 
 		vpSystem.preMult(vpMatrix);
@@ -304,24 +300,24 @@ public class LevelRenderer {
 			if (cityBuilder.level != null) {
 				// TODO better testing for if mouse controls should be enabled. eg when over a gui
 
-				cityBuilder.gameUI.handlePanningTick(cityBuilder.window, ortho, vpMatrix.view.get(),
-						cameraAnchorEntity);
-				CameraSpringArm arm = vpMatrix.view.get().springArm;
-				cityBuilder.gameUI.handlePitchingTick(cityBuilder.window, ortho, arm);
+
+				Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, cityBuilder.window.getID(), orthoMatrix, null);
+				CursorHelper.getMouse(SpaceState.Eye_Space, cityBuilder.window.getID(), cityBuilder.window.bounds.width, cityBuilder.window.bounds.height, orthoMatrix, null);
+
+				cityBuilder.gameUI.handlePanningTick(cityBuilder.window, mousePos, vpMatrix.view.get(), cameraAnchorEntity);
+				cityBuilder.gameUI.handlePitchingTick(cityBuilder.window, mousePos, arm);
 				cityBuilder.gameUI.handleScrollingTick(arm);
+
 				long mouseLeftClick = cityBuilder.window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
 				if (mouseLeftClick > 0) {
-					Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, cityBuilder.window.getID(),
-							vpMatrix.proj.get().cache, vpMatrix.view.get().cache);
-					rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z),
-							new Vector3f(vpMatrix.view.get().position), cityBuilder);
-
+					Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, cityBuilder.window.getID(), vpMatrix.proj.get().cache, vpMatrix.view.get().cache);
+					rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z), new Vector3f(vpMatrix.view.get().position), cityBuilder);
 				}
 
 				// TODO level clear colour
 				cityBuilder.window.clearColour.set(0f, 0f, 0f, 0f);
 				preRender(cityBuilder.level, vpMatrix, glContext, program);
-				cityBuilder.gameUI.preRenderMouseUI(cityBuilder.window, ortho, uiProgram, rh);
+				cityBuilder.gameUI.preRenderMouseUI(cityBuilder.window, uiProgram, rh);
 
 				// MeshExt mesh = new MeshExt();
 				// bakeChunk(level.chunks.get(new Vector2i()), mesh);

@@ -18,6 +18,20 @@ public class CursorHelper {
 
 	}
 
+	public static Vector4f getMouse(SpaceState result, long windowID, float cursorPosX, float cursorPosY, Matrix4f projectionMatrix, Matrix4f viewMatrix) {
+		int[] windowFrameBufferSizeX = new int[1], windowFrameBufferSizeY = new int[1];
+		glfwGetFramebufferSize(windowID, windowFrameBufferSizeX, windowFrameBufferSizeY);
+
+		return getMouse(result, (float) cursorPosX, (float) cursorPosY, windowFrameBufferSizeX[0], windowFrameBufferSizeY[0], projectionMatrix, viewMatrix);
+	}
+
+	public static Vector4f getMouse(SpaceState result, long windowID, int windowFrameBufferSizeX, int windowFrameBufferSizeY, Matrix4f projectionMatrix, Matrix4f viewMatrix) {
+		//start at beginning
+		double[] xposArrD = new double[1], yposArrD = new double[1];
+		glfwGetCursorPos(windowID, xposArrD, yposArrD);
+		return getMouse(result, (float) xposArrD[0], (float) yposArrD[0], windowFrameBufferSizeX, windowFrameBufferSizeY, projectionMatrix, viewMatrix);
+	}
+
 	public static Vector4f getMouse(SpaceState result, long windowID, Matrix4f projectionMatrix, Matrix4f viewMatrix) {
 			//start at beginning
 			double[] xposArrD = new double[1], yposArrD = new double[1];
@@ -27,8 +41,8 @@ public class CursorHelper {
 			glfwGetFramebufferSize(windowID, windowFrameBufferSizeX, windowFrameBufferSizeY);
 
 			return getMouse(result, (float) xposArrD[0], (float) yposArrD[0], windowFrameBufferSizeX[0], windowFrameBufferSizeY[0], projectionMatrix, viewMatrix);
-
 	}
+
 	public static Vector4f getMouse(SpaceState result, float cursorPosX, float cursorPosY, int windowFrameBufferSizeX, int windowFrameBufferSizeY, Matrix4f projectionMatrix, Matrix4f viewMatrix) {
 		Vector4f ret = new Vector4f();
 		if (result == null) {

@@ -88,7 +88,7 @@ public class VPMatrixSystem implements IShaderUniformUploadSystem<VPMatrix, Inte
 
 		public void update(ViewMatrix camera){
 
-			Matrix4f viewMatrix = new Matrix4f();
+			Matrix4f writeTo = new Matrix4f();
 			if (camera.cameraMode == CameraMode.LookAt) {
 
 				Vector3f pos = new Vector3f(camera.springArm.lookAt.get());
@@ -109,18 +109,18 @@ public class VPMatrixSystem implements IShaderUniformUploadSystem<VPMatrix, Inte
 
 				camera.position.set(actual.x, actual.z, actual.y);
 				//these are provided as XZY and need to be swizzled
-				viewMatrix.lookAt(actual.x, actual.z, actual.y, pos.x, pos.z, pos.y, 0, 0, 1f);
+				writeTo.lookAt(actual.x, actual.z, actual.y, pos.x, pos.z, pos.y, 0, 0, 1f);
 			} else {
-				viewMatrix.rotate((float) Math.toRadians(90), 1, 0, 0);
-				viewMatrix.rotate((float) Math.toRadians(camera.rotation.x), 1, 0, 0);
-				viewMatrix.rotate((float) Math.toRadians(camera.rotation.y), 0, 1, 0);
-				viewMatrix.rotate((float) Math.toRadians(-90), 1, 0, 0);
+				writeTo.rotate((float) Math.toRadians(90), 1, 0, 0);
+				writeTo.rotate((float) Math.toRadians(camera.rotation.x), 1, 0, 0);
+				writeTo.rotate((float) Math.toRadians(camera.rotation.y), 0, 1, 0);
+				writeTo.rotate((float) Math.toRadians(-90), 1, 0, 0);
 
 				Vector3f negativeCameraPos = new Vector3f(-camera.position.x, -camera.position.y, -camera.position.z);
-				viewMatrix.translate(negativeCameraPos);
+				writeTo.translate(negativeCameraPos);
 			}
 
-			camera.cache.set(viewMatrix);
+			camera.cache.set(writeTo);
 		}
 
 		@Override
