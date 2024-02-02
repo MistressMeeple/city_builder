@@ -58,17 +58,18 @@ public class ModelLoader {
         // aiSetImportPropertyInteger(store, AI_CONFIG_PP_FD_CHECKAREA , 0);
         AIScene scene = aiImportFileFromMemoryWithProperties(
                 fileContent,
-                0 |
-                aiProcess_Triangulate
-                // aiProcessPreset_TargetRealtime_MaxQuality |
-                // | aiProcess_FindDegenerates
-                | aiProcess_GenNormals | aiProcess_FixInfacingNormals | aiProcess_GenSmoothNormals
+                0
+                | aiProcess_Triangulate
+                | aiProcess_FindDegenerates
+                | aiProcess_GenNormals
+                | aiProcess_FixInfacingNormals
+                | aiProcess_GenSmoothNormals
                 | aiProcess_RemoveRedundantMaterials
                 | aiProcess_OptimizeMeshes
                 | aiProcess_FindDegenerates
-
-                // aiProcess_ImproveCacheLocality |
-                | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType,
+                | aiProcess_ImproveCacheLocality
+                | aiProcess_JoinIdenticalVertices
+                | aiProcess_SortByPType,
                 (ByteBuffer) null,
                 store);
 
