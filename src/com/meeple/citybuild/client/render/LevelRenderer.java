@@ -37,9 +37,9 @@ import com.meeple.shared.frame.OGL.ShaderProgram.BufferDataManagementType;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgram.RenderableVAO;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem;
-import com.meeple.shared.frame.camera.VPMatrixSystem;
-import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
-import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpringArm;
+import com.meeple.shared.frame.camera.Camera;
+import com.meeple.shared.frame.camera.CameraSpringArm;
+import com.meeple.shared.frame.camera.CameraSystem;
 import com.meeple.shared.frame.nuklear.NkContextSingleton;
 import com.meeple.shared.utils.CollectionSuppliers;
 import com.meeple.shared.utils.FrameUtils;
@@ -247,10 +247,10 @@ public class LevelRenderer {
 		ShaderProgram program = ShaderProgramDefinitions.collection._3D_unlit_flat;
 		ShaderProgram uiProgram = ShaderProgramDefinitions.collection.UI;
 
-		VPMatrixSystem vpSystem = new VPMatrixSystem();
-		VPMatrix vpMatrix = new VPMatrix();
-
-		CameraSpringArm arm = vpMatrix.view.get().springArm;
+		CameraSystem vpSystem = new CameraSystem();
+		//VPMatrix vpMatrix = new VPMatrix();
+		Camera camera = new Camera();
+		CameraSpringArm arm = camera.springArm;
 		arm.addDistance(15f);
 		arm.addPitch(45);
 
@@ -295,12 +295,7 @@ public class LevelRenderer {
 
 		return (time) -> {
 			// vpSystem.projSystem.update(vpMatrix.proj.getWrapped());
-			vpSystem.viewSystem.update(vpMatrix.view.get());
-			
-
-			// ShaderProgramDefinitions.collection.writeVPFMatrix(null, null, null,
-			// vpMatrix.cache);
-			viewMatrices.viewMatrix.set(vpMatrix.view.get().cache);
+			vpSystem.update(camera, viewMatrices.viewMatrix);
 			viewMatrices.viewMatrixUpdate.set(true);
 			ShaderProgramDefinitions.collection.writeVPMatrix(viewMatrices);
 			// TODO change line thickness
@@ -314,7 +309,7 @@ public class LevelRenderer {
 
 				Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, cityBuilder.window.getID(),
 						cityBuilder.window.bounds.width, cityBuilder.window.bounds.height, orthoMatrix, null);
-				cityBuilder.gameUI.handlePanningTick(cityBuilder.window, mousePos, vpMatrix.view.get(),
+				cityBuilder.gameUI.handlePanningTick(cityBuilder.window, mousePos, camera,
 						cameraAnchorEntity);
 				cityBuilder.gameUI.handlePitchingTick(cityBuilder.window, mousePos, arm);
 				cityBuilder.gameUI.handleScrollingTick(arm);
@@ -324,7 +319,7 @@ public class LevelRenderer {
 					Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, cityBuilder.window.getID(),
 							viewMatrices.projectionMatrix, viewMatrices.viewMatrix);
 					rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z),
-							new Vector3f(vpMatrix.view.get().position), cityBuilder);
+							new Vector3f(camera.position), cityBuilder);
 				}
 
 				// TODO level clear colour

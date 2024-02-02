@@ -50,9 +50,9 @@ import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem;
-import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraMode;
-import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpringArm;
-import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.ViewMatrix;
+import com.meeple.shared.frame.camera.Camera;
+import com.meeple.shared.frame.camera.Camera.CameraMode;
+import com.meeple.shared.frame.camera.CameraSpringArm;
 import com.meeple.shared.frame.nuklear.NuklearManager;
 import com.meeple.shared.frame.nuklear.NuklearMenuSystem;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
@@ -380,7 +380,7 @@ public class GameUI extends Screen {
 		}
 	}
 
-	public void handlePanningTick(ClientWindow window, Vector4f mousePositionInEyeSpace, ViewMatrix view,
+	public void handlePanningTick(ClientWindow window, Vector4f mousePositionInEyeSpace, Camera view,
 			Entity cameraAnchor) {
 
 		Vector4f mousePos = mousePositionInEyeSpace;
