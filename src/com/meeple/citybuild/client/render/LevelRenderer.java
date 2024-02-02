@@ -1,6 +1,8 @@
 package com.meeple.citybuild.client.render;
 
+import java.lang.ref.WeakReference;
 import java.nio.FloatBuffer;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -20,6 +22,7 @@ import com.meeple.citybuild.client.CityBuilderMain;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ViewMatrices;
 import com.meeple.citybuild.server.Entity;
+import com.meeple.citybuild.server.GameManager;
 import com.meeple.citybuild.server.LevelData;
 import com.meeple.citybuild.server.LevelData.Chunk;
 import com.meeple.citybuild.server.LevelData.Chunk.Tile;
@@ -35,20 +38,14 @@ import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferDataManagementType;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
-import com.meeple.shared.frame.OGL.ShaderProgram.GLShaderType;
 import com.meeple.shared.frame.OGL.ShaderProgram.RenderableVAO;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem;
-import com.meeple.shared.frame.OGL.ShaderProgramSystem;
-import com.meeple.shared.frame.OGL.UniformManager;
 import com.meeple.shared.frame.camera.VPMatrixSystem;
-import com.meeple.shared.frame.camera.VPMatrixSystem.ProjectionMatrixSystem.ProjectionMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.VPMatrix;
 import com.meeple.shared.frame.camera.VPMatrixSystem.ViewMatrixSystem.CameraSpringArm;
 import com.meeple.shared.frame.nuklear.NkContextSingleton;
 import com.meeple.shared.utils.CollectionSuppliers;
 import com.meeple.shared.utils.FrameUtils;
-
-import javafx.scene.Cursor;
 
 public class LevelRenderer {
 	public static Logger logger = Logger.getLogger(LevelRenderer.class);
@@ -69,14 +66,14 @@ public class LevelRenderer {
 				Chunk chunk = entry.getValue();
 				Vector3f chunkPos = new Vector3f(loc.x * LevelData.fullChunkSize, loc.y * LevelData.fullChunkSize, 0);
 				RenderableVAO m = baked.get(chunk);
-				if (m == null || chunk.rebake.getAndSet(false)) {
-					if (m != null) {
-						m.singleFrameDiscard = true;
-					}
+				if (m == null){
 					m = bakeChunk(chunkPos, chunk);
 					ShaderProgramSystem.loadVAO(glContext, program, m);
 					m.visible = false;
 					baked.put(chunk, m);
+				}
+				if(chunk.rebake.getAndSet(false)) {
+					rebake(chunkPos, chunk, m);
 				}
 				switch (fi.intersectAab(chunkPos,
 						chunkPos.add(LevelData.fullChunkSize, LevelData.fullChunkSize, 0, new Vector3f()))) {
@@ -97,48 +94,25 @@ public class LevelRenderer {
 		}
 	}
 
-	Map<Chunk, RenderableVAO> baked = new CollectionSuppliers.MapSupplier<Chunk, RenderableVAO>().get();
-	Map<TileTypes, Map<String, RenderableVAO>> tileMeshes = new CollectionSuppliers.MapSupplier<TileTypes, Map<String, RenderableVAO>>()
-			.get();
-
-	/*
-	 * private void bakeTile(Tile tile) {
-	 * switch (tile.type) {
-	 * 
-	 * }
-	 * }
-	 */
-
-	private RenderableVAO bakeChunk(Vector3f chunkPos, Chunk chunk) {
-		//MeshExt m = new MeshExt();
-		ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh m2 = ShaderProgramDefinitions.collection._3D_unlit_flat.createMesh(1);
-		m2.colourAttribute.instanced = true;
-
-		//WorldRenderer.setupDiscardMesh3D(m, 4);
-		m2.modelRenderType = GLDrawMode.TriangleFan;
-		m2.name = "chunk_" + (int) chunkPos.x + "_" + (int) chunkPos.y;
-		m2.vertexCount = 4;
-		m2.renderCount = 0;
-		m2.vertexAttribute.bufferResourceType = BufferDataManagementType.List;
-		m2.colourAttribute.bufferResourceType = BufferDataManagementType.List;
-		m2.meshTransformAttribute.bufferResourceType = BufferDataManagementType.List;
-
-		m2.vertexAttribute.data.add(0f);
-		m2.vertexAttribute.data.add(0f);
-		m2.vertexAttribute.data.add(0f);
-
-		m2.vertexAttribute.data.add(LevelData.tileSize);
-		m2.vertexAttribute.data.add(0f);
-		m2.vertexAttribute.data.add(0f);
-
-		m2.vertexAttribute.data.add(LevelData.tileSize);
-		m2.vertexAttribute.data.add(LevelData.tileSize);
-		m2.vertexAttribute.data.add(0f);
-
-		m2.vertexAttribute.data.add(0f);
-		m2.vertexAttribute.data.add(LevelData.tileSize);
-		m2.vertexAttribute.data.add(0f);
-
+	class RenderableVAOInstance {
+		int index = 0;
+		WeakReference<RenderableVAO> mesh;
+	}
+	
+	public Map<Chunk, RenderableVAO> baked = new CollectionSuppliers.MapSupplier<Chunk, RenderableVAO>().get();
+	public Set<Chunk> needsToBeBaked = new CollectionSuppliers.SetSupplier<Chunk>().get();
+	
+	private void rebake(Vector3f chunkPos, Chunk chunk, RenderableVAO chunkMesh){
+		Attribute meshTransformAttribute, colourAttribute;
+		if(chunkMesh instanceof ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh) {
+			meshTransformAttribute = ((ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh) chunkMesh).meshTransformAttribute;
+			colourAttribute = ((ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh) chunkMesh).colourAttribute;
+		} else {
+			meshTransformAttribute = chunkMesh.instanceAttributes.get(ShaderProgramDefinitions.meshTransform_AttributeName).get();
+			colourAttribute = chunkMesh.instanceAttributes.get(ShaderProgramDefinitions.colour_AttributeName).get();
+		}
+		meshTransformAttribute.data.clear();
+		colourAttribute.data.clear();
 		// TODO bake chunk instead
 		for (int x = 0; x < chunk.tiles.length; x++) {
 			for (int y = 0; y < chunk.tiles[x].length; y++) {
@@ -161,33 +135,64 @@ public class LevelRenderer {
 					case Ground:
 
 						colour = new Vector4f(0.1f, 0.7f, 0.1f, 1f);
-						FrameUtils.appendToList(m2.meshTransformAttribute.data, tilePosition);
-						m2.colourAttribute.data.add(colour.x);
-						m2.colourAttribute.data.add(colour.y);
-						m2.colourAttribute.data.add(colour.z);
-						m2.colourAttribute.data.add(colour.w);
-						m2.renderCount += 1;
+						FrameUtils.appendToList(meshTransformAttribute.data, tilePosition);
+						colourAttribute.data.add(colour.x);
+						colourAttribute.data.add(colour.y);
+						colourAttribute.data.add(colour.z);
+						colourAttribute.data.add(colour.w);
+						chunkMesh.renderCount += 1;
 						break;
 					case Water:
 						colour = new Vector4f(0.1f, 0f, 0.7f, 1f);
-						FrameUtils.appendToList(m2.meshTransformAttribute.data, tilePosition);
-						m2.colourAttribute.data.add(colour.x);
-						m2.colourAttribute.data.add(colour.y);
-						m2.colourAttribute.data.add(colour.z);
-						m2.colourAttribute.data.add(colour.w);
-						m2.renderCount += 1;
+						FrameUtils.appendToList(meshTransformAttribute.data, tilePosition);
+						colourAttribute.data.add(colour.x);
+						colourAttribute.data.add(colour.y);
+						colourAttribute.data.add(colour.z);
+						colourAttribute.data.add(colour.w);
+						chunkMesh.renderCount += 1;
 						break;
 
 				}
 
 			}
 		}
+		meshTransformAttribute.update.set(true);
+		colourAttribute.update.set(true);
+	}
+	
+	private RenderableVAO bakeChunk(Vector3f chunkPos, Chunk chunk) {
+		//MeshExt m = new MeshExt();
+		ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh m2 = ShaderProgramDefinitions.collection._3D_unlit_flat.createMesh();
+		m2.colourAttribute.instanced = true;
+
+		//WorldRenderer.setupDiscardMesh3D(m, 4);
+		m2.modelRenderType = GLDrawMode.TriangleFan;
+		m2.name = "chunk_" + (int) chunkPos.x + "_" + (int) chunkPos.y;
+		m2.vertexCount = 4;
+		m2.renderCount = 0;
+
+		m2.vertexAttribute.data.add(0f);
+		m2.vertexAttribute.data.add(0f);
+		m2.vertexAttribute.data.add(0f);
+
+		m2.vertexAttribute.data.add(LevelData.tileSize);
+		m2.vertexAttribute.data.add(0f);
+		m2.vertexAttribute.data.add(0f);
+
+		m2.vertexAttribute.data.add(LevelData.tileSize);
+		m2.vertexAttribute.data.add(LevelData.tileSize);
+		m2.vertexAttribute.data.add(0f);
+
+		m2.vertexAttribute.data.add(0f);
+		m2.vertexAttribute.data.add(LevelData.tileSize);
+		m2.vertexAttribute.data.add(0f);
+		rebake(chunkPos, chunk, m2);
 		return m2;
 	}
 
 	private ShaderProgramDefinition_3D_unlit_flat.Mesh drawAxis(int size) {
 		ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh mesh = ShaderProgramDefinitions.collection._3D_unlit_flat
-				.createMesh(1);
+				.createMesh();
 
 		int count = 3;
 		FloatBuffer verts = BufferUtils.createFloatBuffer(2 * 3 * count);
@@ -216,7 +221,6 @@ public class LevelRenderer {
 		mesh.colourAttribute.buffer = colours;
 
 		FrameUtils.appendToList(mesh.meshTransformAttribute.data, new Matrix4f().identity());
-		mesh.meshTransformAttribute.bufferResourceType = BufferDataManagementType.List;
 
 		mesh.vertexCount = count * 2;
 		mesh.name = "axis";
@@ -304,15 +308,13 @@ public class LevelRenderer {
 
 
 				Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, cityBuilder.window.getID(), cityBuilder.window.bounds.width, cityBuilder.window.bounds.height, orthoMatrix, null);
-
-
 				cityBuilder.gameUI.handlePanningTick(cityBuilder.window, mousePos, vpMatrix.view.get(), cameraAnchorEntity);
 				cityBuilder.gameUI.handlePitchingTick(cityBuilder.window, mousePos, arm);
 				cityBuilder.gameUI.handleScrollingTick(arm);
 
 				long mouseLeftClick = cityBuilder.window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
 				if (mouseLeftClick > 0) {
-					Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, cityBuilder.window.getID(), vpMatrix.proj.get().cache, vpMatrix.view.get().cache);
+					Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, cityBuilder.window.getID(), viewMatrices.projectionMatrix, viewMatrices.viewMatrix);
 					rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z), new Vector3f(vpMatrix.view.get().position), cityBuilder);
 				}
 

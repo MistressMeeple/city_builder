@@ -373,7 +373,7 @@ public class ModelImportDemo {
 
 	private ShaderProgramDefinition_3D_unlit_flat.Mesh drawAxis(int size) {
 		ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh mesh = ShaderProgramDefinitions.collection._3D_unlit_flat
-				.createMesh(1);
+				.createMesh();
 
 		int count = 3;
 		FloatBuffer verts = BufferUtils.createFloatBuffer(2 * 3 * count);
@@ -403,7 +403,6 @@ public class ModelImportDemo {
 
 		
 		FrameUtils.appendToList(mesh.meshTransformAttribute.data, new Matrix4f().identity());
-		mesh.meshTransformAttribute.bufferResourceType = BufferDataManagementType.List;
 		
 
 		mesh.vertexCount = count * 2;

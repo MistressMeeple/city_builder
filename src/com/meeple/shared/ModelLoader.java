@@ -84,7 +84,7 @@ public class ModelLoader {
             String meshName = aiMesh.mName().dataString();
             logger.trace("Mesh with name: " + meshName + " just been imported");
             ShaderProgramDefinition_3D_lit_mat.Mesh sp_mesh = ShaderProgramDefinitions.collection._3D_lit_mat
-                .createMesh(maxModelInstances);
+                .createMesh();
             setupMesh(sp_mesh, aiMesh, maxModelInstances);
             
 
@@ -167,7 +167,7 @@ public class ModelLoader {
         {
             PointerBuffer colours = aim.mColors();
             if(colours!=null){
-                Attribute colourAttribute = MeshAttributeGenerator.generateColourAttribute(maxMeshes);
+                Attribute colourAttribute = MeshAttributeGenerator.generateColourAttribute();
                 
                 colourAttribute.bufferAddress = colours.address();
                 colourAttribute.bufferLen = (long) (AIColor4D.SIZEOF * aim.mNumVertices());
@@ -175,6 +175,22 @@ public class ModelLoader {
             }
 
         }
+        {
+            Attribute meshTransformAttribute = mesh.meshTransformAttribute;
+            meshTransformAttribute.bufferResourceType = BufferDataManagementType.Empty;
+            meshTransformAttribute.bufferLen = maxMeshes;
+        }
+        {
+            Attribute meshNormalMatrixAttribute = mesh.meshNormalMatrixAttribute;
+            meshNormalMatrixAttribute.bufferResourceType = BufferDataManagementType.Empty;
+            meshNormalMatrixAttribute.bufferLen = maxMeshes;
+        }
+        {
+            Attribute materialIndexAttribute = mesh.materialIndexAttribute;
+            materialIndexAttribute.bufferResourceType = BufferDataManagementType.Empty;
+            materialIndexAttribute.bufferLen = maxMeshes;
+        }
+        
         return mesh;
     }
 

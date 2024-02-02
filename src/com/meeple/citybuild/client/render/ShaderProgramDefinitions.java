@@ -249,7 +249,7 @@ public class ShaderProgramDefinitions {
 
         protected abstract E newMesh();
 
-        public E createMesh(long maxInstances) {
+        public E createMesh() {
             E mesh = newMesh();
             if (mesh.vertexAttribute == null) {
                 mesh.vertexAttribute = MeshAttributeGenerator.generateVertexAttribute();
@@ -257,7 +257,7 @@ public class ShaderProgramDefinitions {
             }
 
             if (mesh.meshTransformAttribute == null) {
-                mesh.meshTransformAttribute = MeshAttributeGenerator.generateMeshTransformAttribute(maxInstances);
+                mesh.meshTransformAttribute = MeshAttributeGenerator.generateMeshTransformAttribute();
                 mesh.VBOs.add(mesh.meshTransformAttribute);
                 mesh.instanceAttributes.put(meshTransform_AttributeName,
                         new WeakReference<ShaderProgram.Attribute>(mesh.meshTransformAttribute));
@@ -292,22 +292,19 @@ public class ShaderProgramDefinitions {
             return new Mesh();
         }
 
-        public Mesh createMesh(long maxInstances) {
-            Mesh mesh = (Mesh) super.createMesh(maxInstances);
+        public Mesh createMesh() {
+            Mesh mesh = (Mesh) super.createMesh();
             mesh.vertexAttribute.dataSize = 2;
             mesh.meshTransformAttribute.name = "meshTransform";
-            mesh.meshTransformAttribute.bufferResourceType = BufferDataManagementType.List;
 
             if (mesh.colourAttribute == null) {
-                mesh.colourAttribute = MeshAttributeGenerator.generateColourAttribute(maxInstances);
-                mesh.colourAttribute.bufferResourceType = BufferDataManagementType.List;
+                mesh.colourAttribute = MeshAttributeGenerator.generateColourAttribute();
                 mesh.colourAttribute.instanced = true;
                 mesh.VBOs.add(mesh.colourAttribute);
                 mesh.instanceAttributes.put(colour_AttributeName, new WeakReference<ShaderProgram.Attribute>(mesh.colourAttribute));
             }
             if(mesh.zIndexAttribute == null){
-                mesh.zIndexAttribute = MeshAttributeGenerator.generateZIndexAttribute(maxInstances);
-                mesh.zIndexAttribute.bufferResourceType = BufferDataManagementType.List;
+                mesh.zIndexAttribute = MeshAttributeGenerator.generateZIndexAttribute();
                 mesh.VBOs.add(mesh.zIndexAttribute);
                 mesh.instanceAttributes.put(zIndex_AttributeName, new WeakReference<ShaderProgram.Attribute>(mesh.zIndexAttribute));
             }
@@ -353,10 +350,10 @@ public class ShaderProgramDefinitions {
             return new Mesh();
         }
 
-        public Mesh createMesh(long maxInstances) {
-            Mesh mesh = (Mesh) super.createMesh(maxInstances);
+        public Mesh createMesh() {
+            Mesh mesh = (Mesh) super.createMesh();
             if (mesh.colourAttribute == null) {
-                mesh.colourAttribute = MeshAttributeGenerator.generateColourAttribute(maxInstances);
+                mesh.colourAttribute = MeshAttributeGenerator.generateColourAttribute();
                 mesh.VBOs.add(mesh.colourAttribute);
                 mesh.instanceAttributes.put(colour_AttributeName,
                         new WeakReference<ShaderProgram.Attribute>(mesh.colourAttribute));
@@ -383,8 +380,8 @@ public class ShaderProgramDefinitions {
 
         protected abstract E newMesh();
 
-        public E createMesh(long maxInstances) {
-            E mesh = super.createMesh(maxInstances);
+        public E createMesh() {
+            E mesh = super.createMesh();
             if (mesh.vertexAttribute == null) {
                 mesh.vertexAttribute = MeshAttributeGenerator.generateVertexAttribute();
                 mesh.VBOs.add(mesh.vertexAttribute);
@@ -400,7 +397,7 @@ public class ShaderProgramDefinitions {
                 mesh.index = new WeakReference<ShaderProgram.BufferObject>(mesh.elementAttribute);
             }
             if (mesh.meshNormalMatrixAttribute == null) {
-                mesh.meshNormalMatrixAttribute = MeshAttributeGenerator.generateMeshNormalMatrixAttribute(maxInstances);
+                mesh.meshNormalMatrixAttribute = MeshAttributeGenerator.generateMeshNormalMatrixAttribute();
                 mesh.VBOs.add(mesh.meshNormalMatrixAttribute);
                 mesh.instanceAttributes.put(normalMatrix_AttributeName,
                         new WeakReference<ShaderProgram.Attribute>(mesh.meshNormalMatrixAttribute));
@@ -433,10 +430,10 @@ public class ShaderProgramDefinitions {
         }
 
         @Override
-        public Mesh createMesh(long maxInstances) {
-            Mesh mesh = (Mesh) super.createMesh(maxInstances);
+        public Mesh createMesh() {
+            Mesh mesh = (Mesh) super.createMesh();
             if (mesh.colourAttribute == null) {
-                mesh.colourAttribute = MeshAttributeGenerator.generateColourAttribute(maxInstances);
+                mesh.colourAttribute = MeshAttributeGenerator.generateColourAttribute();
                 mesh.VBOs.add(mesh.colourAttribute);
                 mesh.instanceAttributes.put(colour_AttributeName,
                         new WeakReference<ShaderProgram.Attribute>(mesh.colourAttribute));
@@ -476,10 +473,10 @@ public class ShaderProgramDefinitions {
         }
 
         @Override
-        public Mesh createMesh(long maxInstances) {
-            Mesh mesh = (Mesh) super.createMesh(maxInstances);
+        public Mesh createMesh() {
+            Mesh mesh = (Mesh) super.createMesh();
             if (mesh.materialIndexAttribute == null) {
-                mesh.materialIndexAttribute = MeshAttributeGenerator.generateMaterialIndexAttribute(maxInstances);
+                mesh.materialIndexAttribute = MeshAttributeGenerator.generateMaterialIndexAttribute();
                 mesh.VBOs.add(mesh.materialIndexAttribute);
                 mesh.instanceAttributes.put(materialIndex_AttributeName,
                         new WeakReference<ShaderProgram.Attribute>(mesh.materialIndexAttribute));
@@ -515,7 +512,7 @@ public class ShaderProgramDefinitions {
             return vertexAttribute;
         }
 
-        public static Attribute generateZIndexAttribute(long maxInstances) {
+        public static Attribute generateZIndexAttribute() {
             Attribute zIndexAttribute = new Attribute();
             zIndexAttribute.name = zIndex_AttributeName;
             zIndexAttribute.bufferType = BufferType.ArrayBuffer;
@@ -525,12 +522,10 @@ public class ShaderProgramDefinitions {
             zIndexAttribute.normalised = false;
             zIndexAttribute.instanced = true;
             zIndexAttribute.instanceStride = 1;
-            zIndexAttribute.bufferResourceType = BufferDataManagementType.Empty;
-            zIndexAttribute.bufferLen = maxInstances;
             return zIndexAttribute;
         }
 
-        public static Attribute generateColourAttribute(long maxInstances) {
+        public static Attribute generateColourAttribute() {
             Attribute colourAttribute = new Attribute();
             colourAttribute.name = colour_AttributeName;
             colourAttribute.bufferType = BufferType.ArrayBuffer;
@@ -540,8 +535,6 @@ public class ShaderProgramDefinitions {
             colourAttribute.normalised = false;
             colourAttribute.instanced = false;
             colourAttribute.instanceStride = 1;
-            colourAttribute.bufferResourceType = BufferDataManagementType.Empty;
-            colourAttribute.bufferLen = maxInstances;
             return colourAttribute;
         }
 
@@ -570,7 +563,7 @@ public class ShaderProgramDefinitions {
             return elementAttribute;
         }
 
-        public static Attribute generateMeshTransformAttribute(long maxInstances) {
+        public static Attribute generateMeshTransformAttribute() {
             Attribute meshTransformAttribute = new Attribute();
             meshTransformAttribute.name = meshTransform_AttributeName;
             meshTransformAttribute.bufferType = BufferType.ArrayBuffer;
@@ -580,12 +573,10 @@ public class ShaderProgramDefinitions {
             meshTransformAttribute.normalised = false;
             meshTransformAttribute.instanced = true;
             meshTransformAttribute.instanceStride = 1;
-            meshTransformAttribute.bufferResourceType = BufferDataManagementType.Empty;
-            meshTransformAttribute.bufferLen = maxInstances;
             return meshTransformAttribute;
         }
 
-        public static Attribute generateMeshNormalMatrixAttribute(long maxInstances) {
+        public static Attribute generateMeshNormalMatrixAttribute() {
             Attribute meshNormalMatrixAttribute = new Attribute();
             meshNormalMatrixAttribute.name = normalMatrix_AttributeName;
             meshNormalMatrixAttribute.bufferType = BufferType.ArrayBuffer;
@@ -595,12 +586,10 @@ public class ShaderProgramDefinitions {
             meshNormalMatrixAttribute.normalised = false;
             meshNormalMatrixAttribute.instanced = true;
             meshNormalMatrixAttribute.instanceStride = 1;
-            meshNormalMatrixAttribute.bufferResourceType = BufferDataManagementType.Empty;
-            meshNormalMatrixAttribute.bufferLen = maxInstances;
             return meshNormalMatrixAttribute;
         }
 
-        public static Attribute generateMaterialIndexAttribute(long maxInstances) {
+        public static Attribute generateMaterialIndexAttribute() {
             Attribute materialIndexAttribute = new Attribute();
             materialIndexAttribute.name = materialIndex_AttributeName;
             materialIndexAttribute.bufferType = BufferType.ArrayBuffer;
@@ -610,8 +599,6 @@ public class ShaderProgramDefinitions {
             materialIndexAttribute.normalised = false;
             materialIndexAttribute.instanced = true;
             materialIndexAttribute.instanceStride = 1;
-            materialIndexAttribute.bufferResourceType = BufferDataManagementType.Empty;
-            materialIndexAttribute.bufferLen = maxInstances;
             return materialIndexAttribute;
         }
         

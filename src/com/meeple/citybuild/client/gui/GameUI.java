@@ -39,6 +39,7 @@ import com.meeple.citybuild.client.render.Screen;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ShaderProgramDefinition_UI;
 import com.meeple.citybuild.server.Entity;
+import com.meeple.citybuild.server.GameManager;
 import com.meeple.citybuild.server.LevelData.Chunk.Tile;
 import com.meeple.citybuild.server.WorldGenerator;
 import com.meeple.citybuild.server.WorldGenerator.TileTypes;
@@ -267,7 +268,7 @@ public class GameUI extends Screen {
 	}
 
 	public void setupCompas(GLContext glContext, ShaderProgram program) {
-		compasMesh = ShaderProgramDefinitions.collection.UI.createMesh(1);
+		compasMesh = ShaderProgramDefinitions.collection.UI.createMesh();
 
 		Vector2f[] points = FrameUtils.generateCircle(new Vector2f(0, 0), 1f, 32);
 
@@ -287,7 +288,7 @@ public class GameUI extends Screen {
 	}
 
 	public void setupCompasLine(GLContext glContext, ShaderProgram program) {
-		compasLineMesh = ShaderProgramDefinitions.collection.UI.createMesh(1);
+		compasLineMesh = ShaderProgramDefinitions.collection.UI.createMesh();
 		compasLineMesh.vertexAttribute.data.add(0);
 		compasLineMesh.vertexAttribute.data.add(0);
 		compasLineMesh.vertexAttribute.data.add(0);
@@ -359,7 +360,7 @@ public class GameUI extends Screen {
 
 		}
 	}
-	
+
 	public void handleScrollingTick(CameraSpringArm arm) {
 
 		// handle smooth scale
@@ -531,18 +532,22 @@ public class GameUI extends Screen {
 		}
 	}
 
-	public void preRenderMouseUI(ClientWindow window, ShaderProgram program,
-			RayHelper rayHelper) {
+	public void preRenderMouseUI(ClientWindow window, ShaderProgram program, RayHelper rayHelper) {
 
 		GL46.glEnable(GL46.GL_DEPTH_TEST);
 
 		if (true) {
 			if (currentAction != null) {
-				Tile t = rayHelper.getCurrentTile();
-				// TODO check if mouse over UI
-				if (t != null) {
-					t.type = currentAction;
-					rayHelper.getCurrentChunk().rebake.set(true);
+
+				long mouseLeftClick = window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
+				if (mouseLeftClick > 0) {
+					Tile t = rayHelper.getCurrentTile();
+					// TODO check if mouse over UI
+					if (t != null) {
+						logger.info("Need to queue to banked chunk set");
+						t.type = currentAction;
+						rayHelper.getCurrentChunk().rebake.set(true);
+					}
 				}
 			}
 		}
