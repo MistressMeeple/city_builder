@@ -78,11 +78,11 @@ public class WindowMonitorBoundsSystem {
 			int[] x = new int[1];
 			int[] y = new int[1];
 			GLFW.glfwGetWindowSize(windowID, x, y);
-			bounds.width = (long) x[0];
-			bounds.height = (long) y[0];
+			bounds.width =  x[0];
+			bounds.height =  y[0];
 			GLFW.glfwGetWindowPos(windowID, x, y);
-			bounds.posX = (long) x[0];
-			bounds.posY = (long) y[0];
+			bounds.posX =  x[0];
+			bounds.posY =  y[0];
 		}
 		return bounds;
 	}
@@ -94,10 +94,10 @@ public class WindowMonitorBoundsSystem {
 			int[] x = new int[1];
 			int[] y = new int[1];
 			GLFW.glfwGetMonitorPos(monitorID, x, y);
-			bounds.width = (long) vidmode.width();
-			bounds.height = (long) vidmode.height();
-			bounds.posX = (long) x[0];
-			bounds.posY = (long) 0;
+			bounds.width =  vidmode.width();
+			bounds.height =  vidmode.height();
+			bounds.posX =  x[0];
+			bounds.posY =  0;
 		}
 		return bounds;
 	}

@@ -1,56 +1,56 @@
 package com.meeple.shared.frame.component;
 
 public class Bounds2DComponent {
-	public Long posX = null, posY = null, width = 600L, height = 400L;
+	public Integer posX = null, posY = null, width = 600, height = 400;
 
-	public void set(Long x, Long y, Long width, Long height) {
+	public void set(Integer x, Integer y, Integer width, Integer height) {
 		this.posX = x;
 		this.posY = y;
 		this.width = width;
 		this.height = height;
 	}
 
-	public void size(Long width, Long height) {
+	public void size(Integer width, Integer height) {
 		this.width = width;
 		this.height = height;
 	}
 
-	public void pos(Long x, Long y) {
+	public void pos(Integer x, Integer y) {
 		this.posX = x;
 		this.posY = y;
 	}
 
 	public void set(Number x, Number y, Number width, Number height) {
 		if (x != null) {
-			this.posX = x.longValue();
+			this.posX = x.intValue();
 		} else {
 			this.posX = null;
 		}
 		if (y != null) {
-			this.posY = y.longValue();
+			this.posY = y.intValue();
 		} else {
 			this.posY = null;
 		}
 		if (width != null) {
-			this.width = width.longValue();
+			this.width = width.intValue();
 		} else {
 			this.width = null;
 		}
 		if (height != null) {
-			this.height = height.longValue();
+			this.height = height.intValue();
 		} else {
 			this.height = null;
 		}
 	}
 
 	public void size(Number width, Number height) {
-		this.width = width.longValue();
-		this.height = height.longValue();
+		this.width = width.intValue();
+		this.height = height.intValue();
 	}
 
 	public void pos(Number x, Number y) {
-		this.posX = x.longValue();
-		this.posY = y.longValue();
+		this.posX = x.intValue();
+		this.posY = y.intValue();
 	}
 
 	public void set(Bounds2DComponent other) {

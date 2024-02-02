@@ -48,10 +48,10 @@ public class WindowManager implements AutoCloseable {
 				// Get the resolution of the primary monitor
 				GLFWVidMode vidmode = GLFW.glfwGetVideoMode(GLFW.glfwGetPrimaryMonitor());
 				if (window.bounds.width == null || window.bounds.width < 0) {
-					window.bounds.width = (long) vidmode.width();
+					window.bounds.width =  vidmode.width();
 				}
 				if (window.bounds.height == null || window.bounds.height < 0) {
-					window.bounds.height = (long) vidmode.width();
+					window.bounds.height = vidmode.width();
 				}
 			}
 
