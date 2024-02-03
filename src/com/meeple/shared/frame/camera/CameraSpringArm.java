@@ -14,7 +14,7 @@ public class CameraSpringArm {
     public static float minDistance = 0.1f, minPitch = -80, maxPitch = 89;
 
     public Supplier<Vector3f> lookAt;
-    public float distance = 10f, pitch = 0, yaw = 0f;
+    public float distance = 0f, pitch = 0, yaw = 0f;
 
     public void addDistance(float toAdd) {
         distance += toAdd;
