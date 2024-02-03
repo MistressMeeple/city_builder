@@ -17,7 +17,7 @@ public class GLFWManager implements AutoCloseable {
 
 	public void create() {
 
-		logger.debug("Initialising GLFW");
+		logger.trace("Initialising GLFW");
 		GLFWErrorCallback.createPrint(System.err).set();
 
 		// Initialize GLFW. Most GLFW functions will not work before doing this.
@@ -28,7 +28,7 @@ public class GLFWManager implements AutoCloseable {
 
 	@Override
 	public void close() {
-		logger.debug("Terminating GLFW");
+		logger.trace("Terminating GLFW");
 		// Terminate GLFW and free the error callback
 		glfwTerminate();
 		Objects.requireNonNull(glfwSetErrorCallback(null)).free();
