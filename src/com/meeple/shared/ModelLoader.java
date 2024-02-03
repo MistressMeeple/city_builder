@@ -80,7 +80,7 @@ public class ModelLoader {
         Map<String, ShaderProgramDefinition_3D_lit_mat.Mesh> meshes = new HashMap<>(meshCount);
         PointerBuffer meshesBuffer = scene.mMeshes();
         for (int i = 0; i < meshCount; ++i) {
-            AIMesh aiMesh = AIMesh.create(meshesBuffer.get(i));
+            AIMesh aiMesh = AIMesh.createSafe(meshesBuffer.get(i));
             String meshName = aiMesh.mName().dataString();
             logger.trace("Mesh with name: " + meshName + " just been imported");
             ShaderProgramDefinition_3D_lit_mat.Mesh sp_mesh = ShaderProgramDefinitions.collection._3D_lit_mat
@@ -93,7 +93,6 @@ public class ModelLoader {
                 postConvertMesh.accept(sp_mesh);
             }
             aiMesh.clear();
-            aiMesh.free();
         }
         //TODO import materials
         if(scene.mNumMaterials() == -2){
@@ -128,14 +127,9 @@ public class ModelLoader {
         
         {
             Attribute vertexAttrib = mesh.vertexAttribute;
-
-            AIVector3D.Buffer vertices = aim.mVertices();
-            aim.mVertices().free();
-            vertices.clear();
-            long bufferLen = (long) (AIVector3D.SIZEOF * vertices.remaining());
-
+            AIVector3D.Buffer vertices = aim.mVertices();        
             vertexAttrib.bufferAddress = vertices.address();
-            vertexAttrib.bufferLen = bufferLen;
+            vertexAttrib.bufferLen = (long) (AIVector3D.SIZEOF * vertices.remaining());
             vertexAttrib.bufferResourceType = BufferDataManagementType.Address;
 
         }
@@ -145,9 +139,6 @@ public class ModelLoader {
             normalAttrib.bufferAddress = normals.address();
             normalAttrib.bufferLen = (long) (AIVector3D.SIZEOF * normals.remaining());
             normalAttrib.bufferResourceType = BufferDataManagementType.Address;
-
-            // mesh2.normalAttribute.bufferLen = bufferLen;
-            // mesh2.normalAttribute.bufferResourceType = BufferDataManagementType.Address;
 
         }
         {
