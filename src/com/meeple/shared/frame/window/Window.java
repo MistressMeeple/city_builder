@@ -17,7 +17,6 @@ public class Window  implements HasBounds2D, NamedComponent, IDComponent<Long> {
 	public Long monitor = MemoryUtil.NULL;
 	public Long share = MemoryUtil.NULL;
 	public boolean vSync = true;
-	public GLCapabilities capabilities;
 	public boolean created = false;
 	public Thread loopThread;
 	public boolean shouldClose = false;

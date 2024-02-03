@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL46;
+import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.Callback;
 import org.lwjgl.system.MemoryStack;
@@ -64,7 +65,7 @@ public class GLFWThread extends Thread {
 		try( GLContext glContext = new GLContext()){
 			FrameUtils.iterateConsumer(window.events.preCreation,glContext, false);
 			glfwMakeContextCurrent(window.getID());
-			window.capabilities = GL.createCapabilities();
+			/*GLCapabilities capabilities = */GL.createCapabilities();
 			glfwSwapInterval(window.vSync ? 1 : 0);
 			glClearColor(window.clearColour.x, window.clearColour.x, window.clearColour.z, window.clearColour.w);
 			FrameUtils.iterateConsumer(window.events.postCreation, glContext, false);
