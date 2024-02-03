@@ -4,6 +4,7 @@ import org.joml.Vector2i;
 import org.joml.Vector3f;
 
 import com.meeple.citybuild.server.GameManager;
+import com.meeple.citybuild.server.LevelData;
 import com.meeple.citybuild.server.LevelData.Chunk;
 import com.meeple.citybuild.server.LevelData.Chunk.Tile;
 
@@ -34,9 +35,9 @@ public class RayHelper {
 		return chunk;
 	}
 
-	public void update(Vector3f ray, Vector3f cameraPos, GameManager game) {
+	public void update(Vector3f ray, Vector3f cameraPos, LevelData level) {
 		if (intersectionInRange(0, RAY_RANGE, ray, cameraPos)) {
-			currentTerrainPoint = binarySearch(0, 0, RAY_RANGE, ray, cameraPos, game);
+			currentTerrainPoint = binarySearch(0, 0, RAY_RANGE, ray, cameraPos, level);
 		} else {
 
 			currentTerrainPoint = null;
@@ -51,20 +52,20 @@ public class RayHelper {
 		return start.add(scaledRay);
 	}
 
-	private Vector3f binarySearch(int count, float start, float finish, Vector3f ray, Vector3f camPos, GameManager game) {
+	private Vector3f binarySearch(int count, float start, float finish, Vector3f ray, Vector3f camPos, LevelData level) {
 		float half = start + ((finish - start) / 2f);
 		if (count >= RECURSION_COUNT) {
 			Vector3f endPoint = getPointOnRay(ray, half, camPos);
 
 			Tile tile = null;
 			Vector2i index = null;
-			Chunk c = game.getChunk(endPoint);
+			Chunk c = GameManager.getChunk(level,endPoint);
 			if (c != null) {
 				chunk = c;
-				index = game.getTileIndex(c, endPoint);
+				index = GameManager.getTileIndex(c, endPoint);
 				if (index != null) {
 					this.tileIndex = index;
-					tile = game.getTile(c, index);
+					tile = GameManager.getTile(c, index);
 					if (tile != null) {
 						this.tile = tile;
 						return endPoint;
@@ -74,9 +75,9 @@ public class RayHelper {
 			return null;
 		}
 		if (intersectionInRange(start, half, ray, camPos)) {
-			return binarySearch(count + 1, start, half, ray, camPos, game);
+			return binarySearch(count + 1, start, half, ray, camPos, level);
 		} else {
-			return binarySearch(count + 1, half, finish, ray, camPos, game);
+			return binarySearch(count + 1, half, finish, ray, camPos, level);
 		}
 	}
 

@@ -42,7 +42,7 @@ import com.meeple.shared.frame.wrapper.Wrapper;
 import com.meeple.shared.frame.wrapper.WrapperImpl;
 import com.meeple.shared.utils.FrameUtils;
 
-public class CityBuilderMain extends GameManager implements Consumer<ExecutorService> {
+public class CityBuilderMain implements Consumer<ExecutorService> {
 
 	/**
 	 * This is the main logger created with log4j. most, if not all, messages come through this
@@ -68,6 +68,8 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 	 */
 	public final ClientWindow window = new ClientWindow();
 
+	public LevelData level;
+	WorldGenerator worldGen = new WorldGenerator();
 
 	public static void main(String[] args) throws Exception {
 
@@ -180,18 +182,18 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 	public void handleWindowEvent(WindowEvent event, Object param) {
 		switch (event) {
 			case ClientClose:
-				quitGame();
+				GameManager.quitGame(level);
 				window.shouldClose = true;
 				break;
 			case GameLoad:
 				if (param != null) {
 					if (param instanceof File) {
-						loadLevel((File) param);
+						level = GameManager.loadLevel((File) param);
 					} else if (param instanceof Number) {
-						newGame(((Number) param).longValue());
+						level = GameManager.newGame(worldGen, ((Number) param).longValue());
 					} else {
 						try {
-							newGame((long) param);
+							level = GameManager.newGame(worldGen, (long) param);
 						} catch (ClassCastException e) {
 							//wasnt a number
 
@@ -199,20 +201,20 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 					}
 				}
 				if (level == null) {
-					newGame(System.currentTimeMillis());
+					level = GameManager.newGame(worldGen, System.currentTimeMillis());
 				}
 
 				break;
 			case GamePause:
-				pauseGame();
+				GameManager.pauseGame(level);
 				gameUI.setChild(pauseScreen);
 				break;
 			case GameResume:
 				gameUI.clearChild();
-				resumeGame();
+				GameManager.resumeGame(level);
 				break;
 			case GameSave:
-				saveGame();
+			GameManager.saveGame(level);
 				break;
 			case GameStart:
 				loadingScreen.setChild(gameRenderScreen);
@@ -236,10 +238,6 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 	Wrapper<Buildings> placement = new WrapperImpl<>();
 
-
-	@Override
-	public void levelTick(Delta delta) {
-	}
 
 
 }

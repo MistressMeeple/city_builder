@@ -176,7 +176,7 @@ public class LevelRenderer {
 
 	Set<Vector2i> currentlyVisibleChunks = new CollectionSuppliers.SetSupplier<Vector2i>().get();
 
-	private void onCameraChange(Vector3f cameraPosition, Matrix4f viewFrustrum, GameManager game) {
+	private void onCameraChange(Vector3f cameraPosition, Matrix4f viewFrustrum, LevelData level) {
 
 		FrustumIntersection fi = new FrustumIntersection(viewFrustrum);
 		List<Vector2i> toSearch = new CollectionSuppliers.ListSupplier<Vector2i>().get();
@@ -207,7 +207,8 @@ public class LevelRenderer {
 
 			//check
 			Vector3f chunkPos = new Vector3f(current.x * LevelData.fullChunkSize, current.y * LevelData.fullChunkSize, 0);
-			RenderableVAO chunk = baked.get(game.getChunk(
+			RenderableVAO chunk = baked.get(GameManager.getChunk(
+				level,
 				chunkPos.add(
 					LevelData.fullChunkSize/2,
 					LevelData.fullChunkSize/2,
@@ -227,7 +228,7 @@ public class LevelRenderer {
 						for(int x = -1; x < 1; x++){
 							for(int y = -1; y < 1; y++){
 								Vector2i next = current.add(x, y, new Vector2i());
-								if(!searched.contains(next) && game.level.chunks.containsKey(next)){
+								if(!searched.contains(next) && level.chunks.containsKey(next)){
 									toSearch.add(next);
 								}
 							}
@@ -358,7 +359,7 @@ public class LevelRenderer {
 				// TODO better testing for if mouse controls should be enabled. eg when over a
 				// gui
 
-				onCameraChange(camera.springArm.lookAt.get(), viewMatrices.viewProjectionMatrix, cityBuilder);
+				onCameraChange(camera.springArm.lookAt.get(), viewMatrices.viewProjectionMatrix, cityBuilder.level);
 
 				Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, cityBuilder.window.getID(), cityBuilder.window.bounds.width, cityBuilder.window.bounds.height, orthoMatrix, null);
 				cityBuilder.gameUI.handlePanningTick(cityBuilder.window, mousePos, camera, cameraAnchorEntity);
@@ -370,7 +371,7 @@ public class LevelRenderer {
 					Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, cityBuilder.window.getID(),
 							viewMatrices.projectionMatrix, viewMatrices.viewMatrix);
 					rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z),
-							new Vector3f(camera.position), cityBuilder);
+							new Vector3f(camera.position), cityBuilder.level);
 				}
 
 				// TODO level clear colour

@@ -30,16 +30,14 @@ public abstract class GameManager {
 	static final String LevelFolder = "saves/";
 	static final String LevelExt = ".sv";
 	static final long wait = 10l;
-	public LevelData level;
-	WorldGenerator worldGen = new WorldGenerator();
 	private Thread levelThread;
 
-	public synchronized void newGame(long seed) {
-		level = new LevelData();
+	public static synchronized LevelData newGame(WorldGenerator worldGen, long seed) {
+		LevelData level = new LevelData();
 		level.random = new Random(seed);
 		worldGen.create(level, seed);
-
-		logger.trace("todo: new game ");
+		logger.trace("todo: new game "); //TODO
+		return level;
 	}
 
 	/**
@@ -48,16 +46,17 @@ public abstract class GameManager {
 	 * Returns null if failed to read.
 	 * 
 	 * @param fileIn
+	 * @return 
 	 * @return Level read from file or null
 	 */
-	public synchronized void loadLevel(File fileIn) {
+	public static synchronized LevelData loadLevel(File fileIn) {
 		if (fileIn == null) {
 			logger.warn("no file given to load from");
-			return;
+			return null;
 		}
 		logger.trace("Loading level from file: " + fileIn.toString());
 		try (ObjectInputStream oos = new ObjectInputStream(new FileInputStream(fileIn))) {
-			level = (LevelData) oos.readObject();
+			return (LevelData) oos.readObject();
 		} catch (FileNotFoundException err) {
 			logger.error("File not found while loading", err);
 		} catch (IOException err) {
@@ -65,9 +64,10 @@ public abstract class GameManager {
 		} catch (ClassNotFoundException err) {
 			logger.error("Class not found while loading", err);
 		}
+		return null;
 	}
 
-	public synchronized void saveGame() {
+	public static synchronized void saveGame(LevelData level) {
 
 		if (level != null) {
 			String name = level.name;
@@ -98,8 +98,8 @@ public abstract class GameManager {
 
 	}
 
-	public synchronized void startGame() {
-		levelThread = Thread.currentThread();
+	public static synchronized void startGame(LevelData level) {
+		//levelThread = Thread.currentThread();
 		if (level == null) {
 			logger.error("No game loaded. cannot start game");
 			return;
@@ -141,12 +141,12 @@ public abstract class GameManager {
 
 			logger.trace("Level thread interupted", err);
 		} finally {
-			saveGame();
+			saveGame(level);
 		}
 
 	}
 
-	public void pauseGame() {
+	public static void pauseGame(LevelData level) {
 		if (level == null) {
 			logger.error("No game loaded. cannot pause game");
 			return;
@@ -156,7 +156,7 @@ public abstract class GameManager {
 		}
 	}
 
-	public void resumeGame() {
+	public static void resumeGame(LevelData level) {
 		if (level == null) {
 			logger.error("No game loaded. cannot resume game");
 			return;
@@ -169,7 +169,7 @@ public abstract class GameManager {
 		}
 	}
 
-	public void quitGame() {
+	public static void quitGame(LevelData level) {
 		if (level == null) {
 			logger.error("No game loaded. cannot quit game");
 			return;
@@ -179,11 +179,13 @@ public abstract class GameManager {
 		synchronized (level.gamePauseLock) {
 			level.gamePauseLock.notifyAll();
 		}
+		/*
 		try {
 			levelThread.interrupt();
 		} catch (Exception e) {
 			// silent catch
 		}
+		*/
 	}
 
 	/**
@@ -193,7 +195,7 @@ public abstract class GameManager {
 	 * @param worldCoords position to find
 	 * @return Chunk that owns the coords
 	 */
-	public Chunk getChunk(Vector3f worldCoords) {
+	public static Chunk getChunk(LevelData level, Vector3f worldCoords) {
 		Vector2i chunkLoc = new Vector2i(chunk(worldCoords.x), chunk(worldCoords.y));
 		Chunk c = level.chunks.get(chunkLoc);
 		return c;
@@ -206,9 +208,9 @@ public abstract class GameManager {
 	 * @param worldCoords to find the tile
 	 * @return Tile that owns the coords
 	 */
-	public Tile getTile(Vector3f worldCoords) {
+	public static Tile getTile(LevelData level, Vector3f worldCoords) {
 		Tile result = null;
-		Chunk c = getChunk(worldCoords);
+		Chunk c = getChunk(level,worldCoords);
 		if (c != null) {
 			Vector2i index = new Vector2i(tileIndex(worldCoords.x), tileIndex(worldCoords.y));
 			result = c.tiles[index.x][index.y];
@@ -216,7 +218,7 @@ public abstract class GameManager {
 		return result;
 	}
 
-	public Tile getTile(Chunk c, Vector2i index) {
+	public static Tile getTile(Chunk c, Vector2i index) {
 		Tile result = null;
 		if (index != null) {
 			result = c.tiles[index.x][index.y];
@@ -224,7 +226,7 @@ public abstract class GameManager {
 		return result;
 	}
 
-	public Vector2i getTileIndex(Chunk c, Vector3f worldCoords) {
+	public static Vector2i getTileIndex(Chunk c, Vector3f worldCoords) {
 		Vector2i index = null;
 		if (c != null) {
 			index = new Vector2i(tileIndex(worldCoords.x), tileIndex(worldCoords.y));
@@ -240,7 +242,7 @@ public abstract class GameManager {
 	 * @param radius      of sphere
 	 * @return set of entities found
 	 */
-	public Set<Entity> getEntities(Vector3f worldCoords, float radius) {
+	public static Set<Entity> getEntities(LevelData level, Vector3f worldCoords, float radius) {
 		Set<Entity> result = new CollectionSuppliers.SetSupplier<Entity>().get();
 		for (Entity e : level.entities) {
 			if (e.position.distance(worldCoords) <= radius) {
