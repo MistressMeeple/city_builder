@@ -1,7 +1,9 @@
 package com.meeple.shared;
 
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
-public interface Tickable extends Function<Delta, Boolean> {
+import com.meeple.shared.frame.OGL.GLContext;
+
+public interface Tickable extends BiFunction<GLContext, Delta, Boolean> {
 
 }

@@ -101,7 +101,7 @@ public class CityBuilderMain implements Consumer<ExecutorService> {
 		ClientWindowSystem.setupWindow(window, keyInput, window.nkContext, optionsSystem);
 
 
-		window.events.preCleanup.add(() -> {
+		window.events.preCleanup.add((glContext) -> {
 			FrameUtils.shutdownService(executorService, 1l, TimeUnit.SECONDS);
 		});
 
@@ -122,22 +122,22 @@ public class CityBuilderMain implements Consumer<ExecutorService> {
 		});
 
 		AtomicInteger clientQuitCounter = new AtomicInteger();
-		try (GLFWManager glManager = new GLFWManager(); GLContext glContext = new GLContext(); WindowManager windowManager = new WindowManager()) {
+		try (GLFWManager glManager = new GLFWManager(); WindowManager windowManager = new WindowManager()) {
 
 			RayHelper rh = new RayHelper();
 
 			LevelRenderer levelRenderer = new LevelRenderer();
-			Tickable gameRendering = levelRenderer.renderGame(this, glContext, rh, keyInput, window.nkContext);
+			Tickable gameRendering = levelRenderer.renderGame(this, null, rh, keyInput);
 
 			//			FrameUtils.addToSetMap(stateRendering, WindowState.Game, t, syncSetSupplier);
 
 			gameRenderScreen = new Screen() {
 
 				@Override
-				public void render(ClientWindow window, Delta delta) {
+				public void render(ClientWindow window, GLContext glContext, Delta delta) {
 					keyInput.tick(window.mousePressTicks, window.mousePressMap, delta.nanos);
 					keyInput.tick(window.keyPressTicks, window.keyPressMap, delta.nanos);
-					gameRendering.apply(delta);
+					gameRendering.apply(glContext, delta);
 				}
 			};
 			gameUI.colour.w = 0f;
@@ -152,16 +152,16 @@ public class CityBuilderMain implements Consumer<ExecutorService> {
 			window.render.setChild(loadingScreen);
 			loadingScreen.setChild(mainMenuScreen);
 
-			window.events.render.add(0, (delta) -> {
+			window.events.render.add(0, (_glContext, delta) -> {
 
 				if (window.currentFocus != null) {
 					logger.trace( " " + ((NuklearUIComponent) window.currentFocus).title);
 				}
-				window.render.renderTree(window, delta);
+				window.render.renderTree(window, _glContext, delta);
 				return false;
 
 			});
-			window.events.preCleanup.add(()->glContext.close());
+
 			ClientWindowSystem.start(windowManager, window, clientQuitCounter, executorService);
 
 		}
@@ -186,6 +186,7 @@ public class CityBuilderMain implements Consumer<ExecutorService> {
 				window.shouldClose = true;
 				break;
 			case GameLoad:
+				//TODO implement loading screen
 				if (param != null) {
 					if (param instanceof File) {
 						level = GameManager.loadLevel((File) param);
@@ -214,7 +215,7 @@ public class CityBuilderMain implements Consumer<ExecutorService> {
 				GameManager.resumeGame(level);
 				break;
 			case GameSave:
-			GameManager.saveGame(level);
+				GameManager.saveGame(level);
 				break;
 			case GameStart:
 				loadingScreen.setChild(gameRenderScreen);

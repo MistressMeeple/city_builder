@@ -138,12 +138,10 @@ public abstract class GameManager {
 			}
 			logger.trace("Level thread closing normally");
 		} catch (InterruptedException err) {
-
 			logger.trace("Level thread interupted", err);
 		} finally {
 			saveGame(level);
 		}
-
 	}
 
 	public static void pauseGame(LevelData level) {

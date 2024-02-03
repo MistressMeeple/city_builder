@@ -12,6 +12,7 @@ import org.lwjgl.system.MemoryStack;
 
 import com.meeple.citybuild.client.render.Screen;
 import com.meeple.shared.Delta;
+import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 import com.meeple.shared.frame.window.ClientWindowSystem.WindowEvent;
 import com.meeple.shared.utils.FrameUtils;
@@ -20,7 +21,7 @@ public class MainMenuScreen extends Screen {
 	public static Logger logger = Logger.getLogger(MainMenuScreen.class);
 
 	@Override
-	public void render(ClientWindow window, Delta delta) {
+	public void render(ClientWindow window, GLContext glContext, Delta delta) {
 
 		double menuSeconds = FrameUtils.nanosToSecondsInacurate(delta.totalNanos);
 

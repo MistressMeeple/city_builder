@@ -173,81 +173,72 @@ public class GameUI extends Screen {
 	 */
 	static final PanningType rotationType = PanningType.Difference;
 
-	public final GLFWMouseButtonCallbackI mouseButtonCallback = new GLFWMouseButtonCallbackI() {
-
-		@Override
-		public void invoke(long windowID, int button, int action, int mods) {
-			Matrix4f orthoProjection = orthoProjectionSupplier.get();
-			/* only allows when no UI element is hovered */
-			if (!Nuklear.nk_window_is_any_hovered(nkContext)) {
-				if (button == panningButton.getID()) {
-					if (action == GLFW.GLFW_PRESS) {
-						if (panningType == PanningType.Difference) {
-							Vector4f mouse = CursorHelper.getMouse(SpaceState.Eye_Space, windowID, orthoProjection,
-									null);
-							panningButtonPos = new Vector2f(mouse.x, mouse.y);
-							updateCompas(panningButtonPos, compasMesh, compasLineMesh);
-						} else if (panningType == PanningType.FromCenter) {
-							panningButtonPos = new Vector2f(0, 0);
-							updateCompas(panningButtonPos, compasMesh, compasLineMesh);
-						}
-					} else if (action == GLFW.GLFW_RELEASE) {
-						panningButtonPos = null;
+	public void GLFWMouseButtonCallbackI(long windowID, int button, int action, int mods) {
+		Matrix4f orthoProjection = orthoProjectionSupplier.get();
+		/* only allows when no UI element is hovered */
+		if (!Nuklear.nk_window_is_any_hovered(nkContext)) {
+			if (button == panningButton.getID()) {
+				if (action == GLFW.GLFW_PRESS) {
+					if (panningType == PanningType.Difference) {
+						Vector4f mouse = CursorHelper.getMouse(SpaceState.Eye_Space, windowID, orthoProjection,
+								null);
+						panningButtonPos = new Vector2f(mouse.x, mouse.y);
 						updateCompas(panningButtonPos, compasMesh, compasLineMesh);
-						updateCompasLine(panningButtonPos, compasLineMesh, windowID, orthoProjectionSupplier.get());
+					} else if (panningType == PanningType.FromCenter) {
+						panningButtonPos = new Vector2f(0, 0);
+						updateCompas(panningButtonPos, compasMesh, compasLineMesh);
 					}
+				} else if (action == GLFW.GLFW_RELEASE) {
+					panningButtonPos = null;
+					updateCompas(panningButtonPos, compasMesh, compasLineMesh);
+					updateCompasLine(panningButtonPos, compasLineMesh, windowID, orthoProjectionSupplier.get());
 				}
-				if (button == rotateButton.getID()) {
-					if (action == GLFW.GLFW_PRESS) {
-						if (rotationType == PanningType.Difference) {
-							Vector4f mouse = CursorHelper.getMouse(SpaceState.Eye_Space, windowID, orthoProjection,
-									null);
-							rotatingButtonPos = new Vector2f(mouse.x, mouse.y);
-						} else if (rotationType == PanningType.FromCenter) {
-							rotatingButtonPos = new Vector2f(0, 0);
+			}
+			if (button == rotateButton.getID()) {
+				if (action == GLFW.GLFW_PRESS) {
+					if (rotationType == PanningType.Difference) {
+						Vector4f mouse = CursorHelper.getMouse(SpaceState.Eye_Space, windowID, orthoProjection,
+								null);
+						rotatingButtonPos = new Vector2f(mouse.x, mouse.y);
+					} else if (rotationType == PanningType.FromCenter) {
+						rotatingButtonPos = new Vector2f(0, 0);
+					}
+				} else if (action == GLFW.GLFW_RELEASE) {
+					rotatingButtonPos = null;
+				}
+			}
+			if (button == menuButton.getID()) {
+				// begins tracking elsewhere
+				if (action == GLFW.GLFW_PRESS) {
+				} else if (action == GLFW.GLFW_RELEASE) {
+					if (panningState != CompasState.Active) {
+						if (currentAction != null) {
+							currentAction = null;
+						} else if (currentSubMenu != null) {
+							currentSubMenu = null;
 						}
-					} else if (action == GLFW.GLFW_RELEASE) {
-						rotatingButtonPos = null;
-					}
-				}
-				if (button == menuButton.getID()) {
-					// begins tracking elsewhere
-					if (action == GLFW.GLFW_PRESS) {
-					} else if (action == GLFW.GLFW_RELEASE) {
-						if (panningState != CompasState.Active) {
-							if (currentAction != null) {
-								currentAction = null;
-							} else if (currentSubMenu != null) {
-								currentSubMenu = null;
-							}
 
-						}
 					}
 				}
 			}
 		}
+
 	};
 
-	public final GLFWCursorPosCallback cursorposCallback = new GLFWCursorPosCallback() {
-
-		@Override
-		public void invoke(long window, double xpos, double ypos) {
-			updateCompasLine(panningButtonPos, compasLineMesh, windowID, orthoProjectionSupplier.get());
-			if (panningType == PanningType.Drag) {
-				// basically check if it is being held down
-				if (panningButtonPos != null) {
-					movement.add((float) xpos, (float) ypos);
-				}
+	public void GLFWCursorPosCallback(long window, double xpos, double ypos) {
+		updateCompasLine(panningButtonPos, compasLineMesh, windowID, orthoProjectionSupplier.get());
+		if (panningType == PanningType.Drag) {
+			// basically check if it is being held down
+			if (panningButtonPos != null) {
+				movement.add((float) xpos, (float) ypos);
 			}
-
 		}
+
+	
 	};
-	public final GLFWScrollCallbackI scrollCallback = new GLFWScrollCallbackI() {
-		@Override
-		public void invoke(long windowID, double xoffset, double yoffset) {
+	public void GLFWScrollCallbackI(long windowID, double xoffset, double yoffset) {
 			scale = (float) yoffset + scale;
-		}
-	};
+	}
 
 	private Vector2f difference(Vector2f start, Vector2f current) {
 		try {
@@ -557,7 +548,7 @@ public class GameUI extends Screen {
 	int btnSpacing = 10;
 
 	@Override
-	public void render(ClientWindow window, Delta delta) {
+	public void render(ClientWindow window, GLContext glContext, Delta delta) {
 
 		NkContext ctx = window.nkContext.context;
 		int width = (int) (window.bounds.width * 0.75f);

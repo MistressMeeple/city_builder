@@ -43,7 +43,6 @@ import com.meeple.shared.frame.OGL.ShaderProgramSystem;
 import com.meeple.shared.frame.camera.Camera;
 import com.meeple.shared.frame.camera.CameraSpringArm;
 import com.meeple.shared.frame.camera.CameraSystem;
-import com.meeple.shared.frame.nuklear.NkContextSingleton;
 import com.meeple.shared.utils.CollectionSuppliers;
 import com.meeple.shared.utils.FrameUtils;
 
@@ -295,8 +294,7 @@ public class LevelRenderer {
 		return mesh;
 	}
 
-	public Tickable renderGame(CityBuilderMain cityBuilder, GLContext glContext, RayHelper rh, KeyInputSystem keyInput,
-			NkContextSingleton nkContext) {
+	public Tickable renderGame(CityBuilderMain cityBuilder, GLContext _glContext, RayHelper rh, KeyInputSystem keyInput) {
 
 		// ShaderProgram mainProgram = new ShaderProgram();
 		ShaderProgram program = ShaderProgramDefinitions.collection._3D_unlit_flat;
@@ -317,25 +315,15 @@ public class LevelRenderer {
 		FrameUtils.calculateProjectionMatrixPerspective(cityBuilder.window.bounds.width, cityBuilder.window.bounds.height, 90, 0.001f, 1000f, viewMatrices.projectionMatrix);
 		Matrix4f orthoMatrix = FrameUtils.calculateProjectionMatrixOrtho(cityBuilder.window.bounds.width, cityBuilder.window.bounds.height, 1, 10.0f, 0.0125f, 10000.0f, new Matrix4f());
 
-		cityBuilder.window.events.postCreation.add(() -> {
+		cityBuilder.window.events.postCreation.add((glContext) -> {
 
 			ShaderProgramSystem.create(glContext, ShaderProgramDefinitions.collection._3D_unlit_flat);
 			ShaderProgramDefinitions.collection.setupMatrixUBO(glContext, ShaderProgramDefinitions.collection._3D_unlit_flat);
 
 			ShaderProgramSystem.create(glContext, ShaderProgramDefinitions.collection.UI);
 
-			ShaderProgramDefinitions.collection.setupUIProjectionMatrixUBO(glContext,
-					ShaderProgramDefinitions.collection.UI);
+			ShaderProgramDefinitions.collection.setupUIProjectionMatrixUBO(glContext, ShaderProgramDefinitions.collection.UI);
 			ShaderProgramDefinitions.collection.updateUIProjectionMatrix(orthoMatrix);
-			cityBuilder.gameUI.init(cityBuilder.window.getID(), cityBuilder.window.nkContext.context,
-					() -> orthoMatrix);
-
-			cityBuilder.window.callbacks.scrollCallbackSet.add(cityBuilder.gameUI.scrollCallback);
-			cityBuilder.window.callbacks.mouseButtonCallbackSet.add(cityBuilder.gameUI.mouseButtonCallback);
-			cityBuilder.window.callbacks.cursorPosCallbackSet.add(cityBuilder.gameUI.cursorposCallback);
-
-			cityBuilder.gameUI.setupCompas(glContext, uiProgram);
-			cityBuilder.gameUI.setupCompasLine(glContext, uiProgram);
 
 			ShaderProgram debugProgram = ShaderProgramDefinitions.collection._3D_unlit_flat;
 			ShaderProgramSystem.create(glContext, debugProgram);
@@ -343,10 +331,18 @@ public class LevelRenderer {
 			ShaderProgramDefinition_3D_unlit_flat.Mesh axis = drawAxis(1);
 			ShaderProgramSystem.loadVAO(glContext, debugProgram, axis);
 
+			cityBuilder.window.callbacks.scrollCallbackSet.add(cityBuilder.gameUI::GLFWScrollCallbackI);
+			cityBuilder.window.callbacks.mouseButtonCallbackSet.add(cityBuilder.gameUI::GLFWMouseButtonCallbackI);
+			cityBuilder.window.callbacks.cursorPosCallbackSet.add(cityBuilder.gameUI::GLFWCursorPosCallback);
+
+			cityBuilder.gameUI.init(cityBuilder.window.getID(), cityBuilder.window.nkContext.context, () -> orthoMatrix);
+			cityBuilder.gameUI.setupCompas(glContext, uiProgram);
+			cityBuilder.gameUI.setupCompasLine(glContext, uiProgram);
+
 		});
 
 
-		return (time) -> {
+		return (glContext, time) -> {
 			// vpSystem.projSystem.update(vpMatrix.proj.getWrapped());
 			vpSystem.update(camera, viewMatrices.viewMatrix);
 			viewMatrices.viewMatrixUpdate.set(true);

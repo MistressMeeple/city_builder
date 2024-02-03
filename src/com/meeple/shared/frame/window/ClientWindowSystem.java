@@ -43,6 +43,7 @@ import com.meeple.shared.ClientOptions;
 import com.meeple.shared.Delta;
 import com.meeple.shared.frame.GLFWThread;
 import com.meeple.shared.frame.OAL.AudioData;
+import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.OGL.KeyInputSystem;
 import com.meeple.shared.frame.component.FrameTimeManager;
 import com.meeple.shared.frame.input.GLFWCursorType;
@@ -133,7 +134,7 @@ public interface ClientWindowSystem {
 		public final NkContextSingleton nkContext = new NkContextSingleton();
 		public final Screen render = new Screen() {
 			@Override
-			public void render(ClientWindow window, Delta delta) {
+			public void render(ClientWindow window, GLContext glContext, Delta delta) {
 
 			}
 		};
@@ -338,7 +339,7 @@ public interface ClientWindowSystem {
 	}
 
 	static void setupAudioSystem(ClientWindow window) {
-		window.events.postCreation.add(() -> {
+		window.events.postCreation.add((glContext) -> {
 			window.audioDevice = ALC10.alcOpenDevice((ByteBuffer) null);
 
 			ALCCapabilities deviceCaps = ALC.createCapabilities(window.audioDevice);
@@ -369,7 +370,7 @@ public interface ClientWindowSystem {
 			AL10.alListener3f(AL10.AL_ORIENTATION, 0f, 0f, -1f);
 			window.hasAudio = true;
 		});
-		window.events.preCleanup.add(() -> {
+		window.events.preCleanup.add((glContext) -> {
 
 			for (Integer source : window.audioSources) {
 				AL10.alSourceStop(source);
@@ -397,7 +398,7 @@ public interface ClientWindowSystem {
 		wmbs.centerBoundsInMonitor(0, window.bounds);
 
 		window.loopThread = new GLFWThread(window, quitCountdown, window.renderTimeManager, true, new Runnable[] {});
-		window.events.preCleanup.add(() -> window.sendEvent(WindowEvent.ClientClose));
+		window.events.preCleanup.add((glContext) -> window.sendEvent(WindowEvent.ClientClose));
 		Thread.currentThread().setUncaughtExceptionHandler(new UncaughtExceptionHandler() {
 
 			@Override
@@ -496,7 +497,7 @@ public interface ClientWindowSystem {
 			}
 		});
 
-		window.events.frameStart.add(() -> {
+		window.events.frameStart.add((glContext) -> {
 			if (window.queueChangeCursorType.get() != null) {
 				switch (window.queueChangeCursorType.get()) {
 					case Disabled:
@@ -518,7 +519,7 @@ public interface ClientWindowSystem {
 			}
 		});
 
-		window.events.postCreation.add(() -> {
+		window.events.postCreation.add((glContext) -> {
 			logger.debug("Started new window thread: " + Thread.currentThread().getName());
 			glfwShowWindow(window.getID());
 		});

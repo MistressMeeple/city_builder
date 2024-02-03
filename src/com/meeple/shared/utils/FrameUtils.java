@@ -38,6 +38,7 @@ import org.lwjgl.system.MemoryUtil;
 
 import com.meeple.shared.Delta;
 import com.meeple.shared.Tickable;
+import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferDataManagementType;
@@ -107,7 +108,7 @@ public class FrameUtils {
 		}
 	}
 
-	public static void iterateTickable(Collection<Tickable> set, Delta delta) {
+	public static void iterateTickable(Collection<Tickable> set, GLContext glContext, Delta delta) {
 		if (set != null && !set.isEmpty()) {
 
 			synchronized (set) {
@@ -117,7 +118,7 @@ public class FrameUtils {
 					if (t == null) {
 						i.remove();
 					}
-					Boolean ret = t.apply(delta);
+					Boolean ret = t.apply(glContext, delta);
 					if (ret == null || ret.booleanValue()) {
 						i.remove();
 					}

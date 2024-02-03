@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 import org.apache.log4j.Logger;
 import org.lwjgl.glfw.GLFWCharCallbackI;
@@ -47,6 +48,7 @@ import org.lwjgl.stb.STBTTPackedchar;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.Platform;
 
+import com.meeple.shared.frame.OGL.GLContext;
 import com.meeple.shared.frame.window.ActiveWindowsComponent;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 import com.meeple.shared.frame.window.MirroredWindowCallbacks;
@@ -146,11 +148,10 @@ public class NuklearManager {
 
 		addWindowCallbacks(window.nkContext, window);
 
-		window.events.postCreation.add(new Runnable() {
+		window.events.postCreation.add(new Consumer<GLContext>() {
 
 			@Override
-			public void run() {
-
+			public void accept(GLContext t) {
 				//assume we have context from manager
 				setupContext(window.nkContext);
 				setupFont(window.nkContext);
@@ -161,7 +162,7 @@ public class NuklearManager {
 		//		window.events.frameStart.add(() -> renderGUIs(context, window, windows.guis.values()));
 		window.events.render
 			.add(
-				(delta) -> {
+				(glContext, delta) -> {
 
 					/* IMPORTANT: `nk_glfw_render` modifies some global OpenGL state
 					* with blending, scissor, face culling, depth test and viewport and
@@ -199,10 +200,10 @@ public class NuklearManager {
 
 					return false;
 				});
-		window.events.preCleanup.add(new Runnable() {
+		window.events.preCleanup.add(new Consumer<GLContext>() {
 
 			@Override
-			public void run() {
+			public void accept(GLContext t) {
 				shutdown(window.nkContext);
 			}
 		});
