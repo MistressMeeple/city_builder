@@ -72,8 +72,11 @@ public class WorldGenerator {
 
 	//TODO customise this
 	public void create(LevelData level, long seed) {
-		for (int x = -2; x < 2; x++) {
-			for (int y = -2; y < 2; y++) {
+		
+		int radi = 10;
+		int minRadi = radi;
+		for (int x = -minRadi; x < radi; x++) {
+			for (int y = -minRadi; y < radi; y++) {
 
 				Chunk mainChunk = level.new Chunk();
 				for (int tx = 0; tx < mainChunk.tiles.length; tx++) {
