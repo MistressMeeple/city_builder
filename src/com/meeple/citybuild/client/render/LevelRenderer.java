@@ -3,8 +3,10 @@ package com.meeple.citybuild.client.render;
 import java.lang.ref.WeakReference;
 import java.nio.FloatBuffer;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Supplier;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
@@ -21,6 +23,7 @@ import com.meeple.citybuild.client.CityBuilderMain;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat;
 import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ViewMatrices;
 import com.meeple.citybuild.server.Entity;
+import com.meeple.citybuild.server.GameManager;
 import com.meeple.citybuild.server.LevelData;
 import com.meeple.citybuild.server.LevelData.Chunk;
 import com.meeple.citybuild.server.LevelData.Chunk.Tile;
@@ -66,6 +69,7 @@ public class LevelRenderer {
 					m = bakeChunk(chunkPos, chunk);
 					ShaderProgramSystem.loadVAO(glContext, program, m);
 					//TODO until proper frustrum check implemented m.visible = false;
+					currentlyVisibleChunks.add(loc);
 					baked.put(chunk, m);
 				}
 				if (chunk.rebake.getAndSet(false)) {
@@ -76,10 +80,6 @@ public class LevelRenderer {
 		}
 	}
 
-	class RenderableVAOInstance {
-		int index = 0;
-		WeakReference<RenderableVAO> mesh;
-	}
 
 	public Map<Chunk, RenderableVAO> baked = new CollectionSuppliers.MapSupplier<Chunk, RenderableVAO>().get();
 	public Set<Chunk> needsToBeBaked = new CollectionSuppliers.SetSupplier<Chunk>().get();
@@ -174,31 +174,85 @@ public class LevelRenderer {
 		return m2;
 	}
 
-	private void onCameraChange(Matrix4f viewFrustrum, LevelData level) {
+	Set<Vector2i> currentlyVisibleChunks = new CollectionSuppliers.SetSupplier<Vector2i>().get();
+
+	private void onCameraChange(Vector3f cameraPosition, Matrix4f viewFrustrum, GameManager game) {
 
 		FrustumIntersection fi = new FrustumIntersection(viewFrustrum);
+		List<Vector2i> toSearch = new CollectionSuppliers.ListSupplier<Vector2i>().get();
+		Set<Vector2i> searched = new CollectionSuppliers.SetSupplier<Vector2i>().get();
 
-		Set<Entry<Vector2i, Chunk>> set = level.chunks.entrySet();
-		synchronized (level.chunks) {
-			for (Iterator<Entry<Vector2i, Chunk>> i = set.iterator(); i.hasNext();) {
-				Entry<Vector2i, Chunk> entry = i.next();
-				Vector2i loc = entry.getKey();
-				Chunk chunk = entry.getValue();
-				Vector3f chunkPos = new Vector3f(loc.x * LevelData.fullChunkSize, loc.y * LevelData.fullChunkSize, 0);
-				switch (fi.intersectAab(chunkPos, chunkPos.add(LevelData.fullChunkSize, LevelData.fullChunkSize, 0, new Vector3f()))) {
-
-					case FrustumIntersection.INSIDE:
-					case FrustumIntersection.INTERSECT:
-						//m.visible = true;
-						// render chunk
-						break;
-					case FrustumIntersection.OUTSIDE:
-						//m.visible = false;
-						break;
-					default:
-						break;
+		//initial search area
+		{
+			Vector2i start = new Vector2i(GameManager.chunk(cameraPosition.x), GameManager.chunk(cameraPosition.y));
+			toSearch.add(start);
+			//TODO better search radius start
+			//atm just get the current lookAt vector and do a small grid around and flood fill
+			//should calculate visible chunk indices based on view frustrum and flood fill with those
+			int radi = 3;
+			for(int x = -radi; x < radi; x++){
+				for(int y = -radi; y < radi; y++){
+					Vector2i next = start.add(x, y, new Vector2i());
+					toSearch.add(next);
 				}
 			}
+			for(Vector2i visible: currentlyVisibleChunks){
+				toSearch.add(visible);
+			}
+		}
+
+		while(!toSearch.isEmpty()){
+			//pop
+			Vector2i current = toSearch.remove(0);
+
+			//check
+			Vector3f chunkPos = new Vector3f(current.x * LevelData.fullChunkSize, current.y * LevelData.fullChunkSize, 0);
+			RenderableVAO chunk = baked.get(game.getChunk(
+				chunkPos.add(
+					LevelData.fullChunkSize/2,
+					LevelData.fullChunkSize/2,
+					0,
+					new Vector3f()
+					)
+					));
+			int intersectCode  = fi.intersectAab(chunkPos, chunkPos.add(LevelData.fullChunkSize, LevelData.fullChunkSize, LevelData.fullChunkSize, new Vector3f()));
+
+			switch (intersectCode) {
+
+				case FrustumIntersection.INSIDE:
+				case FrustumIntersection.INTERSECT:
+					//if visible, check neighbours
+					if(chunk != null) {
+						//push
+						for(int x = -1; x < 1; x++){
+							for(int y = -1; y < 1; y++){
+								Vector2i next = current.add(x, y, new Vector2i());
+								if(!searched.contains(next) && game.level.chunks.containsKey(next)){
+									toSearch.add(next);
+								}
+							}
+						}
+						chunk.visible = true;
+						currentlyVisibleChunks.add(current);
+					}
+					// render chunk
+					break;
+				case FrustumIntersection.PLANE_NX:
+				case FrustumIntersection.PLANE_PX:
+				case FrustumIntersection.PLANE_NY:
+				case FrustumIntersection.PLANE_PY:
+				case FrustumIntersection.PLANE_NZ:
+				case FrustumIntersection.PLANE_PZ:
+				default:
+					if(currentlyVisibleChunks.remove(current)){
+						if(chunk!=null){
+							chunk.visible = false;
+						}
+					}
+					break;
+			}
+
+			searched.add(current);
 		}
 	}
 
@@ -251,8 +305,8 @@ public class LevelRenderer {
 		//VPMatrix vpMatrix = new VPMatrix();
 		Camera camera = new Camera();
 		CameraSpringArm arm = camera.springArm;
-		arm.addDistance(15f);
-		arm.addPitch(45);
+		arm.addDistance(1f);
+		arm.addPitch(30);
 
 		Entity cameraAnchorEntity = new Entity();
 		arm.lookAt = () -> cameraAnchorEntity.position;
@@ -260,7 +314,6 @@ public class LevelRenderer {
 
 		ViewMatrices viewMatrices = new ViewMatrices();
 		FrameUtils.calculateProjectionMatrixPerspective(cityBuilder.window.bounds.width, cityBuilder.window.bounds.height, 90, 0.001f, 1000f, viewMatrices.projectionMatrix);
-		
 		Matrix4f orthoMatrix = FrameUtils.calculateProjectionMatrixOrtho(cityBuilder.window.bounds.width, cityBuilder.window.bounds.height, 1, 10.0f, 0.0125f, 10000.0f, new Matrix4f());
 
 		cityBuilder.window.events.postCreation.add(() -> {
@@ -286,12 +339,11 @@ public class LevelRenderer {
 			ShaderProgram debugProgram = ShaderProgramDefinitions.collection._3D_unlit_flat;
 			ShaderProgramSystem.create(glContext, debugProgram);
 			ShaderProgramDefinitions.collection.setupMatrixUBO(glContext, debugProgram, program);
-			ShaderProgramDefinition_3D_unlit_flat.Mesh axis = drawAxis(100);
+			ShaderProgramDefinition_3D_unlit_flat.Mesh axis = drawAxis(1);
 			ShaderProgramSystem.loadVAO(glContext, debugProgram, axis);
 
 		});
 
-		
 
 		return (time) -> {
 			// vpSystem.projSystem.update(vpMatrix.proj.getWrapped());
@@ -301,16 +353,15 @@ public class LevelRenderer {
 			// TODO change line thickness
 			GL46.glLineWidth(3f);
 			GL46.glPointSize(3f);
-			keyInput.tick(cityBuilder.window.mousePressTicks, cityBuilder.window.mousePressMap, time.nanos);
-			keyInput.tick(cityBuilder.window.keyPressTicks, cityBuilder.window.keyPressMap, time.nanos);
+
 			if (cityBuilder.level != null) {
 				// TODO better testing for if mouse controls should be enabled. eg when over a
 				// gui
 
-				Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, cityBuilder.window.getID(),
-						cityBuilder.window.bounds.width, cityBuilder.window.bounds.height, orthoMatrix, null);
-				cityBuilder.gameUI.handlePanningTick(cityBuilder.window, mousePos, camera,
-						cameraAnchorEntity);
+				onCameraChange(camera.springArm.lookAt.get(), viewMatrices.viewProjectionMatrix, cityBuilder);
+
+				Vector4f mousePos = CursorHelper.getMouse(SpaceState.Eye_Space, cityBuilder.window.getID(), cityBuilder.window.bounds.width, cityBuilder.window.bounds.height, orthoMatrix, null);
+				cityBuilder.gameUI.handlePanningTick(cityBuilder.window, mousePos, camera, cameraAnchorEntity);
 				cityBuilder.gameUI.handlePitchingTick(cityBuilder.window, mousePos, arm);
 				cityBuilder.gameUI.handleScrollingTick(arm);
 
@@ -325,7 +376,7 @@ public class LevelRenderer {
 				// TODO level clear colour
 				cityBuilder.window.clearColour.set(0f, 0f, 0f, 0f);
 				preRender(cityBuilder.level, glContext, program);
-				cityBuilder.gameUI.preRenderMouseUI(cityBuilder.window, uiProgram, rh);
+				cityBuilder.gameUI.preRenderMouseUI(cityBuilder.window.mousePressTicks, uiProgram, rh);
 
 				// MeshExt mesh = new MeshExt();
 				// bakeChunk(level.chunks.get(new Vector2i()), mesh);

@@ -16,6 +16,7 @@ import static org.lwjgl.nuklear.Nuklear.nk_rect;
 import static org.lwjgl.system.MemoryStack.stackPush;
 
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -107,7 +108,7 @@ public class GameUI extends Screen {
 	// ---------------------settings -------------------------
 	private static boolean invertMouse = true;
 	private static boolean invertZoom = false;
-	private static float zoomMult = 2f;
+	private static float zoomMult = 0.5f;
 	// aka deadzone
 	private static final float panRadi = 0.5f;
 	private static Vector4f compasColour = new Vector4f(1, 0, 1, 1);
@@ -244,7 +245,7 @@ public class GameUI extends Screen {
 	public final GLFWScrollCallbackI scrollCallback = new GLFWScrollCallbackI() {
 		@Override
 		public void invoke(long windowID, double xoffset, double yoffset) {
-			scale = ((float) yoffset + scale);
+			scale = (float) yoffset + scale;
 		}
 	};
 
@@ -529,14 +530,14 @@ public class GameUI extends Screen {
 		}
 	}
 
-	public void preRenderMouseUI(ClientWindow window, ShaderProgram program, RayHelper rayHelper) {
+	public void preRenderMouseUI(Map<Integer,Long> mousePressTicks, ShaderProgram program, RayHelper rayHelper) {
 
 		GL46.glEnable(GL46.GL_DEPTH_TEST);
 
 		if (true) {
 			if (currentAction != null) {
 
-				long mouseLeftClick = window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
+				long mouseLeftClick = mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
 				if (mouseLeftClick > 0) {
 					Tile t = rayHelper.getCurrentTile();
 					// TODO check if mouse over UI

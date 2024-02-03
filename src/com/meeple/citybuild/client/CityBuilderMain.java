@@ -23,6 +23,8 @@ import com.meeple.citybuild.client.render.LevelRenderer;
 import com.meeple.citybuild.client.render.Screen;
 import com.meeple.citybuild.server.Buildings;
 import com.meeple.citybuild.server.GameManager;
+import com.meeple.citybuild.server.LevelData;
+import com.meeple.citybuild.server.WorldGenerator;
 import com.meeple.shared.ClientOptionSystem;
 import com.meeple.shared.Delta;
 import com.meeple.shared.RayHelper;
@@ -61,6 +63,11 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 	 * Save extension of the safe files 
 	 */
 	final static String LevelExt = ".sv";
+	/**
+	 * Client container representing most of the OGL and GLFW context per client
+	 */
+	public final ClientWindow window = new ClientWindow();
+
 
 	public static void main(String[] args) throws Exception {
 
@@ -80,10 +87,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 	}
 
-	/**
-	 * Client container representing most of the OGL and GLFW context per client
-	 */
-	public final ClientWindow window = new ClientWindow();
+
 
 	@Override
 	public void accept(ExecutorService executorService) {
@@ -93,6 +97,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 		ClientOptionSystem optionsSystem = new ClientOptionSystem();
 
 		ClientWindowSystem.setupWindow(window, keyInput, window.nkContext, optionsSystem);
+
 
 		window.events.preCleanup.add(() -> {
 			FrameUtils.shutdownService(executorService, 1l, TimeUnit.SECONDS);
@@ -113,6 +118,7 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 				}
 			}
 		});
+
 		AtomicInteger clientQuitCounter = new AtomicInteger();
 		try (GLFWManager glManager = new GLFWManager(); GLContext glContext = new GLContext(); WindowManager windowManager = new WindowManager()) {
 
@@ -127,6 +133,8 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 				@Override
 				public void render(ClientWindow window, Delta delta) {
+					keyInput.tick(window.mousePressTicks, window.mousePressMap, delta.nanos);
+					keyInput.tick(window.keyPressTicks, window.keyPressMap, delta.nanos);
 					gameRendering.apply(delta);
 				}
 			};
@@ -228,9 +236,10 @@ public class CityBuilderMain extends GameManager implements Consumer<ExecutorSer
 
 	Wrapper<Buildings> placement = new WrapperImpl<>();
 
+
 	@Override
 	public void levelTick(Delta delta) {
-
 	}
+
 
 }
