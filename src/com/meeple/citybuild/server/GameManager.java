@@ -30,13 +30,12 @@ public abstract class GameManager {
 	static final String LevelFolder = "saves/";
 	static final String LevelExt = ".sv";
 	static final long wait = 10l;
-	private Thread levelThread;
 
 	public static synchronized LevelData newGame(WorldGenerator worldGen, long seed) {
 		LevelData level = new LevelData();
 		level.random = new Random(seed);
 		worldGen.create(level, seed);
-		logger.trace("todo: new game "); //TODO
+		logger.trace("todo: new game "); //TODO finish writing new game
 		return level;
 	}
 

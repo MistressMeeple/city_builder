@@ -8,22 +8,23 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import org.lwjgl.opengl.GL46;
 import org.lwjgl.system.MemoryStack;
 
-public abstract class UniformManager<Name, ID> {
+public class UniformManager {
 
 	public class Uniform<T> {
 		private Uniform() {
 
 		}
 
-		public IShaderUniformUploadSystem<T, ID> uploadSystem;
-		public ID location;
-		public Name name;
+		public IShaderUniformUploadSystem<T> uploadSystem;
+		public Integer location;
+		public String name;
 
 	}
 
-	public <T> Uniform<T> register(Name name, IShaderUniformUploadSystem<T, ID> upload) {
+	public <T> Uniform<T> register(String name, IShaderUniformUploadSystem<T> upload) {
 		Uniform<T> uniform = new Uniform<>();
 		uniform.name = name;
 		uniform.uploadSystem = upload;
@@ -34,12 +35,12 @@ public abstract class UniformManager<Name, ID> {
 	 * Runs through the uniforms queued uploads, linked to this system from the shader program 
 	 * @param program Shader program that uniforms are a part of
 	 */
-	public <T> void uploadUniforms(Map<UniformManager<?, ?>.Uniform<?>, List<?>> uniforms) {
+	public <T> void uploadUniforms(Map<UniformManager.Uniform<?>, List<?>> uniforms) {
 
-		iterateUniforms(uniforms, new BiConsumer<UniformManager<Name, ID>.Uniform<?>, List<?>>() {
+		iterateUniforms(uniforms, new BiConsumer<UniformManager.Uniform<?>, List<?>>() {
 
 			@Override
-			public void accept(UniformManager<Name, ID>.Uniform<?> uniform, List<?> queue) {
+			public void accept(UniformManager.Uniform<?> uniform, List<?> queue) {
 				synchronized (queue) {
 					try (MemoryStack stack = MemoryStack.stackPush()) {
 						for (Iterator<?> i = queue.iterator(); i.hasNext();) {
@@ -58,9 +59,8 @@ public abstract class UniformManager<Name, ID> {
 		});
 	}
 
-	private <T> boolean upload(IShaderUniformUploadSystem<T, ID> upload, ID location, MemoryStack stack, Object o) {
+	private <T> boolean upload(IShaderUniformUploadSystem<T> upload, Integer location, MemoryStack stack, Object o) {
 		try {
-			@SuppressWarnings("unchecked")
 			T t = (T) o;
 			upload.uploadToShader(t, location, stack);
 			return true;
@@ -71,30 +71,30 @@ public abstract class UniformManager<Name, ID> {
 	}
 
 	/**
-	 * Iterates through all the uniforms attached to system and generates their location IDs
+	 * Iterates through all the uniforms attached to system and generates their location Integers
 	 * @param programID
 	 * @param uniforms
 	 */
-	public void bindUniformLocations(int programID, Set<UniformManager<?, ?>.Uniform<?>> uniforms) {
-		iterateUniforms(uniforms, new Consumer<UniformManager<Name, ID>.Uniform<?>>() {
+	public void bindUniformLocations(int programID, Set<UniformManager.Uniform<?>> uniforms) {
+		iterateUniforms(uniforms, new Consumer<UniformManager.Uniform<?>>() {
 
 			@Override
-			public void accept(UniformManager<Name, ID>.Uniform<?> t) {
+			public void accept(UniformManager.Uniform<?> t) {
 				t.location = generateID(programID, t.name);
 			}
 		});
 	}
 
-	private void iterateUniforms(Set<UniformManager<?, ?>.Uniform<?>> uniforms, Consumer<Uniform<?>> consumer) {
+	private void iterateUniforms(Set<UniformManager.Uniform<?>> uniforms, Consumer<Uniform<?>> consumer) {
 
 		if (uniforms != null && !uniforms.isEmpty()) {
 
 			synchronized (uniforms) {
-				for (Iterator<UniformManager<?, ?>.Uniform<?>> iterator = uniforms.iterator(); iterator.hasNext();) {
-					UniformManager<?, ?>.Uniform<?> baseUniform = iterator.next();
+				for (Iterator<UniformManager.Uniform<?>> iterator = uniforms.iterator(); iterator.hasNext();) {
+					UniformManager.Uniform<?> baseUniform = iterator.next();
 
 					try (MemoryStack stack = MemoryStack.stackPush()) {
-						UniformManager<Name, ID>.Uniform<?> uniform = (UniformManager<Name, ID>.Uniform<?>) baseUniform;
+						UniformManager.Uniform<?> uniform = (UniformManager.Uniform<?>) baseUniform;
 						if (consumer != null) {
 							consumer.accept(uniform);
 						}
@@ -107,17 +107,17 @@ public abstract class UniformManager<Name, ID> {
 		}
 	}
 
-	private void iterateUniforms(Map<UniformManager<?, ?>.Uniform<?>, List<?>> uniforms, BiConsumer<Uniform<?>, List<?>> consumer) {
+	private void iterateUniforms(Map<UniformManager.Uniform<?>, List<?>> uniforms, BiConsumer<Uniform<?>, List<?>> consumer) {
 
 		if (uniforms != null && !uniforms.isEmpty()) {
 
-			Set<Entry<UniformManager<?, ?>.Uniform<?>, List<?>>> set = uniforms.entrySet();
+			Set<Entry<UniformManager.Uniform<?>, List<?>>> set = uniforms.entrySet();
 			synchronized (uniforms) {
-				for (Iterator<Entry<UniformManager<?, ?>.Uniform<?>, List<?>>> iterator = set.iterator(); iterator.hasNext();) {
-					Entry<UniformManager<?, ?>.Uniform<?>, List<?>> entry = iterator.next();
+				for (Iterator<Entry<UniformManager.Uniform<?>, List<?>>> iterator = set.iterator(); iterator.hasNext();) {
+					Entry<UniformManager.Uniform<?>, List<?>> entry = iterator.next();
 
 					try (MemoryStack stack = MemoryStack.stackPush()) {
-						UniformManager<Name, ID>.Uniform<?> uniform = (UniformManager<Name, ID>.Uniform<?>) entry.getKey();
+						UniformManager.Uniform<?> uniform = (UniformManager.Uniform<?>) entry.getKey();
 						List<?> queue = entry.getValue();
 						if (consumer != null) {
 							consumer.accept(uniform, queue);
@@ -131,6 +131,9 @@ public abstract class UniformManager<Name, ID> {
 		}
 	}
 
-	protected abstract ID generateID(Integer programID, Name name);
+	protected Integer generateID(Integer programID, String name){
+		int val = GL46.glGetUniformLocation(programID, name);
+		return val;
+	}
 
 }

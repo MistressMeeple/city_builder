@@ -18,6 +18,7 @@ import static org.lwjgl.system.MemoryStack.stackPush;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.apache.log4j.Logger;
@@ -26,9 +27,6 @@ import org.joml.Vector2f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 import org.lwjgl.glfw.GLFW;
-import org.lwjgl.glfw.GLFWCursorPosCallback;
-import org.lwjgl.glfw.GLFWMouseButtonCallbackI;
-import org.lwjgl.glfw.GLFWScrollCallbackI;
 import org.lwjgl.nuklear.NkContext;
 import org.lwjgl.nuklear.NkRect;
 import org.lwjgl.nuklear.Nuklear;
@@ -41,6 +39,7 @@ import com.meeple.citybuild.client.render.ShaderProgramDefinitions.ShaderProgram
 import com.meeple.citybuild.server.Entity;
 import com.meeple.citybuild.server.LevelData.Chunk.Tile;
 import com.meeple.citybuild.server.WorldGenerator;
+import com.meeple.citybuild.server.WorldGenerator.TerrainType;
 import com.meeple.citybuild.server.WorldGenerator.TileTypes;
 import com.meeple.citybuild.server.WorldGenerator.Tiles;
 import com.meeple.shared.Delta;
@@ -58,6 +57,7 @@ import com.meeple.shared.frame.nuklear.NuklearManager;
 import com.meeple.shared.frame.nuklear.NuklearMenuSystem;
 import com.meeple.shared.frame.window.ClientWindowSystem.ClientWindow;
 import com.meeple.shared.frame.window.hints.HasID;
+import com.meeple.shared.utils.CollectionSuppliers;
 import com.meeple.shared.utils.FrameUtils;
 
 public class GameUI extends Screen {
@@ -151,6 +151,7 @@ public class GameUI extends Screen {
 	 */
 
 	TileTypes currentSubMenu = null;
+	TerrainType currentTerrainType = null;
 	Tiles currentAction = null;
 	/**
 	 * This is the mouse button that pans the camera
@@ -212,8 +213,9 @@ public class GameUI extends Screen {
 				if (action == GLFW.GLFW_PRESS) {
 				} else if (action == GLFW.GLFW_RELEASE) {
 					if (panningState != CompasState.Active) {
-						if (currentAction != null) {
+						if (currentAction != null || currentTerrainType != null) {
 							currentAction = null;
+							currentTerrainType = null;
 						} else if (currentSubMenu != null) {
 							currentSubMenu = null;
 						}
@@ -526,7 +528,7 @@ public class GameUI extends Screen {
 		GL46.glEnable(GL46.GL_DEPTH_TEST);
 
 		if (true) {
-			if (currentAction != null) {
+			if (currentAction != null || currentTerrainType != null) {
 
 				long mouseLeftClick = mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
 				if (mouseLeftClick > 0) {
@@ -534,7 +536,13 @@ public class GameUI extends Screen {
 					// TODO check if mouse over UI
 					if (t != null) {
 						logger.info("Need to queue to banked chunk set");
-						t.type = currentAction;
+						logger.trace("Also need to do complex checks if placeable etc.");
+						if(currentAction!=null){
+							t.type = currentAction;
+						}
+						if(currentTerrainType!=null){
+							t.terrain = currentTerrainType;
+						}
 						rayHelper.getCurrentChunk().rebake.set(true);
 					}
 				}
@@ -567,6 +575,7 @@ public class GameUI extends Screen {
 				if (nk_group_begin(ctx, "", 0)) {
 					nk_layout_space_begin(ctx, Nuklear.NK_STATIC, btnHeight, WorldGenerator.TileTypes.values().length);
 					int i = 0;
+
 					for (TileTypes type : WorldGenerator.TileTypes.values()) {
 						nk_layout_space_push(ctx,
 								nk_rect((btnWidth + btnSpacing) * i++, 0, btnWidth, btnHeight, NkRect.create()));
@@ -575,6 +584,7 @@ public class GameUI extends Screen {
 								if (nk_button_text(ctx, type.toString())) {
 									currentSubMenu = null;
 									currentAction = null;
+									currentTerrainType = null;
 								}
 							});
 						} else {
@@ -601,29 +611,29 @@ public class GameUI extends Screen {
 					nk_layout_row_dynamic(ctx, btnWidth + 25, 1);
 
 					if (nk_group_begin(ctx, "", 0)) {
-						nk_layout_space_begin(ctx, Nuklear.NK_STATIC, btnHeight,
-								WorldGenerator.TileTypes.values().length);
-						int i = 0;
-						Set<Tiles> tileSet = WorldGenerator.typesByTypes.get(currentSubMenu);
-						if (tileSet != null) {
-							synchronized (tileSet) {
-								for (Iterator<Tiles> it = tileSet.iterator(); it.hasNext();) {
-									Tiles t = it.next();
-									nk_layout_space_push(ctx, nk_rect((btnWidth + btnSpacing) * i++, 0, btnWidth,
-											btnHeight, NkRect.create()));
-									if (currentAction != null && currentAction == t) {
-										NuklearManager.styledButton(ctx, NuklearMenuSystem.getDisabled(ctx, stack),
-												() -> {
-													nk_button_text(ctx, t.toString());
-												});
-									} else {
-										if (nk_button_text(ctx, t.toString())) {
-											logger.trace(t.toString() + " has been clicked");
-											currentAction = t;
-										}
-									}
+						nk_layout_space_begin(ctx, Nuklear.NK_STATIC, btnHeight, WorldGenerator.TileTypes.values().length);
+						if(currentSubMenu == TileTypes.Terrain){
+							Set<TerrainType> tileSet = WorldGenerator.terrainTypesSet;
+							drawSubMenu(
+								ctx, 
+								stack, 
+								tileSet,
+								(terrain)->{
+									logger.trace(terrain.toString() + " has been clicked");
+									currentTerrainType = terrain;
 								}
-							}
+							);
+						} else {
+							Set<Tiles> tileSet = WorldGenerator.typesByTypes.get(currentSubMenu);
+							drawSubMenu(
+								ctx, 
+								stack, 
+								tileSet,
+								(tile)->{
+									logger.trace(tile.toString() + " has been clicked");
+									currentAction = tile;
+								}
+							);
 						}
 
 						nk_layout_space_end(ctx);
@@ -632,6 +642,30 @@ public class GameUI extends Screen {
 
 				}
 				nk_end(ctx);
+			}
+		}
+	}
+	private <T> void drawSubMenu(NkContext ctx, MemoryStack stack, Set<T> tileSet, Consumer<T> click){
+		int i = 0;
+		if (tileSet != null) {
+			synchronized (tileSet) {
+				for (Iterator<T> it = tileSet.iterator(); it.hasNext();) {
+					T t = it.next();
+					nk_layout_space_push(ctx, nk_rect((btnWidth + btnSpacing) * i++, 0, btnWidth, btnHeight, NkRect.create()));
+					if (currentAction != null && currentAction == t || currentTerrainType != null && currentTerrainType == t) {
+						NuklearManager.styledButton(
+							ctx, 
+							NuklearMenuSystem.getDisabled(ctx, stack),
+							() -> {
+								nk_button_text(ctx, t.toString());
+							}
+						);
+					} else {
+						if (nk_button_text(ctx, t.toString())) {
+							click.accept(t);
+						}
+					}
+				}
 			}
 		}
 	}

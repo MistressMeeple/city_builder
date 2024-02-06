@@ -1,9 +1,9 @@
 package com.meeple.shared.frame.window;
 
-import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
+import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
 
 import org.joml.Vector4f;
-import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.MemoryUtil;
 
 import com.meeple.shared.frame.component.Bounds2DComponent;

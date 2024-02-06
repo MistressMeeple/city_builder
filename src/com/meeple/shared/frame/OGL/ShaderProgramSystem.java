@@ -1,7 +1,9 @@
 package com.meeple.shared.frame.OGL;
 
-import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.system.MemoryStack.*;
+import static org.lwjgl.opengl.GL20.glGetProgramInfoLog;
+import static org.lwjgl.opengl.GL20.glGetProgrami;
+import static org.lwjgl.opengl.GL20.glGetShaderInfoLog;
+import static org.lwjgl.opengl.GL20.glGetShaderi;
 
 import java.io.BufferedReader;
 import java.io.Closeable;
@@ -13,10 +15,8 @@ import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -24,7 +24,6 @@ import java.util.Set;
 import javax.activation.UnsupportedDataTypeException;
 
 import org.apache.log4j.Logger;
-import org.joml.Matrix4f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL46;
 import org.lwjgl.system.MemoryStack;
@@ -41,42 +40,6 @@ import com.meeple.shared.utils.CollectionSuppliers;
 public class ShaderProgramSystem {
 
 	private static Logger logger = Logger.getLogger(ShaderProgramSystem.class);
-
-
-	public static class SingleUniformSystem extends UniformManager<String, Integer> {
-
-		@Override
-		protected Integer generateID(Integer programID, String name) {
-			int val = GL46.glGetUniformLocation(programID, name);
-			return val;
-		}
-	}
-
-	public static class MultiUniformSystem extends UniformManager<String[], Integer[]> {
-		@Override
-		protected Integer[] generateID(Integer programID, String[] name) {
-			Integer[] vals = new Integer[name.length];
-			for (int i = 0; i < name.length; i++) {
-				vals[i] = GL46.glGetUniformLocation(programID, name[i]);
-			}
-			return vals;
-		}
-	}
-
-	/**
-	 * Single upload uniform manager instance
-	 */
-	public static UniformManager<String, Integer> singleUpload = new SingleUniformSystem();
-	/**
-	 * Multiple upload uniform manager instance
-	 */
-	public static UniformManager<String[], Integer[]> multiUpload = new MultiUniformSystem();
-	/**
-	 * Single matrix uploading system
-	 */
-	public IShaderUniformUploadSystem<Matrix4f, Integer> mat4SingleUploader = (upload, uniformID, stack) -> {
-		GL46.glUniformMatrix4fv(uniformID, false, IShaderUniformUploadSystem.generateMatrix4fBuffer(stack, upload));
-	};
 
 	/**
 	 * Sets up the program by<br>
@@ -115,6 +78,11 @@ public class ShaderProgramSystem {
 				logger.trace("program log: \r\n" + log);
 			}
 			GL46.glValidateProgram(program.programID);
+			log = programStatusCheck(program.programID, GLStatus.ValidateStatus);
+			if (log.length() > 0) {
+				logger.trace("program log: \r\n" + log);
+			}
+			findAllUniforms(program);
 			log = programStatusCheck(program.programID, GLStatus.ValidateStatus);
 			if (log.length() > 0) {
 				logger.trace("program log: \r\n" + log);
@@ -254,6 +222,22 @@ public class ShaderProgramSystem {
 		}
 		logger.trace("Loading " + name);
 		return shaderSource.toString();
+	}
+	
+
+	public static void findAllUniforms(ShaderProgram program){
+		try(MemoryStack stackMem = MemoryStack.stackPush()) {
+			int count = GL46.glGetProgrami(program.programID, GL46.GL_ACTIVE_UNIFORMS);
+			IntBuffer size = stackMem.mallocInt(1);
+			IntBuffer type = stackMem.mallocInt(1);
+			for(int i = 0; i < count; i++){
+				String name = GL46.glGetActiveUniform(program.programID, i, size, type);
+				int id =  GL46.glGetUniformLocation(program.programID, name);
+				if(id == -1) /* non-existant AND Uniform blocks return -1 */
+					break;
+				program.uniformLocations.put(name, id);			
+			}
+		}
 	}
 
 	/**
@@ -502,55 +486,6 @@ public class ShaderProgramSystem {
 		//GL46.glBindBuffer(attrib.target, 0);
 	}
 
-	public static <Name, ID> void addUniform(ShaderProgram program, UniformManager<Name, ID> system, UniformManager<Name, ID>.Uniform<?> uniform) {
-
-		Map<UniformManager<?, ?>.Uniform<?>, List<?>> uniformList = program.uniformSystems.get(system);
-
-		if (uniformList == null) {
-			uniformList = new CollectionSuppliers.MapSupplier<UniformManager<?, ?>.Uniform<?>, List<?>>().get();
-		}
-		List<?> queue = uniformList.getOrDefault(uniform, new ArrayList<>());
-		uniformList.put(uniform, queue);
-		program.uniformSystems.put(system, uniformList);
-	}
-
-	public static <Name, ID, T> void queueUniformUpload(ShaderProgram program, UniformManager<Name, ID> manager, UniformManager<Name, ID>.Uniform<T> uniform, T object) {
-		Map<UniformManager<?, ?>.Uniform<?>, List<?>> uniforms = program.uniformSystems.get(manager);
-		if (uniforms != null && !uniforms.isEmpty()) {
-			List<?> queueBase = uniforms.getOrDefault(uniforms, new ArrayList<T>());
-			try {
-				List<T> queue = (List<T>) queueBase;
-				if (queue != null) {
-					queue = new ArrayList<>();
-					uniforms.put(uniform, queue);
-				}
-				queue.add(object);
-
-			} catch (Exception e) {
-				System.out.println("Failed to upload the object: " + e);
-				return;
-			}
-		}
-	}
-
-	/**
-	 * Iterates all the queued uniforms for upload and uploads them. 
-	 * @param program shader program to iterate all uniforms and upload
-	 */
-	public static void uploadUniforms(ShaderProgram program) {
-		synchronized (program.uniformSystems) {
-			try (MemoryStack stack = stackPush()) {
-				for (Iterator<Entry<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>>> i = program.uniformSystems.entrySet().iterator(); i.hasNext();) {
-					Entry<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>> entry = i.next();
-					UniformManager<?, ?> system = entry.getKey();
-					Map<UniformManager<?, ?>.Uniform<?>, List<?>> uniforms = entry.getValue();
-					system.uploadUniforms(uniforms);
-				}
-			}
-
-		}
-	}
-
 	public static interface ShaderClosable extends Closeable {
 		@Override
 		public abstract void close();
@@ -743,14 +678,12 @@ public class ShaderProgramSystem {
 		}
 
 	}
-
+	
 	//----------------------------------------------- RENDER METHODS -----------------------------------//TODO 
 	public static void render(ShaderProgram program) {
 
 		//bind shader program
 		GL46.glUseProgram(program.programID);
-		//upload all the queued uniform uploads
-		uploadUniforms(program);
 		//sync - important
 		synchronized (program.VAOs) {
 

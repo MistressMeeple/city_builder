@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.lwjgl.opengl.ARBIndirectParameters;
+import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL15C;
 import org.lwjgl.opengl.GL21;
@@ -223,6 +224,7 @@ public class ShaderProgram {
 			return GLID;
 		}
 	}
+	
 
 	public static class VAO {
 		public int VAOID = NULL;
@@ -237,18 +239,8 @@ public class ShaderProgram {
 		Manual,
 		Empty
 	}
-
-	public static class BufferObject {
-
-		public int VBOID = NULL;
-		/**
-		* To be used when calling {@link GL46#glBufferData(int, ByteBuffer, int)} as first parameter ('target')
-		*/
-		public BufferType bufferType;
-		/**
-		* To be used when calling {@link GL46#glBufferData(int, ByteBuffer, int)} as third parameter ('usage')
-		*/
-		public BufferUsage bufferUsage = BufferUsage.StaticDraw;
+	private static class DataObject {
+		
 		/**
 		 * To be used when calling {@link GL46#glVertexAttribPointer} as second parameter ('size')
 		 */
@@ -264,7 +256,19 @@ public class ShaderProgram {
 		 * used when using the unsafe direct buffer allocation
 		 */
 		public Long bufferLen;
+	}
 
+	public static class BufferObject extends DataObject{
+
+		public int VBOID = NULL;
+		/**
+		* To be used when calling {@link GL46#glBufferData(int, ByteBuffer, int)} as first parameter ('target')
+		*/
+		public BufferType bufferType;
+		/**
+		* To be used when calling {@link GL46#glBufferData(int, ByteBuffer, int)} as third parameter ('usage')
+		*/
+		public BufferUsage bufferUsage = BufferUsage.StaticDraw;
 	}
 
 	public static class RenderableVAO extends VAO {
@@ -309,10 +313,9 @@ public class ShaderProgram {
 	 */
 	public final Map<GLShaderType, String> shaderSources = new CollectionSuppliers.MapSupplier<GLShaderType, String>().get();
 	public final Map<GLShaderType, Integer> shaderIDs = new CollectionSuppliers.MapSupplier<GLShaderType, Integer>().get();
+	public final Map<String, Integer> uniformLocations = new CollectionSuppliers.MapSupplier<String, Integer>().get();
 
 	public final Set<VAO> VAOs = new CollectionSuppliers.SetSupplier<VAO>().get();
 
-	public final Map<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>> uniformSystems =
-		new CollectionSuppliers.MapSupplier<UniformManager<?, ?>, Map<UniformManager<?, ?>.Uniform<?>, List<?>>>().get();
 
 }

@@ -11,9 +11,9 @@ import org.lwjgl.system.MemoryStack;
  *
  * @param <UploadObject> Object class that will be uploaded to shader
  */
-public interface IShaderUniformUploadSystem<UploadObject, ID> {
+public interface IShaderUniformUploadSystem<UploadObject> {
 
-	public abstract void uploadToShader(UploadObject upload, ID uniformID, MemoryStack stack);
+	public abstract void uploadToShader(UploadObject upload, Integer uniformID, MemoryStack stack);
 
 	public static FloatBuffer generateMatrix4fBuffer(MemoryStack stack, Matrix4f matrix) {
 

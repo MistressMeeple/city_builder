@@ -28,16 +28,22 @@ public class WorldGenerator {
 		Large;
 	}
 
+	public static enum TerrainType { 
+		Empty, 
+		Water,
+		Sand,
+		Grass;
+		private TerrainType(){
+			terrainTypesSet.add(this);
+		}
+	}
+
 	public static Map<TileTypes, Set<Tiles>> typesByTypes = new CollectionSuppliers.MapSupplier<TileTypes, Set<Tiles>>().get();
+	public static Set<TerrainType> terrainTypesSet = new CollectionSuppliers.SetSupplier<TerrainType>().get();
+	
 
 	//TODO allow small kitchens to be put into buildings eg houses/factories
 	public static enum Tiles {
-		/*
-		 * 
-		 */
-		Hole(TileTypes.Terrain),
-		Ground(TileTypes.Terrain),
-		Water(TileTypes.Terrain),
 		/*
 		 * 
 		 */
@@ -69,11 +75,18 @@ public class WorldGenerator {
 		}
 
 	}
+	public WorldGenerator(){
+		//minor hack to get the enum and static sets to load
+		@SuppressWarnings("unused")
+		Tiles a = Tiles.CropFarm;
+		@SuppressWarnings("unused")
+		TerrainType b = TerrainType.Empty;
+	}
 
 	//TODO customise this
 	public void create(LevelData level, long seed) {
 		
-		int radi = 10;
+		int radi = 1;
 		int minRadi = radi;
 		for (int x = -minRadi; x < radi; x++) {
 			for (int y = -minRadi; y < radi; y++) {
@@ -85,7 +98,8 @@ public class WorldGenerator {
 						//if (tx == 0 || ty == 0 || tx == mainChunk.tiles.length - 1 || ty == mainChunk.tiles[0].length - 1 ) {
 						//	mainChunk.tiles[tx][ty].type = Tiles.Hole;
 						//} else {
-							mainChunk.tiles[tx][ty].type = Tiles.Ground;
+							mainChunk.tiles[tx][ty].terrain = TerrainType.Grass;
+							//mainChunk.tiles[tx][ty].type = Tiles.Ground;
 						//}
 					}
 				}
