@@ -1,6 +1,7 @@
 package com.meeple.citybuild.server;
 
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import org.joml.Vector2i;
@@ -86,8 +87,9 @@ public class WorldGenerator {
 	//TODO customise this
 	public void create(LevelData level, long seed) {
 		
-		int radi = 1;
-		int minRadi = radi;
+		int radi = 2;
+		int minRadi = 2;
+		Random random = new Random(seed);
 		for (int x = -minRadi; x < radi; x++) {
 			for (int y = -minRadi; y < radi; y++) {
 
@@ -99,6 +101,7 @@ public class WorldGenerator {
 						//	mainChunk.tiles[tx][ty].type = Tiles.Hole;
 						//} else {
 							mainChunk.tiles[tx][ty].terrain = TerrainType.Grass;
+							mainChunk.tiles[tx][ty].height = random.nextInt(5);
 							//mainChunk.tiles[tx][ty].type = Tiles.Ground;
 						//}
 					}

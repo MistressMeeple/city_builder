@@ -535,15 +535,20 @@ public class GameUI extends Screen {
 					Tile t = rayHelper.getCurrentTile();
 					// TODO check if mouse over UI
 					if (t != null) {
-						logger.info("Need to queue to banked chunk set");
-						logger.trace("Also need to do complex checks if placeable etc.");
-						if(currentAction!=null){
+						boolean hasChanged = false;
+						if(currentAction!=null && t.type != currentAction){
 							t.type = currentAction;
+							hasChanged = true;
 						}
-						if(currentTerrainType!=null){
+						if(currentTerrainType!=null && t.terrain != currentTerrainType){
 							t.terrain = currentTerrainType;
+							hasChanged = true;
 						}
-						rayHelper.getCurrentChunk().rebake.set(true);
+						if(hasChanged){
+							rayHelper.getCurrentChunk().rebake.set(true);
+							logger.info("Need to queue to baked chunk set");
+							logger.trace("Also need to do complex checks if placeable etc.");
+						}
 					}
 				}
 			}

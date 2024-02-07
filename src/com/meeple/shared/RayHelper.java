@@ -39,8 +39,10 @@ public class RayHelper {
 		if (intersectionInRange(0, RAY_RANGE, ray, cameraPos)) {
 			currentTerrainPoint = binarySearch(0, 0, RAY_RANGE, ray, cameraPos, level);
 		} else {
-
 			currentTerrainPoint = null;
+			chunk = null;
+			tile = null;
+			tileIndex = null;
 		}
 	}
 

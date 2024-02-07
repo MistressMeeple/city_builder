@@ -96,7 +96,7 @@ public class LevelData implements Serializable {
 			private static final long serialVersionUID = 4696596418608513610L;
 			public TerrainType terrain;
 			public Tiles type;
-			public int height = 1;
+			public int height = 0;
 			public byte UUID = -1;
 		}
 
