@@ -1,6 +1,9 @@
 package com.meeple.citybuild.client.render;
 
+import java.lang.ref.WeakReference;
 import java.nio.FloatBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -11,6 +14,7 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 import org.joml.FrustumIntersection;
 import org.joml.Matrix4f;
+import org.joml.Vector2f;
 import org.joml.Vector2i;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
@@ -37,6 +41,7 @@ import com.meeple.shared.frame.OGL.KeyInputSystem;
 import com.meeple.shared.frame.OGL.ShaderProgram;
 import com.meeple.shared.frame.OGL.ShaderProgram.Attribute;
 import com.meeple.shared.frame.OGL.ShaderProgram.BufferDataManagementType;
+import com.meeple.shared.frame.OGL.ShaderProgram.BufferObject;
 import com.meeple.shared.frame.OGL.ShaderProgram.GLDrawMode;
 import com.meeple.shared.frame.OGL.ShaderProgram.RenderableVAO;
 import com.meeple.shared.frame.OGL.ShaderProgramSystem;
@@ -64,15 +69,26 @@ public class LevelRenderer {
 				Chunk chunk = entry.getValue();
 				Vector3f chunkPos = new Vector3f(loc.x * LevelData.fullChunkSize, loc.y * LevelData.fullChunkSize, 0);
 				RenderableVAO m = baked.get(chunk);
+
+				if (chunk.rebake.get()) {
+					logger.debug("rebake");
+					if(m!=null && m instanceof ShaderProgramDefinition_3D_unlit_flat.Mesh){
+						ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh m2 = (ShaderProgramDefinition_3D_unlit_flat.Mesh) m;
+						rebakeChunkV2(m2.vertexAttribute, m2.colourAttribute, m2.elementAttribute, chunk);
+						m2.vertexCount = m2.elementAttribute.data.size();
+						chunk.rebake.set(false);
+					}
+				}
 				if (m == null) {
-					m = bakeChunk(chunkPos, chunk);
+					m = ShaderProgramDefinitions.collection._3D_unlit_flat.createMesh();
+					bakeChunkV2((ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh) m, chunkPos, chunk);
+					logger.debug("bake");
+					//rebakeChunkV2((ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh) m, chunk);
+
 					ShaderProgramSystem.loadVAO(glContext, program, m);
 					m.visible = false;
 					currentlyVisibleChunks.add(loc);
 					baked.put(chunk, m);
-				}
-				if (chunk.rebake.getAndSet(false)) {
-					rebake(chunkPos, chunk, m);
 				}
 
 			}
@@ -83,142 +99,121 @@ public class LevelRenderer {
 	public Map<Chunk, RenderableVAO> baked = new CollectionSuppliers.MapSupplier<Chunk, RenderableVAO>().get();
 	public Set<Chunk> needsToBeBaked = new CollectionSuppliers.SetSupplier<Chunk>().get();
 
-	private void rebake(Vector3f chunkPos, Chunk chunk, RenderableVAO chunkMesh) {
-		Attribute meshTransformAttribute, colourAttribute;
-		if (chunkMesh instanceof ShaderProgramDefinition_3D_unlit_flat.Mesh) {
-			meshTransformAttribute = ((ShaderProgramDefinition_3D_unlit_flat.Mesh) chunkMesh).meshTransformAttribute;
-			colourAttribute = ((ShaderProgramDefinition_3D_unlit_flat.Mesh) chunkMesh).colourAttribute;
-		} else {
-			meshTransformAttribute = chunkMesh.instanceAttributes.get(ShaderProgramDefinitions.meshTransform_AttributeName).get();
-			colourAttribute = chunkMesh.instanceAttributes.get(ShaderProgramDefinitions.colour_AttributeName).get();
-		}
-		meshTransformAttribute.data.clear();
-		colourAttribute.data.clear();
-		// TODO bake chunk instead
-		for (int x = 0; x < chunk.tiles.length; x++) {
-			for (int y = 0; y < chunk.tiles[x].length; y++) {
-				Vector3f tilePos = chunkPos.add(x * LevelData.tileSize, y * LevelData.tileSize, 0, new Vector3f());
-				Matrix4f tilePosition = new Matrix4f().translate(tilePos);
-				Vector4f colour = new Vector4f();
-				Tile tile = chunk.tiles[x][y];
-				if (tile == null) {
-					chunk.tiles[x][y] = chunk.new Tile();
-					tile = chunk.tiles[x][y];
-				}
-				if (tile.terrain == null) {
-					tile.terrain = TerrainType.Empty;
-				}
-
-				switch (tile.terrain) {
-					case Empty:
-						break;
-					case Grass:
-						colour = new Vector4f(0.1f, 0.7f, 0.1f, 1f);
-						FrameUtils.appendToList(meshTransformAttribute.data, tilePosition);
-						colourAttribute.data.add(colour.x);
-						colourAttribute.data.add(colour.y);
-						colourAttribute.data.add(colour.z);
-						colourAttribute.data.add(colour.w);
-						chunkMesh.renderCount += 1;
-						break;
-					case Water:
-						colour = new Vector4f(0.1f, 0f, 0.7f, 1f);
-						FrameUtils.appendToList(meshTransformAttribute.data, tilePosition);
-						colourAttribute.data.add(colour.x);
-						colourAttribute.data.add(colour.y);
-						colourAttribute.data.add(colour.z);
-						colourAttribute.data.add(colour.w);
-						chunkMesh.renderCount += 1;
-						break;
-					default:
-						break;
-
-				}
-
-			}
-		}
-		meshTransformAttribute.update.set(true);
-		colourAttribute.update.set(true);
-	}
-
-	private RenderableVAO bakeChunk(Vector3f chunkPos, Chunk chunk) {
-		// MeshExt m = new MeshExt();
-		ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh m2 = ShaderProgramDefinitions.collection._3D_unlit_flat.createMesh();
-		m2.colourAttribute.instanced = true;
-
-		// WorldRenderer.setupDiscardMesh3D(m, 4);
-		m2.modelRenderType = GLDrawMode.TriangleFan;
-		m2.name = "chunk_" + (int) chunkPos.x + "_" + (int) chunkPos.y;
-		m2.vertexCount = 4;
-		m2.renderCount = 0;
-
-		m2.vertexAttribute.data.add(0f);
-		m2.vertexAttribute.data.add(0f);
-		m2.vertexAttribute.data.add(0f);
-
-		m2.vertexAttribute.data.add(LevelData.tileSize);
-		m2.vertexAttribute.data.add(0f);
-		m2.vertexAttribute.data.add(0f);
-
-		m2.vertexAttribute.data.add(LevelData.tileSize);
-		m2.vertexAttribute.data.add(LevelData.tileSize);
-		m2.vertexAttribute.data.add(0f);
-
-		m2.vertexAttribute.data.add(0f);
-		m2.vertexAttribute.data.add(LevelData.tileSize);
-		m2.vertexAttribute.data.add(0f);
-		rebake(chunkPos, chunk, m2);
-		//bakeChunkV2(chunkPos, chunk);
-		return m2;
-	}
-	
-	private void addToAttribute(Attribute vertexAttribute, Vector3i key, int subdivisions, int z){
+	private Vector3f calculateFromVecI(Vector3i key, int subdivisions){
 		float x = ((float) key.x / (float) subdivisions) * LevelData.tileSize;
 		float y = ((float) key.y / (float) subdivisions) * LevelData.tileSize;
+		float z = ((float) key.z / 50f);
 		Vector3f vertex = new Vector3f(x, y, z);
-		FrameUtils.appendToList(vertexAttribute.data, vertex);
+		return vertex;
 	}
 
-	private void addToFace(int faceIndex){
-
+	private List<Integer> processFace(Map<Vector3i, Integer> face, Vector2f mid){
+		ArrayList<Vector3i> sortedList = new ArrayList<>(face.keySet());
+		Collections.sort(sortedList, (e1, e2) ->
+			FrameUtils.rotationCompare2D(e2.x, e2.y, mid.x,mid.y,e1.x,e1.y, -45f)
+		);
+		List<Integer> faceIndicies = new ArrayList<>();
+		boolean flip = false;
+		while(sortedList.size() >= 3)
+		{
+			Vector3i a = sortedList.remove(0);
+			Vector3i b = sortedList.get(0);
+			Vector3i c = sortedList.get(sortedList.size() -1);
+			faceIndicies.add(face.get(a));
+			if(flip)
+				faceIndicies.add(face.get(b));
+			faceIndicies.add(face.get(c));
+			if(!flip)
+				faceIndicies.add(face.get(b));
+			flip = !flip;
+		}
+		return faceIndicies;
 	}
 
-	private RenderableVAO bakeChunkV2(Vector3f chunkPos, Chunk chunk) {
-		ShaderProgramDefinitions.ShaderProgramDefinition_3D_lit_flat.Mesh m2 = ShaderProgramDefinitions.collection._3D_lit_flat.createMesh();
+	private void bakeChunkV2(ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh m2, Vector3f chunkPosition, Chunk chunk) {
+		FrameUtils.appendToList(m2.meshTransformAttribute.data, new Matrix4f().translate(chunkPosition));
+		m2.modelRenderType = GLDrawMode.Triangles;
+		m2.vertexCount = 0;
+		m2.colourAttribute.instanced = false;
+		m2.index = new WeakReference<ShaderProgram.BufferObject>(m2.elementAttribute);
+	}
 
-		m2.modelRenderType = GLDrawMode.TriangleFan;
-		m2.name = "chunk_" + (int) chunkPos.x + "_" + (int) chunkPos.y;
-		
+	private void rebakeChunkV2(Attribute vertexAttribute, Attribute colourAttribute, BufferObject elementAttribute, Chunk chunk) {
+		//Clear
+		{
+			for(BufferObject buffer : new BufferObject[]{vertexAttribute, colourAttribute, elementAttribute}){
+				buffer.data.clear();
+			}
+		}
+
+
 		Map<TerrainType, Map<Vector3i, Integer>> visibleVerticesByTileType = new HashMap<>();
-		//TODO keep at one until actual subdivition and triangulation
-		final int subdivisions = 1; 
-		for(int x = 0; x < LevelData.chunkSize ; x++){
-			for(int y = 0; y < LevelData.chunkSize ; y++){
-				if(chunk.tiles[x][y].terrain != TerrainType.Empty){
-					int faceIndex = 0;
-					Map<Vector3i, Integer> visibleVertices = visibleVerticesByTileType.getOrDefault(chunk.tiles[x][y].terrain, new HashMap<>());
+		int runningFaceIndex = 0;
 
-					for(int ix = 0 ; ix < subdivisions + 1; ix++){
-						for(int iy = 0; iy < subdivisions + 1; iy++){
+		final int subdivisions = 1;
+		for(int x = 0; x < LevelData.chunkSize ; x++ ){
+			for(int y = 0; y < LevelData.chunkSize ; y++ ){
+				TerrainType tile = chunk.tiles[x][y].terrain;
+				if(tile != TerrainType.Empty){
+					Map<Vector3i, Integer> visibleVertices = visibleVerticesByTileType.get(tile);
+					if(visibleVertices == null){
+						visibleVertices = new CollectionSuppliers.MapSupplier<Vector3i,Integer>().get();
+						visibleVerticesByTileType.put(tile, visibleVertices);
+					}
+
+
+					Map<Vector3i, Integer> face = new CollectionSuppliers.MapSupplier<Vector3i, Integer>().get();
+
+
+					for(int iy = 0; iy < subdivisions + 1; iy++){
+						for(int ix = 0 ; ix < subdivisions + 1; ix++){
+							//only the outside edges, dont need middle points
 							if( ix == 0 || ix == subdivisions || iy == 0 || iy == subdivisions ){
 								Vector3i v = new Vector3i(x * subdivisions + ix, y * subdivisions + iy, chunk.tiles[x][y].height);
+								Vector3f vertex = calculateFromVecI(v, subdivisions);
+
+								//get face index, or set it if it didnt have one
 								Integer value = visibleVertices.get(v);
 								if(value == null){
-									value = visibleVertices.size();
+									value = runningFaceIndex;
+									runningFaceIndex += 1;
 									visibleVertices.putIfAbsent(v, value);
-									addToAttribute(m2.vertexAttribute, v, subdivisions, v.z);
+									//if it didnt have one, we can put it into the data array too
+									FrameUtils.appendToList(vertexAttribute.data, vertex);
+									Vector4f colour = new Vector4f(1, 0, 0, 1);
+									switch (tile) {
+										case Empty:
+											break;
+										case Grass:
+											colour = new Vector4f(0.1f, 0.7f, 0.1f, 1f);
+											break;
+										case Water:
+											colour = new Vector4f(0.1f, 0f, 0.7f, 1f);
+											break;
+										default:
+											break;
+
+									}
+									FrameUtils.appendToList(colourAttribute.data, colour);
 								}
-								// TODO this is using a currently correct winding order, any increase to subdiviion needs to be chaned
-								addToFace(faceIndex);
+								face.put(v, value);
 
 							}
 						}
 					}
-
+					Vector2f mid = new Vector2f(x * subdivisions, y * subdivisions).add((float) subdivisions / 2f, (float) subdivisions / 2);
+					List<Integer> faceIndicies = processFace(face, mid);
+					elementAttribute.data.addAll(faceIndicies);
 				}
 			}
 		}
-		return m2;
+		//FrameUtils.appendToList(meshNormalMatrixAttribute.data, new Matrix4f());
+		//update
+		{
+			for(BufferObject buffer : new BufferObject[]{vertexAttribute, colourAttribute, elementAttribute}){
+				buffer.update.set(true);
+			}
+		}
 	}
 
 	Set<Vector2i> currentlyVisibleChunks = new CollectionSuppliers.SetSupplier<Vector2i>().get();
@@ -414,11 +409,13 @@ public class LevelRenderer {
 				cityBuilder.gameUI.handlePitchingTick(cityBuilder.window, mousePos, arm);
 				cityBuilder.gameUI.handleScrollingTick(arm);
 
-				long mouseLeftClick = cityBuilder.window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
+				/*long mouseLeftClick = cityBuilder.window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
 				if (mouseLeftClick > 0) {
 					Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, cityBuilder.window.getID(),viewMatrices.projectionMatrix, viewMatrices.viewMatrix);
 					rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z), new Vector3f(camera.position), cityBuilder.level);
-				}
+				}*/
+				Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, cityBuilder.window.getID(),viewMatrices.projectionMatrix, viewMatrices.viewMatrix);
+				rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z), new Vector3f(camera.position), cityBuilder.level);
 
 				// TODO level clear colour
 				cityBuilder.window.clearColour.set(0f, 0f, 0f, 0f);
