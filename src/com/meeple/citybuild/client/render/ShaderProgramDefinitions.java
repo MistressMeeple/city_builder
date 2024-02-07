@@ -318,8 +318,19 @@ public class ShaderProgramDefinitions {
 
         public class Mesh extends BaseShaderProgram<E>.Mesh {
 
+            public BufferObject elementAttribute;
             protected Mesh() {
             }
+        }
+
+        public E createMesh(){
+            E mesh = (E) super.createMesh();
+            if (mesh.elementAttribute == null) {
+                mesh.elementAttribute = MeshAttributeGenerator.generateElementAttribute();
+                mesh.VBOs.add(mesh.elementAttribute);
+                //mesh.index = new WeakReference<ShaderProgram.BufferObject>(mesh.elementAttribute);
+            }
+            return mesh;
         }
 
     }
@@ -357,6 +368,11 @@ public class ShaderProgramDefinitions {
                 mesh.instanceAttributes.put(colour_AttributeName,
                         new WeakReference<ShaderProgram.Attribute>(mesh.colourAttribute));
             }
+            if (mesh.elementAttribute == null) {
+                mesh.elementAttribute = MeshAttributeGenerator.generateElementAttribute();
+                mesh.VBOs.add(mesh.elementAttribute);
+                //mesh.index = new WeakReference<ShaderProgram.BufferObject>(mesh.elementAttribute);
+            }
             mesh.modelRenderType = GLDrawMode.Line;
 
             return mesh;
@@ -369,7 +385,6 @@ public class ShaderProgramDefinitions {
 
         public class Mesh extends _3DShaderProgram<E>.Mesh {
             public Attribute normalAttribute;
-            public BufferObject elementAttribute;
             public Attribute meshNormalMatrixAttribute;
 
             protected Mesh() {
@@ -390,11 +405,6 @@ public class ShaderProgramDefinitions {
                 mesh.VBOs.add(mesh.normalAttribute);
             }
 
-            if (mesh.elementAttribute == null) {
-                mesh.elementAttribute = MeshAttributeGenerator.generateElementAttribute();
-                mesh.VBOs.add(mesh.elementAttribute);
-                mesh.index = new WeakReference<ShaderProgram.BufferObject>(mesh.elementAttribute);
-            }
             if (mesh.meshNormalMatrixAttribute == null) {
                 mesh.meshNormalMatrixAttribute = MeshAttributeGenerator.generateMeshNormalMatrixAttribute();
                 mesh.VBOs.add(mesh.meshNormalMatrixAttribute);

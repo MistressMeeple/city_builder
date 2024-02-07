@@ -3,6 +3,7 @@ package com.meeple.shared;
 import static org.lwjgl.assimp.Assimp.*;
 
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.HashMap;
@@ -143,6 +144,7 @@ public class ModelLoader {
         }
         {
             BufferObject elementAttrib = mesh.elementAttribute;
+            mesh.index = new WeakReference<ShaderProgram.BufferObject>(elementAttrib);
             // elementAttrib.dataSize = 3;
 
             AIFace.Buffer facesBuffer = aim.mFaces();
