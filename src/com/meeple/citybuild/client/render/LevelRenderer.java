@@ -59,47 +59,43 @@ public class LevelRenderer {
 		Attribute translationAttrib = new Attribute();
 	}
 
+	Set<Chunk> processedChunks = new CollectionSuppliers.SetSupplier<Chunk>().get();
+
 	public void preRender(LevelData level, GLContext glContext, ShaderProgram program) {
+		for (Entry<Chunk, RenderableVAO> queuedChunkMeshEntry : queuedChunksToBindToProgram.entrySet()) {
+			logger.trace("Uploading chunk mesh to GPU");
+			Chunk chunk = queuedChunkMeshEntry.getKey();
+			RenderableVAO chunkMesh = queuedChunkMeshEntry.getValue();
+			ShaderProgramSystem.loadVAO(glContext, program, chunkMesh);
+			baked.put(chunk, chunkMesh);
+			processedChunks.add(chunk);
+		}
+		for (Chunk processed : processedChunks) {
+			queuedChunksToBindToProgram.remove(processed);
+		}
+		Set<Vector2i> set = currentlyVisibleChunks;
+		for (Iterator<Vector2i> i = set.iterator(); i.hasNext();) {
 
-		Set<Entry<Vector2i, Chunk>> set = level.chunks.entrySet();
-		synchronized (level.chunks) {
-			for (Iterator<Entry<Vector2i, Chunk>> i = set.iterator(); i.hasNext();) {
-				Entry<Vector2i, Chunk> entry = i.next();
-				Vector2i loc = entry.getKey();
-				Chunk chunk = entry.getValue();
-				Vector3f chunkPos = new Vector3f(loc.x * LevelData.fullChunkSize, loc.y * LevelData.fullChunkSize, 0);
-				RenderableVAO m = baked.get(chunk);
+			Vector2i loc = i.next();
+			Chunk chunk = level.chunks.get(loc);
+			RenderableVAO m = baked.get(chunk);
 
-				if (chunk.rebake.get()) {
-					logger.debug("rebake");
-					if(m!=null && m instanceof ShaderProgramDefinition_3D_unlit_flat.Mesh){
-						ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh m2 = (ShaderProgramDefinition_3D_unlit_flat.Mesh) m;
-						rebakeChunkV2(m2.vertexAttribute, m2.colourAttribute, m2.elementAttribute, chunk);
-						m2.vertexCount = m2.elementAttribute.data.size();
-						chunk.rebake.set(false);
-					}
+			if (chunk.rebake.get()) {
+				if (m != null && m instanceof ShaderProgramDefinition_3D_unlit_flat.Mesh) {
+					ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh m2 = (ShaderProgramDefinition_3D_unlit_flat.Mesh) m;
+					bakeChunk(m2, chunk);
+					//m2.vertexCount = m2.elementAttribute.data.size();
+					chunk.rebake.set(false);
 				}
-				if (m == null) {
-					m = ShaderProgramDefinitions.collection._3D_unlit_flat.createMesh();
-					bakeChunkV2((ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh) m, chunkPos, chunk);
-					logger.debug("bake");
-					//rebakeChunkV2((ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh) m, chunk);
-
-					ShaderProgramSystem.loadVAO(glContext, program, m);
-					m.visible = false;
-					currentlyVisibleChunks.add(loc);
-					baked.put(chunk, m);
-				}
-
 			}
+
 		}
 	}
-
 
 	public Map<Chunk, RenderableVAO> baked = new CollectionSuppliers.MapSupplier<Chunk, RenderableVAO>().get();
 	public Set<Chunk> needsToBeBaked = new CollectionSuppliers.SetSupplier<Chunk>().get();
 
-	private Vector3f calculateFromVecI(Vector3i key, int subdivisions){
+	private Vector3f calculateFromVecI(Vector3i key, int subdivisions) {
 		float x = ((float) key.x / (float) subdivisions) * LevelData.tileSize;
 		float y = ((float) key.y / (float) subdivisions) * LevelData.tileSize;
 		float z = ((float) key.z / 50f);
@@ -107,79 +103,85 @@ public class LevelRenderer {
 		return vertex;
 	}
 
-	private List<Integer> processFace(Map<Vector3i, Integer> face, Vector2f mid){
+	private List<Integer> processFace(Map<Vector3i, Integer> face, Vector2f mid) {
 		ArrayList<Vector3i> sortedList = new ArrayList<>(face.keySet());
-		Collections.sort(sortedList, (e1, e2) ->
-			FrameUtils.rotationCompare2D(e2.x, e2.y, mid.x,mid.y,e1.x,e1.y, -45f)
-		);
+		Collections.sort(sortedList,
+				(e1, e2) -> FrameUtils.rotationCompare2D(e2.x, e2.y, mid.x, mid.y, e1.x, e1.y, -45f));
 		List<Integer> faceIndicies = new ArrayList<>();
 		boolean flip = false;
-		while(sortedList.size() >= 3)
-		{
+		while (sortedList.size() >= 3) {
 			Vector3i a = sortedList.remove(0);
 			Vector3i b = sortedList.get(0);
-			Vector3i c = sortedList.get(sortedList.size() -1);
+			Vector3i c = sortedList.get(sortedList.size() - 1);
 			faceIndicies.add(face.get(a));
-			if(flip)
+			if (flip)
 				faceIndicies.add(face.get(b));
 			faceIndicies.add(face.get(c));
-			if(!flip)
+			if (!flip)
 				faceIndicies.add(face.get(b));
 			flip = !flip;
 		}
 		return faceIndicies;
 	}
 
-	private void bakeChunkV2(ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh m2, Vector3f chunkPosition, Chunk chunk) {
-		FrameUtils.appendToList(m2.meshTransformAttribute.data, new Matrix4f().translate(chunkPosition));
-		m2.modelRenderType = GLDrawMode.Triangles;
-		m2.vertexCount = 0;
-		m2.colourAttribute.instanced = false;
-		m2.index = new WeakReference<ShaderProgram.BufferObject>(m2.elementAttribute);
+	private ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh createChunkMesh(Chunk chunk) {
+		Vector2i chunkIndex = chunk.chunkIndex.get();
+		
+		logger.trace(String.format("Initialising chunk [%d, %d]'s mesh", chunkIndex.x, chunkIndex.y));
+
+		ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh chunkMesh = ShaderProgramDefinitions.collection._3D_unlit_flat.createMesh();
+		Vector3f chunkPosition = new Vector3f(chunkIndex.x * LevelData.fullChunkSize, chunkIndex.y * LevelData.fullChunkSize, 0);
+		FrameUtils.appendToList(chunkMesh.meshTransformAttribute.data, new Matrix4f().translate(chunkPosition));
+		chunkMesh.modelRenderType = GLDrawMode.Triangles;
+		chunkMesh.vertexCount = 0;
+		chunkMesh.colourAttribute.instanced = false;
+		chunkMesh.index = new WeakReference<ShaderProgram.BufferObject>(chunkMesh.elementAttribute);
+		chunkMesh.visible = false;
+		return chunkMesh;
 	}
 
-	private void rebakeChunkV2(Attribute vertexAttribute, Attribute colourAttribute, BufferObject elementAttribute, Chunk chunk) {
-		//Clear
+	private void bakeChunk(ShaderProgramDefinition_3D_unlit_flat.Mesh mesh, Chunk chunk) {
+		Vector2i chunkIndex = chunk.chunkIndex.get();
+		logger.trace(String.format("Rebaking chunk [%d, %d]' mesh", chunkIndex.x, chunkIndex.y));
+		// Clear
 		{
-			for(BufferObject buffer : new BufferObject[]{vertexAttribute, colourAttribute, elementAttribute}){
+			for (BufferObject buffer : new BufferObject[] { mesh.vertexAttribute, mesh.colourAttribute, mesh.elementAttribute }) {
 				buffer.data.clear();
 			}
 		}
-
 
 		Map<TerrainType, Map<Vector3i, Integer>> visibleVerticesByTileType = new HashMap<>();
 		int runningFaceIndex = 0;
 
 		final int subdivisions = 1;
-		for(int x = 0; x < LevelData.chunkSize ; x++ ){
-			for(int y = 0; y < LevelData.chunkSize ; y++ ){
+		for (int x = 0; x < LevelData.chunkSize; x++) {
+			for (int y = 0; y < LevelData.chunkSize; y++) {
 				TerrainType tile = chunk.tiles[x][y].terrain;
-				if(tile != TerrainType.Empty){
+				if (tile != TerrainType.Empty) {
 					Map<Vector3i, Integer> visibleVertices = visibleVerticesByTileType.get(tile);
-					if(visibleVertices == null){
-						visibleVertices = new CollectionSuppliers.MapSupplier<Vector3i,Integer>().get();
+					if (visibleVertices == null) {
+						visibleVertices = new CollectionSuppliers.MapSupplier<Vector3i, Integer>().get();
 						visibleVerticesByTileType.put(tile, visibleVertices);
 					}
 
-
 					Map<Vector3i, Integer> face = new CollectionSuppliers.MapSupplier<Vector3i, Integer>().get();
 
-
-					for(int iy = 0; iy < subdivisions + 1; iy++){
-						for(int ix = 0 ; ix < subdivisions + 1; ix++){
-							//only the outside edges, dont need middle points
-							if( ix == 0 || ix == subdivisions || iy == 0 || iy == subdivisions ){
-								Vector3i v = new Vector3i(x * subdivisions + ix, y * subdivisions + iy, chunk.tiles[x][y].height);
+					for (int iy = 0; iy < subdivisions + 1; iy++) {
+						for (int ix = 0; ix < subdivisions + 1; ix++) {
+							// only the outside edges, dont need middle points
+							if (ix == 0 || ix == subdivisions || iy == 0 || iy == subdivisions) {
+								Vector3i v = new Vector3i(x * subdivisions + ix, y * subdivisions + iy,
+										chunk.tiles[x][y].height);
 								Vector3f vertex = calculateFromVecI(v, subdivisions);
 
-								//get face index, or set it if it didnt have one
+								// get face index, or set it if it didnt have one
 								Integer value = visibleVertices.get(v);
-								if(value == null){
+								if (value == null) {
 									value = runningFaceIndex;
 									runningFaceIndex += 1;
 									visibleVertices.putIfAbsent(v, value);
-									//if it didnt have one, we can put it into the data array too
-									FrameUtils.appendToList(vertexAttribute.data, vertex);
+									// if it didnt have one, we can put it into the data array too
+									FrameUtils.appendToList(mesh.vertexAttribute.data, vertex);
 									Vector4f colour = new Vector4f(1, 0, 0, 1);
 									switch (tile) {
 										case Empty:
@@ -194,28 +196,32 @@ public class LevelRenderer {
 											break;
 
 									}
-									FrameUtils.appendToList(colourAttribute.data, colour);
+									FrameUtils.appendToList(mesh.colourAttribute.data, colour);
 								}
 								face.put(v, value);
 
 							}
 						}
 					}
-					Vector2f mid = new Vector2f(x * subdivisions, y * subdivisions).add((float) subdivisions / 2f, (float) subdivisions / 2);
+					Vector2f mid = new Vector2f(x * subdivisions, y * subdivisions).add((float) subdivisions / 2f,
+							(float) subdivisions / 2);
 					List<Integer> faceIndicies = processFace(face, mid);
-					elementAttribute.data.addAll(faceIndicies);
+					mesh.elementAttribute.data.addAll(faceIndicies);
 				}
 			}
 		}
-		//FrameUtils.appendToList(meshNormalMatrixAttribute.data, new Matrix4f());
-		//update
+		mesh.vertexCount = mesh.elementAttribute.data.size();
+		// FrameUtils.appendToList(meshNormalMatrixAttribute.data, new Matrix4f());
+		// update
 		{
-			for(BufferObject buffer : new BufferObject[]{vertexAttribute, colourAttribute, elementAttribute}){
+			for (BufferObject buffer : new BufferObject[] { mesh.vertexAttribute, mesh.colourAttribute, mesh.elementAttribute }) {
 				buffer.update.set(true);
 			}
 		}
 	}
 
+	Map<Chunk, RenderableVAO> queuedChunksToBindToProgram = new CollectionSuppliers.MapSupplier<Chunk, RenderableVAO>()
+			.get();
 	Set<Vector2i> currentlyVisibleChunks = new CollectionSuppliers.SetSupplier<Vector2i>().get();
 
 	private void onCameraChange(Vector3f cameraPosition, Matrix4f viewFrustrum, LevelData level) {
@@ -224,58 +230,70 @@ public class LevelRenderer {
 		List<Vector2i> toSearch = new CollectionSuppliers.ListSupplier<Vector2i>().get();
 		Set<Vector2i> searched = new CollectionSuppliers.SetSupplier<Vector2i>().get();
 
-		//initial search area
+		// initial search area
 		{
 			Vector2i start = new Vector2i(GameManager.chunk(cameraPosition.x), GameManager.chunk(cameraPosition.y));
 			toSearch.add(start);
-			//TODO better search radius start
-			//atm just get the current lookAt vector and do a small grid around and flood fill
-			//should calculate visible chunk indices based on view frustrum and flood fill with those
+			// TODO better search radius start
+			// atm just get the current lookAt vector and do a small grid around and flood
+			// fill
+			// should calculate visible chunk indices based on view frustrum and flood fill
+			// with those
 			int radi = 3;
-			for(int x = -radi; x < radi; x++){
-				for(int y = -radi; y < radi; y++){
+			for (int x = -radi; x < radi; x++) {
+				for (int y = -radi; y < radi; y++) {
 					Vector2i next = start.add(x, y, new Vector2i());
 					toSearch.add(next);
 				}
 			}
-			for(Vector2i visible: currentlyVisibleChunks){
+			for (Vector2i visible : currentlyVisibleChunks) {
 				toSearch.add(visible);
 			}
 		}
 
-		while(!toSearch.isEmpty()){
-			//pop
+		while (!toSearch.isEmpty()) {
+			// pop
 			Vector2i current = toSearch.remove(0);
 
-			//check
-			Vector3f chunkPos = new Vector3f(current.x * LevelData.fullChunkSize, current.y * LevelData.fullChunkSize, 0);
-			RenderableVAO chunk = baked.get(GameManager.getChunk(
-				level,
-				chunkPos.add(
-					LevelData.fullChunkSize/2,
-					LevelData.fullChunkSize/2,
-					0,
-					new Vector3f()
-					)
-					));
-			int intersectCode  = fi.intersectAab(chunkPos, chunkPos.add(LevelData.fullChunkSize, LevelData.fullChunkSize, LevelData.fullChunkSize, new Vector3f()));
+			// check
+			Vector3f chunkPos = new Vector3f(current.x * LevelData.fullChunkSize, current.y * LevelData.fullChunkSize,
+					0);
+
+			Chunk chunk = GameManager.getChunk(
+					level,
+					chunkPos.add(
+							LevelData.fullChunkSize / 2,
+							LevelData.fullChunkSize / 2,
+							0,
+							new Vector3f()));
+			if (chunk == null) {
+				continue;
+			}
+			RenderableVAO chunkMesh = baked.get(chunk);
+			if (chunkMesh == null) {
+				ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh m = createChunkMesh(chunk);
+				queuedChunksToBindToProgram.put(chunk, m);
+			}
+			int intersectCode = fi.intersectAab(chunkPos, chunkPos.add(LevelData.fullChunkSize, LevelData.fullChunkSize,
+					LevelData.fullChunkSize, new Vector3f()));
 
 			switch (intersectCode) {
 
 				case FrustumIntersection.INSIDE:
 				case FrustumIntersection.INTERSECT:
-					//if visible, check neighbours
-					if(chunk != null) {
-						//push
-						for(int x = -1; x < 1; x++){
-							for(int y = -1; y < 1; y++){
+					// if visible, check neighbours
+					if (chunk != null) {
+						// push
+						for (int x = -1; x < 1; x++) {
+							for (int y = -1; y < 1; y++) {
 								Vector2i next = current.add(x, y, new Vector2i());
-								if(!searched.contains(next) && level.chunks.containsKey(next)){
+								if (!searched.contains(next) && level.chunks.containsKey(next)) {
 									toSearch.add(next);
 								}
 							}
 						}
-						chunk.visible = true;
+						if (chunkMesh != null)
+							chunkMesh.visible = true;
 						currentlyVisibleChunks.add(current);
 					}
 					// render chunk
@@ -287,9 +305,10 @@ public class LevelRenderer {
 				case FrustumIntersection.PLANE_NZ:
 				case FrustumIntersection.PLANE_PZ:
 				default:
-					if(currentlyVisibleChunks.remove(current)){
-						if(chunk!=null){
-							chunk.visible = false;
+					if (currentlyVisibleChunks.remove(current)) {
+						if (chunk != null) {
+							if (chunkMesh != null)
+								chunkMesh.visible = false;
 						}
 					}
 					break;
@@ -300,7 +319,8 @@ public class LevelRenderer {
 	}
 
 	private ShaderProgramDefinition_3D_unlit_flat.Mesh drawAxis(int size) {
-		ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh mesh = ShaderProgramDefinitions.collection._3D_unlit_flat.createMesh();
+		ShaderProgramDefinitions.ShaderProgramDefinition_3D_unlit_flat.Mesh mesh = ShaderProgramDefinitions.collection._3D_unlit_flat
+				.createMesh();
 
 		int count = 3;
 		FloatBuffer verts = BufferUtils.createFloatBuffer(2 * 3 * count);
@@ -337,22 +357,22 @@ public class LevelRenderer {
 		return mesh;
 	}
 
-	public Tickable renderGame(CityBuilderMain cityBuilder, GLContext _glContext, RayHelper rh, KeyInputSystem keyInput) {
+	public Tickable renderGame(CityBuilderMain cityBuilder, GLContext _glContext, RayHelper rh,
+			KeyInputSystem keyInput) {
 
 		// ShaderProgram mainProgram = new ShaderProgram();
 		ShaderProgram program = ShaderProgramDefinitions.collection._3D_unlit_flat;
 		ShaderProgram uiProgram = ShaderProgramDefinitions.collection.UI;
 
 		CameraSystem vpSystem = new CameraSystem();
-		//VPMatrix vpMatrix = new VPMatrix();
+		// VPMatrix vpMatrix = new VPMatrix();
 		Camera camera = new Camera();
 		CameraSpringArm arm = camera.springArm;
-		arm.addDistance(1f);
-		arm.addPitch(30);
+		arm.addDistance(0f);
+		arm.addPitch(80f);
 
 		Entity cameraAnchorEntity = new Entity();
 		arm.lookAt = () -> cameraAnchorEntity.position;
-
 
 		ViewMatrices viewMatrices = new ViewMatrices();
 		FrameUtils.calculateProjectionMatrixPerspective(cityBuilder.window.bounds.width, cityBuilder.window.bounds.height, 90, 0.001f, 1000f, viewMatrices.projectionMatrix);
@@ -365,7 +385,8 @@ public class LevelRenderer {
 
 			ShaderProgramSystem.create(glContext, ShaderProgramDefinitions.collection.UI);
 
-			ShaderProgramDefinitions.collection.setupUIProjectionMatrixUBO(glContext, ShaderProgramDefinitions.collection.UI);
+			ShaderProgramDefinitions.collection.setupUIProjectionMatrixUBO(glContext,
+					ShaderProgramDefinitions.collection.UI);
 			ShaderProgramDefinitions.collection.updateUIProjectionMatrix(orthoMatrix);
 
 			ShaderProgram debugProgram = ShaderProgramDefinitions.collection._3D_unlit_flat;
@@ -378,16 +399,14 @@ public class LevelRenderer {
 			cityBuilder.window.callbacks.mouseButtonCallbackSet.add(cityBuilder.gameUI::GLFWMouseButtonCallbackI);
 			cityBuilder.window.callbacks.cursorPosCallbackSet.add(cityBuilder.gameUI::GLFWCursorPosCallback);
 
-			cityBuilder.gameUI.init(cityBuilder.window.getID(), cityBuilder.window.nkContext.context, () -> orthoMatrix);
+			cityBuilder.gameUI.init(cityBuilder.window.getID(), cityBuilder.window.nkContext.context,
+					() -> orthoMatrix);
 			cityBuilder.gameUI.setupCompas(glContext, uiProgram);
 			cityBuilder.gameUI.setupCompasLine(glContext, uiProgram);
 
-
 			ShaderProgramSystem.create(glContext, ShaderProgramDefinitions.collection._3D_lit_flat);
 			ShaderProgramSystem.findAllUniforms(ShaderProgramDefinitions.collection._3D_lit_flat);
-
 		});
-
 
 		return (glContext, time) -> {
 			// vpSystem.projSystem.update(vpMatrix.proj.getWrapped());
@@ -409,12 +428,7 @@ public class LevelRenderer {
 				cityBuilder.gameUI.handlePitchingTick(cityBuilder.window, mousePos, arm);
 				cityBuilder.gameUI.handleScrollingTick(arm);
 
-				/*long mouseLeftClick = cityBuilder.window.mousePressTicks.getOrDefault(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0l);
-				if (mouseLeftClick > 0) {
-					Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, cityBuilder.window.getID(),viewMatrices.projectionMatrix, viewMatrices.viewMatrix);
-					rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z), new Vector3f(camera.position), cityBuilder.level);
-				}*/
-				Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, cityBuilder.window.getID(),viewMatrices.projectionMatrix, viewMatrices.viewMatrix);
+				Vector4f cursorRay = CursorHelper.getMouse(SpaceState.World_Space, cityBuilder.window.getID(), viewMatrices.projectionMatrix, viewMatrices.viewMatrix);
 				rh.update(new Vector3f(cursorRay.x, cursorRay.y, cursorRay.z), new Vector3f(camera.position), cityBuilder.level);
 
 				// TODO level clear colour
@@ -436,4 +450,5 @@ public class LevelRenderer {
 			return false;
 		};
 	}
+
 }
