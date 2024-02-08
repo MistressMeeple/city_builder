@@ -1,6 +1,7 @@
 package com.meeple.citybuild.server;
 
 import java.io.Serializable;
+import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -66,13 +67,14 @@ public class LevelData implements Serializable {
 	public class Chunk implements Serializable {
 		public AtomicBoolean rebake = new AtomicBoolean(true);
 		private static final long serialVersionUID = 5810527395504498634L;
-
+		public transient WeakReference<Vector2i> chunkIndex;
 		/**
 		 * Map of the tiles used in the chunk
 		 */
 		public Tile[][] tiles;
 
-		public Chunk() {
+		public Chunk(Vector2i chunkIndex) {
+			this.chunkIndex = new WeakReference<Vector2i>(chunkIndex);
 			tiles = new Tile[chunkSize][chunkSize];
 			for (int x = 0; x < chunkSize; x++) {
 				for (int y = 0; y < chunkSize; y++) {

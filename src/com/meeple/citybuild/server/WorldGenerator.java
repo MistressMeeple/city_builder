@@ -1,5 +1,6 @@
 package com.meeple.citybuild.server;
 
+import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -92,8 +93,8 @@ public class WorldGenerator {
 		Random random = new Random(seed);
 		for (int x = -minRadi; x < radi; x++) {
 			for (int y = -minRadi; y < radi; y++) {
-
-				Chunk mainChunk = level.new Chunk();
+				Vector2i chunkIndex = new Vector2i(x, y);
+				Chunk mainChunk = level.new Chunk(chunkIndex);
 				for (int tx = 0; tx < mainChunk.tiles.length; tx++) {
 					for (int ty = 0; ty < mainChunk.tiles[tx].length; ty++) {
 
@@ -107,7 +108,7 @@ public class WorldGenerator {
 					}
 				}
 
-				level.chunks.put(new Vector2i(x, y), mainChunk);
+				level.chunks.put(chunkIndex, mainChunk);
 			}
 		}
 	}
